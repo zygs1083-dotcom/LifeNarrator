@@ -44,13 +44,6 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-# Debug builds use the stable self-signed identity from scripts/mac-dev-signing.sh when present.
-KEYCHAIN=.dev-data/signing/dev.keychain-db
-if [[ "$CONFIG" == debug && -f "$KEYCHAIN" ]]; then
-  security unlock-keychain -p lifenarrator-dev "$KEYCHAIN"
-  codesign --force --deep --keychain "$PWD/$KEYCHAIN" --sign "LifeNarrator Dev" "$APP"
-else
-  codesign --force --deep --sign - "$APP"
-fi
+codesign --force --deep --sign - "$APP"
 (cd dist && rm -f LifeNarrator.zip && ditto -c -k --keepParent LifeNarrator.app LifeNarrator.zip)
 echo "dist/LifeNarrator.app  dist/LifeNarrator.zip"
