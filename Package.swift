@@ -2,7 +2,8 @@
 import PackageDescription
 
 var targets: [Target] = [
-    .target(name: "NarratorCore"),
+    .target(name: "NarratorCore", resources: [.process("Resources")]),
+    .testTarget(name: "NarratorCoreTests", dependencies: ["NarratorCore"]),
 ]
 
 // macOS-only targets are left out on Linux so NarratorCore can be built and tested there.

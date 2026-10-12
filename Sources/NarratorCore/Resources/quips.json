@@ -1,0 +1,4764 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "builtin.app.dingtalk",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "钉钉",
+        "en": "DingTalk"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.alibaba.DingTalkMac"
+        ],
+        "appNames": [
+          "钉钉",
+          "DingTalk"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又要上班了！",
+          "emoji": [
+            "😩",
+            "☕"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "叮——社畜上线",
+          "emoji": [
+            "🔔",
+            "🐴"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "上班辛苦啦，加油",
+          "emoji": [
+            "💪",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "先喝口水再回消息",
+          "emoji": [
+            "💧",
+            "🍵"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "打工人，觉醒吧",
+          "emoji": [
+            "⚡",
+            "🔥"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "钉钉结界已展开",
+          "emoji": [
+            "🔮",
+            "🛡️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Work found you again.",
+          "emoji": [
+            "😩",
+            "☕"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Ding! Your freedom just expired.",
+          "emoji": [
+            "🔔",
+            "💀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "You've got this. Go easy.",
+          "emoji": [
+            "💪",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "One message at a time.",
+          "emoji": [
+            "💧",
+            "🐢"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Ding summons thee!",
+          "emoji": [
+            "⚡",
+            "🔔"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Corporate realm, entered.",
+          "emoji": [
+            "🔮",
+            "🏢"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "这个点还在钉钉？",
+          "emoji": [
+            "🌙",
+            "😵"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "DingTalk at this hour? Ouch.",
+          "emoji": [
+            "🌙",
+            "😵"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "周一的钉钉，慢慢回",
+          "emoji": [
+            "☕",
+            "🐢"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Monday DingTalk, reply slowly",
+          "emoji": [
+            "☕",
+            "🐢"
+          ],
+          "when": "mondayMorning"
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.wechat",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "微信",
+        "en": "WeChat"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.tencent.xinWeChat"
+        ],
+        "appNames": [
+          "微信",
+          "WeChat"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又在群里潜水",
+          "emoji": [
+            "🤿",
+            "🐟"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "红包没有，消息一堆",
+          "emoji": [
+            "🧧",
+            "📨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "有人在想你呀",
+          "emoji": [
+            "💌",
+            "🥰"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "慢慢回，不着急",
+          "emoji": [
+            "🐢",
+            "💚"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "传音符咒，启动",
+          "emoji": [
+            "📜",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "万人群聊，吾不惧",
+          "emoji": [
+            "⚔️",
+            "👥"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "99+ unread. Impressive.",
+          "emoji": [
+            "📨",
+            "😮"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Lurking in the group again?",
+          "emoji": [
+            "🤿",
+            "🐟"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Someone's thinking of you",
+          "emoji": [
+            "💌",
+            "🥰"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Reply when you're ready",
+          "emoji": [
+            "🐢",
+            "💚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The scrolls of chatter unfold",
+          "emoji": [
+            "📜",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "A thousand voices call to me",
+          "emoji": [
+            "⚔️",
+            "👥"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "夜深了，别聊太晚",
+          "emoji": [
+            "🌙",
+            "💤"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "It's late, wrap up the chat",
+          "emoji": [
+            "🌙",
+            "💤"
+          ],
+          "when": "lateNight"
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.feishu",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "飞书 / Lark",
+        "en": "Feishu / Lark"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.electron.lark",
+          "com.larksuite.larkApp"
+        ],
+        "appNames": [
+          "飞书",
+          "Feishu",
+          "Lark"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "文档又被艾特了",
+          "emoji": [
+            "📄",
+            "👀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "飞书飞书，飞不出去",
+          "emoji": [
+            "🐦",
+            "🪤"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "会议记录我帮你盯着",
+          "emoji": [
+            "📝",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "一条一条来，不慌",
+          "emoji": [
+            "🐢",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "协作圣殿，开启",
+          "emoji": [
+            "🏛️",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "汝之日程，吾已阅",
+          "emoji": [
+            "📅",
+            "👁️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Another doc, another @you",
+          "emoji": [
+            "📄",
+            "👀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Lark: where meetings multiply",
+          "emoji": [
+            "🐦",
+            "📈"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Tidy docs, tidy mind",
+          "emoji": [
+            "📝",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Your calendar can wait a sec",
+          "emoji": [
+            "📅",
+            "🐢"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Hall of Collaboration opens",
+          "emoji": [
+            "🏛️",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Thy schedule, I have foreseen",
+          "emoji": [
+            "📅",
+            "👁️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.wecom",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "企业微信",
+        "en": "WeCom"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.tencent.WeWorkMac"
+        ],
+        "appNames": [
+          "企业微信",
+          "WeCom",
+          "WeChat Work"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "绿色的，但不是休息",
+          "emoji": [
+            "🟢",
+            "😑"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "打卡了吗，社畜",
+          "emoji": [
+            "⏰",
+            "🐴"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "下班记得打卡哦",
+          "emoji": [
+            "⏰",
+            "🌙"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "工作群静音也没关系",
+          "emoji": [
+            "🔕",
+            "💚"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "企业之印，已盖",
+          "emoji": [
+            "🏢",
+            "📍"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "考勤审判，开庭",
+          "emoji": [
+            "⚖️",
+            "⏰"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Green icon, zero vacation",
+          "emoji": [
+            "🟢",
+            "😑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Clocked in. Soul clocked out.",
+          "emoji": [
+            "⏰",
+            "👻"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Don't forget to clock out",
+          "emoji": [
+            "⏰",
+            "🌙"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Mute the group, it's fine",
+          "emoji": [
+            "🔕",
+            "💚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Seal of Enterprise is set",
+          "emoji": [
+            "🏢",
+            "📍"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Attendance tribunal, in session",
+          "emoji": [
+            "⚖️",
+            "⏰"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.slack",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Slack",
+        "en": "Slack"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.tinyspeck.slackmacgap"
+        ],
+        "appNames": [
+          "Slack"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又有人 @channel 了",
+          "emoji": [
+            "📣",
+            "🙄"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "Slack 不摸鱼，等于白开",
+          "emoji": [
+            "🐟",
+            "💬"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "表情回应也算回复",
+          "emoji": [
+            "👍",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "频道太多，先看重要的",
+          "emoji": [
+            "📌",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "频道之门，吾来了",
+          "emoji": [
+            "🚪",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "通知风暴，吾挡下",
+          "emoji": [
+            "🌪️",
+            "🛡️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Someone @channel'd. Of course.",
+          "emoji": [
+            "📣",
+            "🙄"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Threads: where answers hide",
+          "emoji": [
+            "🧵",
+            "🔍"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "An emoji reply counts too",
+          "emoji": [
+            "👍",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Mute the noisy ones, it's okay",
+          "emoji": [
+            "🔕",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Gates of Channels open",
+          "emoji": [
+            "🚪",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "I shall withstand the ping storm",
+          "emoji": [
+            "🌪️",
+            "🛡️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.teams",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Microsoft Teams",
+        "en": "Microsoft Teams"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.microsoft.teams2",
+          "com.microsoft.teams"
+        ],
+        "appNames": [
+          "Microsoft Teams",
+          "Teams"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "Teams 又在加载了",
+          "emoji": [
+            "⏳",
+            "😑"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "紫色的会议邀请来了",
+          "emoji": [
+            "🟣",
+            "📅"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "开摄像头前理理头发",
+          "emoji": [
+            "💇",
+            "📷"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "会议总会结束的",
+          "emoji": [
+            "🕊️",
+            "⏰"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "紫色结界，发动",
+          "emoji": [
+            "🟣",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "团队召唤，吾应答",
+          "emoji": [
+            "📞",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Teams is loading. Still.",
+          "emoji": [
+            "⏳",
+            "😑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Purple means meeting. Sorry.",
+          "emoji": [
+            "🟣",
+            "📅"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Fix your hair before camera",
+          "emoji": [
+            "💇",
+            "📷"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Every meeting ends eventually",
+          "emoji": [
+            "🕊️",
+            "⏰"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Purple Barrier activates!",
+          "emoji": [
+            "🟣",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Team summons. I answer.",
+          "emoji": [
+            "📞",
+            "⚡"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.zoom",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Zoom",
+        "en": "Zoom"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "us.zoom.xos"
+        ],
+        "appNames": [
+          "zoom.us",
+          "Zoom"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "静音了吗？再检查一遍",
+          "emoji": [
+            "🔇",
+            "👀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "你在线上吗？在的",
+          "emoji": [
+            "📶",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "镜头前的你很好看",
+          "emoji": [
+            "📷",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "可以关摄像头休息一下",
+          "emoji": [
+            "📷",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "次元视窗，连接",
+          "emoji": [
+            "🌀",
+            "📺"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "远程集会，开幕",
+          "emoji": [
+            "🎪",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "You're on mute. Probably.",
+          "emoji": [
+            "🔇",
+            "👀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Can everyone see my screen?",
+          "emoji": [
+            "🖥️",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "You look great on camera",
+          "emoji": [
+            "📷",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Camera off is allowed, really",
+          "emoji": [
+            "📷",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Portal of faces, connecting",
+          "emoji": [
+            "🌀",
+            "📺"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The remote council convenes",
+          "emoji": [
+            "🎪",
+            "⚡"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.tencentmeeting",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "腾讯会议",
+        "en": "Tencent Meeting"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.tencent.meeting"
+        ],
+        "appNames": [
+          "腾讯会议",
+          "Tencent Meeting",
+          "VooV Meeting"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "会议号输了吗",
+          "emoji": [
+            "🔢",
+            "😑"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又是能发邮件的会",
+          "emoji": [
+            "📧",
+            "🙄"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "进会前深呼吸一下",
+          "emoji": [
+            "🌬️",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "发言前先想好第一句",
+          "emoji": [
+            "💭",
+            "🎤"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "会议之门，开启",
+          "emoji": [
+            "🚪",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "吾之麦克风，已静音",
+          "emoji": [
+            "🎤",
+            "🔇"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Meeting ID, again?",
+          "emoji": [
+            "🔢",
+            "😑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Another meeting that could be an email",
+          "emoji": [
+            "📧",
+            "🙄"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Take a breath before joining",
+          "emoji": [
+            "🌬️",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "You'll do fine, just speak slowly",
+          "emoji": [
+            "💭",
+            "🎤"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Meeting Gate opens",
+          "emoji": [
+            "🚪",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "My microphone... is sealed",
+          "emoji": [
+            "🎤",
+            "🔇"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.xcode",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Xcode",
+        "en": "Xcode"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.apple.dt.Xcode"
+        ],
+        "appNames": [
+          "Xcode"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "编译中，发呆合法",
+          "emoji": [
+            "⏳",
+            "😶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "索引中，请勿打扰",
+          "emoji": [
+            "🔄",
+            "😑"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "报错不是你的错",
+          "emoji": [
+            "🐞",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "编译慢慢来，喝口水",
+          "emoji": [
+            "⏳",
+            "💧"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "苹果圣殿，开工",
+          "emoji": [
+            "🍎",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "错误之海，吾将横渡",
+          "emoji": [
+            "🌊",
+            "⛵"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Building... go stare at a wall",
+          "emoji": [
+            "⏳",
+            "😶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Indexing. Again. Forever.",
+          "emoji": [
+            "🔄",
+            "😑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Errors aren't your fault",
+          "emoji": [
+            "🐞",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Let it build, sip some tea",
+          "emoji": [
+            "⏳",
+            "🍵"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Apple Sanctum awakens",
+          "emoji": [
+            "🍎",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Sea of errors, I shall cross thee",
+          "emoji": [
+            "🌊",
+            "⛵"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "深夜写 Swift？勇士",
+          "emoji": [
+            "🌙",
+            "🗡️"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Swift at midnight? Brave.",
+          "emoji": [
+            "🌙",
+            "🗡️"
+          ],
+          "when": "lateNight"
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.vscode",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "VS Code",
+        "en": "VS Code"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.microsoft.VSCode",
+          "com.microsoft.VSCodeInsiders"
+        ],
+        "appNames": [
+          "Visual Studio Code",
+          "Code"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "插件比代码还多",
+          "emoji": [
+            "🧩",
+            "😏"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又开了十个标签页",
+          "emoji": [
+            "📑",
+            "😵"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "一行一行来，会好的",
+          "emoji": [
+            "🐢",
+            "💚"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "保存了吗？保存一下",
+          "emoji": [
+            "💾",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "代码圣殿，降临",
+          "emoji": [
+            "🏛️",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "插件军团，集结",
+          "emoji": [
+            "🧩",
+            "⚔️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "More extensions than code",
+          "emoji": [
+            "🧩",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Ten tabs open. Classic.",
+          "emoji": [
+            "📑",
+            "😵"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "One line at a time",
+          "emoji": [
+            "🐢",
+            "💚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Did you save? Save now.",
+          "emoji": [
+            "💾",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Code Sanctum descends",
+          "emoji": [
+            "🏛️",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Extension legion, assemble!",
+          "emoji": [
+            "🧩",
+            "⚔️"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "深夜的 bug 明天再修",
+          "emoji": [
+            "🌙",
+            "🐞"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Midnight bugs can wait till morning",
+          "emoji": [
+            "🌙",
+            "🐞"
+          ],
+          "when": "lateNight"
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.cursor",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Cursor",
+        "en": "Cursor"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.todesktop.230313mzl4w4u92"
+        ],
+        "appNames": [
+          "Cursor"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "让 AI 写，你负责点头",
+          "emoji": [
+            "🤖",
+            "🙂"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "Tab 键要被你按坏了",
+          "emoji": [
+            "⌨️",
+            "💥"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "AI 帮你，你也很棒",
+          "emoji": [
+            "🤖",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "看懂了再接受哦",
+          "emoji": [
+            "👀",
+            "✅"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "人机合一，发动",
+          "emoji": [
+            "🤖",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "吾之副驾，觉醒",
+          "emoji": [
+            "🛩️",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "AI writes, you nod. Teamwork.",
+          "emoji": [
+            "🤖",
+            "🙂"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "That Tab key is begging for mercy",
+          "emoji": [
+            "⌨️",
+            "💥"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "AI helps, but you're the brains",
+          "emoji": [
+            "🤖",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Read it before you accept it",
+          "emoji": [
+            "👀",
+            "✅"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Human and machine, as one!",
+          "emoji": [
+            "🤖",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "My copilot awakens",
+          "emoji": [
+            "🛩️",
+            "✨"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.terminal",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "终端 / iTerm2",
+        "en": "Terminal / iTerm2"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.apple.Terminal",
+          "com.googlecode.iterm2"
+        ],
+        "appNames": [
+          "Terminal",
+          "终端",
+          "iTerm2",
+          "iTerm"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "黑屏装酷时间",
+          "emoji": [
+            "🕶️",
+            "🖥️"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "rm 之前看三遍",
+          "emoji": [
+            "👀",
+            "💣"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "命令敲错也没关系",
+          "emoji": [
+            "⌨️",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "记得先看看在哪个目录",
+          "emoji": [
+            "📁",
+            "👀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "黑暗终端，开启",
+          "emoji": [
+            "🌑",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "咒文输入，执行",
+          "emoji": [
+            "📜",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Hacker mode: mostly ls",
+          "emoji": [
+            "🕶️",
+            "🖥️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Read it thrice before rm -rf",
+          "emoji": [
+            "👀",
+            "💣"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Typos happen, it's fine",
+          "emoji": [
+            "⌨️",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Check your directory first",
+          "emoji": [
+            "📁",
+            "👀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Dark Terminal opens",
+          "emoji": [
+            "🌑",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Incantation entered. Execute.",
+          "emoji": [
+            "📜",
+            "✨"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.finder",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "访达",
+        "en": "Finder"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.apple.finder"
+        ],
+        "appNames": [
+          "Finder",
+          "访达"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "桌面文件又堆成山了",
+          "emoji": [
+            "🗻",
+            "📄"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "找文件比找对象还难",
+          "emoji": [
+            "🔍",
+            "😩"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "整理一下，心情会好",
+          "emoji": [
+            "🧹",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "下载文件夹也需要爱",
+          "emoji": [
+            "📥",
+            "💚"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "文件迷宫，探索",
+          "emoji": [
+            "🗺️",
+            "🧭"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "万千文件，吾来统领",
+          "emoji": [
+            "📚",
+            "👑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Your desktop is a landfill",
+          "emoji": [
+            "🗻",
+            "📄"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Finder: where files go to hide",
+          "emoji": [
+            "🔍",
+            "😩"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "A little tidying feels nice",
+          "emoji": [
+            "🧹",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Downloads folder needs love too",
+          "emoji": [
+            "📥",
+            "💚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The File Labyrinth awaits",
+          "emoji": [
+            "🗺️",
+            "🧭"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Ten thousand files, I command thee",
+          "emoji": [
+            "📚",
+            "👑"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.calendar",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "日历",
+        "en": "Calendar"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.apple.iCal"
+        ],
+        "appNames": [
+          "Calendar",
+          "日历"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "日程满了，人没了",
+          "emoji": [
+            "📅",
+            "💀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又一个会，又一个会",
+          "emoji": [
+            "🔁",
+            "😑"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "记得给自己留点空",
+          "emoji": [
+            "🌿",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "今天也会顺利的",
+          "emoji": [
+            "☀️",
+            "🍀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "时间之书，翻开",
+          "emoji": [
+            "📖",
+            "⏳"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "命运的日程，已定",
+          "emoji": [
+            "🔮",
+            "📅"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Calendar full. Life empty.",
+          "emoji": [
+            "📅",
+            "💀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Meeting, meeting, meeting, lunch",
+          "emoji": [
+            "🔁",
+            "🥪"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Leave some blank space for you",
+          "emoji": [
+            "🌿",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Today will go smoothly",
+          "emoji": [
+            "☀️",
+            "🍀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Tome of Time opens",
+          "emoji": [
+            "📖",
+            "⏳"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Thy fate is scheduled",
+          "emoji": [
+            "🔮",
+            "📅"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "周一的日历最吓人",
+          "emoji": [
+            "📅",
+            "😱"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Monday's calendar bites",
+          "emoji": [
+            "📅",
+            "😱"
+          ],
+          "when": "mondayMorning"
+        }
+      ]
+    },
+    {
+      "id": "builtin.app.systemsettings",
+      "kind": "app",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "系统设置",
+        "en": "System Settings"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "bundleIds": [
+          "com.apple.systempreferences"
+        ],
+        "appNames": [
+          "System Settings",
+          "系统设置",
+          "System Preferences"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又来找那个开关了",
+          "emoji": [
+            "🔍",
+            "🎚️"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "设置改了，问题还在",
+          "emoji": [
+            "⚙️",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "慢慢找，设置不会跑",
+          "emoji": [
+            "🐢",
+            "⚙️"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "改完记得试试",
+          "emoji": [
+            "✅",
+            "🔧"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "系统核心，吾来调律",
+          "emoji": [
+            "⚙️",
+            "🎼"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "齿轮之殿，开启",
+          "emoji": [
+            "⚙️",
+            "🏛️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Hunting for that one toggle",
+          "emoji": [
+            "🔍",
+            "🎚️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Changed a setting. Fixed nothing.",
+          "emoji": [
+            "⚙️",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Take your time, it's in there",
+          "emoji": [
+            "🐢",
+            "⚙️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Test it after you change it",
+          "emoji": [
+            "✅",
+            "🔧"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "I shall tune the system core",
+          "emoji": [
+            "⚙️",
+            "🎼"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Hall of Gears opens",
+          "emoji": [
+            "⚙️",
+            "🏛️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.google",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "谷歌",
+        "en": "Google"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "google.com",
+          "google.com.hk",
+          "google.cn"
+        ],
+        "aliases": [
+          "Google",
+          "谷歌"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "不会就搜，搜了还不会",
+          "emoji": [
+            "🔍",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又来投喂谷歌了",
+          "emoji": [
+            "🍽️",
+            "🙄"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "搜不到也没关系的",
+          "emoji": [
+            "🔍",
+            "🌷"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "答案就在第二页",
+          "emoji": [
+            "📄",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "全知之眼，开启",
+          "emoji": [
+            "👁️",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "汝之疑问，交给吾",
+          "emoji": [
+            "❓",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Googling it, as usual",
+          "emoji": [
+            "🔍",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Feeding the search monster again",
+          "emoji": [
+            "🍽️",
+            "🙄"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Hope you find what you need",
+          "emoji": [
+            "🔍",
+            "🌷"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "The answer is on page two",
+          "emoji": [
+            "📄",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The All-Seeing Eye opens",
+          "emoji": [
+            "👁️",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Thy question, I shall answer",
+          "emoji": [
+            "❓",
+            "🔮"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.youtube",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "YouTube",
+        "en": "YouTube"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "youtube.com",
+          "youtu.be"
+        ],
+        "aliases": [
+          "YouTube",
+          "油管"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "就看一个，然后三小时",
+          "emoji": [
+            "▶️",
+            "⏰"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "推荐算法又赢了",
+          "emoji": [
+            "🤖",
+            "🏆"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "看点开心的放松一下",
+          "emoji": [
+            "▶️",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "记得眨眼哦",
+          "emoji": [
+            "👀",
+            "💧"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "影像之海，沉沦",
+          "emoji": [
+            "🌊",
+            "📺"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "自动播放，无法抵抗",
+          "emoji": [
+            "▶️",
+            "🌀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Just one video, they said",
+          "emoji": [
+            "▶️",
+            "⏰"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "The algorithm wins again",
+          "emoji": [
+            "🤖",
+            "🏆"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Enjoy something fun, you earned it",
+          "emoji": [
+            "▶️",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Remember to blink",
+          "emoji": [
+            "👀",
+            "💧"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Sea of Videos consumes me",
+          "emoji": [
+            "🌊",
+            "📺"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Autoplay, an unstoppable force",
+          "emoji": [
+            "▶️",
+            "🌀"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.bilibili",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "哔哩哔哩",
+        "en": "Bilibili"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "bilibili.com",
+          "b23.tv"
+        ],
+        "aliases": [
+          "bilibili",
+          "哔哩哔哩",
+          "B站"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "一键三连，一键摸鱼",
+          "emoji": [
+            "👍",
+            "🐟"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "弹幕比视频好看",
+          "emoji": [
+            "💬",
+            "😏"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "看完这个就去休息吧",
+          "emoji": [
+            "📺",
+            "🌙"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "笑一笑，十年少",
+          "emoji": [
+            "😄",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "小破站，吾之领地",
+          "emoji": [
+            "📺",
+            "👑"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "弹幕护体，发动",
+          "emoji": [
+            "💬",
+            "🛡️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Bilibili: 3 clicks, 3 hours",
+          "emoji": [
+            "👍",
+            "⏰"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "The comments beat the video",
+          "emoji": [
+            "💬",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Rest after this one, okay?",
+          "emoji": [
+            "📺",
+            "🌙"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "A laugh a day keeps stress away",
+          "emoji": [
+            "😄",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Bilibili, my domain!",
+          "emoji": [
+            "📺",
+            "👑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Danmaku shield, activate!",
+          "emoji": [
+            "💬",
+            "🛡️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.github",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "GitHub",
+        "en": "GitHub"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "github.com"
+        ],
+        "aliases": [
+          "GitHub"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又在看别人的 star 数",
+          "emoji": [
+            "⭐",
+            "👀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "Issue 还开着呢",
+          "emoji": [
+            "🐛",
+            "📌"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "每个 commit 都算进步",
+          "emoji": [
+            "🌱",
+            "💚"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "今天的绿格子点亮了吗",
+          "emoji": [
+            "🟩",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "代码圣地，巡礼",
+          "emoji": [
+            "🏛️",
+            "🐙"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "吾之仓库，吾之荣耀",
+          "emoji": [
+            "📦",
+            "👑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Counting other people's stars",
+          "emoji": [
+            "⭐",
+            "👀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "That issue is still open, btw",
+          "emoji": [
+            "🐛",
+            "📌"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Every commit is progress",
+          "emoji": [
+            "🌱",
+            "💚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Light up that green square",
+          "emoji": [
+            "🟩",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Pilgrimage to the Code Shrine",
+          "emoji": [
+            "🏛️",
+            "🐙"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "My repo, my glory",
+          "emoji": [
+            "📦",
+            "👑"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.stackoverflow",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Stack Overflow",
+        "en": "Stack Overflow"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "stackoverflow.com",
+          "stackexchange.com"
+        ],
+        "aliases": [
+          "Stack Overflow",
+          "StackOverflow"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "复制粘贴前看看年份",
+          "emoji": [
+            "📋",
+            "📅"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "答案在评论区",
+          "emoji": [
+            "💬",
+            "👇"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "有人问过，你不孤单",
+          "emoji": [
+            "🫂",
+            "💚"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "报错大家都遇到过",
+          "emoji": [
+            "🐞",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "贤者之塔，登临",
+          "emoji": [
+            "🗼",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "远古答案，重见天日",
+          "emoji": [
+            "🏺",
+            "☀️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Check the year before you paste",
+          "emoji": [
+            "📋",
+            "📅"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Marked as duplicate. Classic.",
+          "emoji": [
+            "🔁",
+            "😑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Someone asked it too, you're not alone",
+          "emoji": [
+            "🫂",
+            "💚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Everyone hits this error",
+          "emoji": [
+            "🐞",
+            "🌿"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Ascending the Tower of Sages",
+          "emoji": [
+            "🗼",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Ancient answers, unearthed",
+          "emoji": [
+            "🏺",
+            "☀️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.zhihu",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "知乎",
+        "en": "Zhihu"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "zhihu.com"
+        ],
+        "aliases": [
+          "知乎",
+          "Zhihu"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "谢邀，人在摸鱼",
+          "emoji": [
+            "🙏",
+            "🐟"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "先问是不是，再问为什么",
+          "emoji": [
+            "❓",
+            "🧐"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "看看别人的故事也不错",
+          "emoji": [
+            "📖",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "别被评论区带跑哦",
+          "emoji": [
+            "💬",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "智慧之海，潜入",
+          "emoji": [
+            "🌊",
+            "🧠"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "吾乃知乎隐者",
+          "emoji": [
+            "🧙",
+            "📚"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Thanks for the invite, I'm slacking",
+          "emoji": [
+            "🙏",
+            "🐟"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Scrolling Zhihu counts as studying",
+          "emoji": [
+            "📱",
+            "🧐"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Other people's stories are nice",
+          "emoji": [
+            "📖",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Don't let the comments drag you",
+          "emoji": [
+            "💬",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Diving into the Sea of Wisdom",
+          "emoji": [
+            "🌊",
+            "🧠"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "I am the hermit of Zhihu",
+          "emoji": [
+            "🧙",
+            "📚"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.weibo",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "微博",
+        "en": "Weibo"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "weibo.com",
+          "weibo.cn"
+        ],
+        "aliases": [
+          "微博",
+          "Weibo"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "热搜又炸了",
+          "emoji": [
+            "🔥",
+            "💥"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "吃瓜要紧，工作不急",
+          "emoji": [
+            "🍉",
+            "😏"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "少看点糟心事哦",
+          "emoji": [
+            "🙈",
+            "🌷"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "刷完记得看看窗外",
+          "emoji": [
+            "🪟",
+            "🌤️"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "瓜田，吾来了",
+          "emoji": [
+            "🍉",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "热搜榜，臣服于吾",
+          "emoji": [
+            "🔥",
+            "👑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "The trending list is on fire",
+          "emoji": [
+            "🔥",
+            "💥"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Gossip first, work later",
+          "emoji": [
+            "🍉",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Skip the upsetting stuff",
+          "emoji": [
+            "🙈",
+            "🌷"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Look out the window after this",
+          "emoji": [
+            "🪟",
+            "🌤️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Melon Field awaits me",
+          "emoji": [
+            "🍉",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Trending list, bow before me",
+          "emoji": [
+            "🔥",
+            "👑"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.taobao",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "淘宝",
+        "en": "Taobao"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "taobao.com",
+          "tmall.com"
+        ],
+        "aliases": [
+          "淘宝",
+          "天猫",
+          "Taobao",
+          "Tmall"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "购物车比存款重",
+          "emoji": [
+            "🛒",
+            "💸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又在凑满减",
+          "emoji": [
+            "🧮",
+            "😏"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "买点开心的小东西吧",
+          "emoji": [
+            "🎁",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "先放购物车冷静一下",
+          "emoji": [
+            "🛒",
+            "🧊"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "剁手之刃，出鞘",
+          "emoji": [
+            "🗡️",
+            "🛒"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "购物车，吾之宝库",
+          "emoji": [
+            "🛒",
+            "💎"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Your cart outweighs your savings",
+          "emoji": [
+            "🛒",
+            "💸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Hunting coupons again",
+          "emoji": [
+            "🎟️",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "A little treat is okay",
+          "emoji": [
+            "🎁",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Let it sit in the cart first",
+          "emoji": [
+            "🛒",
+            "🧊"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Blade of Shopping, unsheathed",
+          "emoji": [
+            "🗡️",
+            "🛒"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The cart, my treasury",
+          "emoji": [
+            "🛒",
+            "💎"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.jd",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "京东",
+        "en": "JD.com"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "jd.com"
+        ],
+        "aliases": [
+          "京东",
+          "JD"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "次日达，心动当天",
+          "emoji": [
+            "📦",
+            "💘"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又买了用不上的",
+          "emoji": [
+            "📦",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "买之前看看评价哦",
+          "emoji": [
+            "⭐",
+            "👀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "快递到了会很开心的",
+          "emoji": [
+            "📦",
+            "🥰"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "红色快递，降临",
+          "emoji": [
+            "🔴",
+            "📦"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "物流之神，听吾召唤",
+          "emoji": [
+            "🚚",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Next-day delivery, same-day regret",
+          "emoji": [
+            "📦",
+            "💘"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Buying stuff you won't use",
+          "emoji": [
+            "📦",
+            "🫠"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Check the reviews first",
+          "emoji": [
+            "⭐",
+            "👀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Package day will be a happy day",
+          "emoji": [
+            "📦",
+            "🥰"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Red Courier descends",
+          "emoji": [
+            "🔴",
+            "📦"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "God of Logistics, heed my call",
+          "emoji": [
+            "🚚",
+            "⚡"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.xiaohongshu",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "小红书",
+        "en": "Xiaohongshu"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "xiaohongshu.com",
+          "xhslink.com"
+        ],
+        "aliases": [
+          "小红书",
+          "Xiaohongshu",
+          "RED"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "种草容易拔草难",
+          "emoji": [
+            "🌱",
+            "💸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "滤镜比生活厚",
+          "emoji": [
+            "📸",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "看看好看的，放松一下",
+          "emoji": [
+            "📸",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "别和别人比生活哦",
+          "emoji": [
+            "🫶",
+            "🌷"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "种草结界，突破",
+          "emoji": [
+            "🌱",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "万千笔记，吾阅之",
+          "emoji": [
+            "📒",
+            "👁️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Everything looks better with filters",
+          "emoji": [
+            "📸",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Saved it, won't do it",
+          "emoji": [
+            "🔖",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Pretty things are nice to see",
+          "emoji": [
+            "📸",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Don't compare, just enjoy",
+          "emoji": [
+            "🫶",
+            "🌷"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Breaking the Influence Barrier",
+          "emoji": [
+            "🌱",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "A thousand notes, I read them all",
+          "emoji": [
+            "📒",
+            "👁️"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.douyin",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "抖音",
+        "en": "Douyin"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "douyin.com"
+        ],
+        "aliases": [
+          "抖音",
+          "Douyin"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "再刷一个，天就亮了",
+          "emoji": [
+            "📱",
+            "🌅"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "手指停不下来了吧",
+          "emoji": [
+            "👆",
+            "🌀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "刷十分钟就休息哦",
+          "emoji": [
+            "⏰",
+            "🌙"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "眼睛要休息一下啦",
+          "emoji": [
+            "👀",
+            "💤"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "短视频深渊，坠落",
+          "emoji": [
+            "🕳️",
+            "📱"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "时间，被吸走了",
+          "emoji": [
+            "⏳",
+            "🌀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "One more swipe, and it's dawn",
+          "emoji": [
+            "📱",
+            "🌅"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Your thumb has a mind of its own",
+          "emoji": [
+            "👆",
+            "🌀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Ten minutes then rest, okay?",
+          "emoji": [
+            "⏰",
+            "🌙"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Give your eyes a break",
+          "emoji": [
+            "👀",
+            "💤"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Falling into the Short Video Abyss",
+          "emoji": [
+            "🕳️",
+            "📱"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "My time... stolen",
+          "emoji": [
+            "⏳",
+            "🌀"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.x",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "X（推特）",
+        "en": "X (Twitter)"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "x.com",
+          "twitter.com"
+        ],
+        "aliases": [
+          "Twitter",
+          "推特",
+          "X.com"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又来看人吵架了",
+          "emoji": [
+            "🍿",
+            "👀"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "推特还是叫推特顺口",
+          "emoji": [
+            "🐦",
+            "😏"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "别和陌生人吵架哦",
+          "emoji": [
+            "🕊️",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "看看可爱的猫咪账号",
+          "emoji": [
+            "🐱",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "鸟之废墟，巡视",
+          "emoji": [
+            "🐦",
+            "🏚️"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "吾观众生，发推",
+          "emoji": [
+            "👁️",
+            "📢"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Here to watch strangers argue",
+          "emoji": [
+            "🍿",
+            "👀"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Still calling it Twitter, huh",
+          "emoji": [
+            "🐦",
+            "😏"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Don't argue with strangers",
+          "emoji": [
+            "🕊️",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Go find the cat accounts",
+          "emoji": [
+            "🐱",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Patrolling the Ruins of the Bird",
+          "emoji": [
+            "🐦",
+            "🏚️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "I observe mortals posting",
+          "emoji": [
+            "👁️",
+            "📢"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.reddit",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "Reddit",
+        "en": "Reddit"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "reddit.com"
+        ],
+        "aliases": [
+          "Reddit"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又在看别人过日子",
+          "emoji": [
+            "👀",
+            "📱"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "评论区才是正片",
+          "emoji": [
+            "💬",
+            "🍿"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "找个温暖的小版块吧",
+          "emoji": [
+            "🏡",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "被踩了也别难过哦",
+          "emoji": [
+            "⬇️",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "子版块迷宫，探索",
+          "emoji": [
+            "🗺️",
+            "👽"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "吾之 karma，无人能及",
+          "emoji": [
+            "⬆️",
+            "👑"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Reading the comments, not the post",
+          "emoji": [
+            "💬",
+            "🍿"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Doomscrolling, but organized",
+          "emoji": [
+            "📱",
+            "🗂️"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Find a cozy little subreddit",
+          "emoji": [
+            "🏡",
+            "🌸"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Downvotes don't define you",
+          "emoji": [
+            "⬇️",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Exploring the Subreddit Maze",
+          "emoji": [
+            "🗺️",
+            "👽"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "My karma shall be legendary",
+          "emoji": [
+            "⬆️",
+            "👑"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.site.aichat",
+      "kind": "site",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "ChatGPT / Claude",
+        "en": "ChatGPT / Claude"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "domains": [
+          "chatgpt.com",
+          "chat.openai.com",
+          "claude.ai"
+        ],
+        "aliases": [
+          "ChatGPT",
+          "Claude"
+        ]
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "又问 AI 了，自己想想",
+          "emoji": [
+            "🤖",
+            "🧠"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "AI 也不知道你想要啥",
+          "emoji": [
+            "🤖",
+            "🤷"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "多问问也没关系的",
+          "emoji": [
+            "🤖",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "你和 AI 一起更厉害",
+          "emoji": [
+            "🤝",
+            "✨"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "硅基智者，吾来问道",
+          "emoji": [
+            "🤖",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "人工智能，听吾之问",
+          "emoji": [
+            "🤖",
+            "⚡"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Asking AI again? Try thinking first",
+          "emoji": [
+            "🤖",
+            "🧠"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Even the AI isn't sure what you want",
+          "emoji": [
+            "🤖",
+            "🤷"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "It's okay to ask for help",
+          "emoji": [
+            "🤖",
+            "🫶"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "You and the AI make a good team",
+          "emoji": [
+            "🤝",
+            "✨"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Silicon Sage, I seek thy wisdom",
+          "emoji": [
+            "🤖",
+            "🔮"
+          ]
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Artificial mind, answer my call",
+          "emoji": [
+            "🤖",
+            "⚡"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "builtin.time.lateNight",
+      "kind": "time",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "深夜",
+        "en": "Late night"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "when": "lateNight"
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "这个点还不睡？",
+          "emoji": [
+            "🌙",
+            "👀"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "深夜的你效率为零",
+          "emoji": [
+            "🌙",
+            "🫠"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "夜猫子上线",
+          "emoji": [
+            "🦉",
+            "🌃"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "早点睡吧，明天再说",
+          "emoji": [
+            "🌙",
+            "💤"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "夜深了，喝口温水",
+          "emoji": [
+            "🍵",
+            "🌙"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "熬夜辛苦了，抱抱",
+          "emoji": [
+            "🫂",
+            "🌙"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "月下行者，汝不眠",
+          "emoji": [
+            "🌕",
+            "🚶"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "深夜结界，开启",
+          "emoji": [
+            "🌑",
+            "🔮"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Still up? Bold choice.",
+          "emoji": [
+            "🌙",
+            "👀"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Midnight productivity: zero",
+          "emoji": [
+            "🌙",
+            "🫠"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Night owl, online",
+          "emoji": [
+            "🦉",
+            "🌃"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Go to bed, tomorrow is fine",
+          "emoji": [
+            "🌙",
+            "💤"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "It's late, sip some warm water",
+          "emoji": [
+            "🍵",
+            "🌙"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Late night, big hug",
+          "emoji": [
+            "🫂",
+            "🌙"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Night walker, thou sleepest not",
+          "emoji": [
+            "🌕",
+            "🚶"
+          ],
+          "when": "lateNight"
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Midnight Barrier opens",
+          "emoji": [
+            "🌑",
+            "🔮"
+          ],
+          "when": "lateNight"
+        }
+      ]
+    },
+    {
+      "id": "builtin.time.mondayMorning",
+      "kind": "time",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "周一早上",
+        "en": "Monday morning"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "when": "mondayMorning"
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "周一，闹钟赢了",
+          "emoji": [
+            "⏰",
+            "🏆"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "周末呢？没了",
+          "emoji": [
+            "🫥",
+            "📅"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "新的一周，慢慢来",
+          "emoji": [
+            "🌱",
+            "☕"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "周一早安，先喝咖啡",
+          "emoji": [
+            "☕",
+            "🌤️"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "周一魔王，降临",
+          "emoji": [
+            "👹",
+            "📅"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "七日轮回，再启",
+          "emoji": [
+            "🔁",
+            "⚡"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Monday. The alarm won.",
+          "emoji": [
+            "⏰",
+            "🏆"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Weekend? Gone. Poof.",
+          "emoji": [
+            "🫥",
+            "📅"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "New week, take it slow",
+          "emoji": [
+            "🌱",
+            "☕"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Good morning, coffee first",
+          "emoji": [
+            "☕",
+            "🌤️"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Monday Demon descends",
+          "emoji": [
+            "👹",
+            "📅"
+          ],
+          "when": "mondayMorning"
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The seven-day cycle begins anew",
+          "emoji": [
+            "🔁",
+            "⚡"
+          ],
+          "when": "mondayMorning"
+        }
+      ]
+    },
+    {
+      "id": "builtin.time.fridayEvening",
+      "kind": "time",
+      "source": "builtin",
+      "enabled": true,
+      "label": {
+        "zh": "周五傍晚",
+        "en": "Friday evening"
+      },
+      "sentiment": "neutral",
+      "match": {
+        "when": "fridayEvening"
+      },
+      "highlight": false,
+      "variables": {},
+      "quips": [
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "周五了，装忙结束",
+          "emoji": [
+            "🎉",
+            "🫠"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "zh",
+          "persona": "sharp",
+          "text": "快跑，趁老板没看见",
+          "emoji": [
+            "🏃",
+            "👀"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "周末快乐，好好休息",
+          "emoji": [
+            "🎉",
+            "🛋️"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "zh",
+          "persona": "gentle",
+          "text": "这周辛苦啦",
+          "emoji": [
+            "🫶",
+            "🌸"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "自由之门，开启",
+          "emoji": [
+            "🚪",
+            "🕊️"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "zh",
+          "persona": "chuuni",
+          "text": "周末封印，解除",
+          "emoji": [
+            "🔓",
+            "⚡"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Friday. Stop pretending to work.",
+          "emoji": [
+            "🎉",
+            "🫠"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "en",
+          "persona": "sharp",
+          "text": "Run before the boss notices",
+          "emoji": [
+            "🏃",
+            "👀"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "Happy weekend, rest well",
+          "emoji": [
+            "🎉",
+            "🛋️"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "en",
+          "persona": "gentle",
+          "text": "You worked hard this week",
+          "emoji": [
+            "🫶",
+            "🌸"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "The Gate of Freedom opens",
+          "emoji": [
+            "🚪",
+            "🕊️"
+          ],
+          "when": "fridayEvening"
+        },
+        {
+          "lang": "en",
+          "persona": "chuuni",
+          "text": "Weekend seal, released!",
+          "emoji": [
+            "🔓",
+            "⚡"
+          ],
+          "when": "fridayEvening"
+        }
+      ]
+    }
+  ],
+  "generic": {
+    "dislike": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "{label}又来了",
+        "emoji": [
+          "🙄",
+          "😩"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "又是{label}，叹气",
+        "emoji": [
+          "😮‍💨",
+          "🫠"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "{label}很快就过去",
+        "emoji": [
+          "🌷",
+          "🫶"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "遇到{label}也别慌",
+        "emoji": [
+          "🌿",
+          "💚"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "宿敌{label}，现身",
+        "emoji": [
+          "⚔️",
+          "👁️"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "{label}结界，展开",
+        "emoji": [
+          "🔮",
+          "🛡️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "{label} again. Great.",
+        "emoji": [
+          "🙄",
+          "😩"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Oh look, {label}.",
+        "emoji": [
+          "😮‍💨",
+          "🫠"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "{label} will pass soon",
+        "emoji": [
+          "🌷",
+          "🫶"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "{label} can't ruin your day",
+        "emoji": [
+          "🌿",
+          "💚"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "My nemesis {label} appears",
+        "emoji": [
+          "⚔️",
+          "👁️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "{label} barrier, deploy!",
+        "emoji": [
+          "🔮",
+          "🛡️"
+        ]
+      }
+    ],
+    "like": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "{label}，你的快乐源泉",
+        "emoji": [
+          "😏",
+          "💖"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "又偷偷打开{label}",
+        "emoji": [
+          "🤫",
+          "😏"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "是{label}呀，开心",
+        "emoji": [
+          "🥰",
+          "🌸"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "和{label}好好玩",
+        "emoji": [
+          "🎈",
+          "💚"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "{label}，吾之圣地",
+        "emoji": [
+          "🏛️",
+          "✨"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "快乐领域{label}，降临",
+        "emoji": [
+          "🌈",
+          "⚡"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "{label}: your happy place, again",
+        "emoji": [
+          "😏",
+          "💖"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Sneaking off to {label}",
+        "emoji": [
+          "🤫",
+          "😏"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Yay, it's {label}",
+        "emoji": [
+          "🥰",
+          "🌸"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Enjoy {label}, you deserve it",
+        "emoji": [
+          "🎈",
+          "💚"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "{label}, my sacred ground",
+        "emoji": [
+          "🏛️",
+          "✨"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The joyful realm of {label} appears",
+        "emoji": [
+          "🌈",
+          "⚡"
+        ]
+      }
+    ],
+    "neutral": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "{label}来了，装忙",
+        "emoji": [
+          "👀",
+          "💼"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "是{label}，注意表情",
+        "emoji": [
+          "🙂",
+          "👀"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "是{label}，放轻松",
+        "emoji": [
+          "🌿",
+          "🫶"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "{label}出现，深呼吸",
+        "emoji": [
+          "🌬️",
+          "💚"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "{label}，现身了",
+        "emoji": [
+          "👁️",
+          "⚡"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "命运让吾遇见{label}",
+        "emoji": [
+          "🔮",
+          "✨"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "{label} is here. Look busy.",
+        "emoji": [
+          "👀",
+          "💼"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "It's {label}. Act natural.",
+        "emoji": [
+          "🙂",
+          "👀"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "It's {label}, relax",
+        "emoji": [
+          "🌿",
+          "🫶"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "{label} is here, deep breath",
+        "emoji": [
+          "🌬️",
+          "💚"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "{label} has appeared",
+        "emoji": [
+          "👁️",
+          "⚡"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "Fate brings me to {label}",
+        "emoji": [
+          "🔮",
+          "✨"
+        ]
+      }
+    ]
+  },
+  "unverified": {
+    "builtin.app.feishu": "com.larksuite.larkApp（国际版 Lark）未经确认",
+    "builtin.app.tencentmeeting": "VooV Meeting（国际版）的 bundleId 未经确认，未列入"
+  }
+}
