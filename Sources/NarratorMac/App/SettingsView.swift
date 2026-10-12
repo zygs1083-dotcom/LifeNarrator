@@ -34,6 +34,7 @@ public struct AppSettingsView: View {
 struct GeneralSettingsView: View {
     @ObservedObject var store: AppStore
     @State private var showPrivacy = false
+    @State private var blacklistText = ""
     var body: some View {
         Form {
             Picker(store.text("language"), selection: $store.settings.language) {
@@ -59,9 +60,11 @@ struct GeneralSettingsView: View {
             }
             Section(store.text("blacklist")) {
                 Text(store.text("blacklist.hint")).font(.caption).foregroundStyle(.secondary)
-                TextEditor(text: Binding(get: { store.settings.blacklist.joined(separator: "\n") }, set: {
-                    store.settings.blacklist = $0.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-                }))
+                TextEditor(text: $blacklistText)
+                .onAppear { blacklistText = store.settings.blacklist.joined(separator: "\n") }
+                .onChange(of: blacklistText) { _, value in
+                    store.settings.blacklist = value.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                }
                 .font(.system(.body, design: .monospaced)).frame(height: 90)
                 .accessibilityLabel(store.text("blacklist"))
             }

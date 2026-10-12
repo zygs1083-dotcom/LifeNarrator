@@ -8,6 +8,7 @@ public final class AppStore: ObservableObject {
     @Published public var settings: AppSettings {
         didSet {
             perform { try directory.saveSettings(settings) }
+            if oldValue.language != settings.language { onboardingWindow?.title = text("app.name") }
             if oldValue.inputShortcut != settings.inputShortcut || oldValue.pauseShortcut != settings.pauseShortcut {
                 registerShortcuts()
             }
