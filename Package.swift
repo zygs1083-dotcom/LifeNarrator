@@ -19,6 +19,8 @@ targets += [
     .testTarget(name: "NarratorMacTests", dependencies: ["NarratorMac"]),
     .executableTarget(name: "LifeNarrator", dependencies: ["NarratorMac"]),
     .executableTarget(name: "NarratorFixtures"),
+    // Development-only: cycles every bubble shape and theme on the main screen for eyeballing.
+    .executableTarget(name: "overlay-demo", dependencies: ["NarratorMac"]),
 ]
 #endif
 

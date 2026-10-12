@@ -21,7 +21,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: swift --version
       - run: swift build
-      - run: if [ -d Tests ]; then swift test; fi
+      - run: swift test
+        env:
+          SNAPSHOT_DIR: ${{ github.workspace }}/.build/snapshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bubble-snapshots
+          path: .build/snapshots
       - run: scripts/bundle.sh
       - uses: actions/upload-artifact@v4
         with:
