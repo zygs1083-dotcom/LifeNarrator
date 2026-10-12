@@ -51,7 +51,8 @@ public struct AppSettings: Codable {
     public var blacklist = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.agilebits.onepassword-osx",
         "com.apple.keychainaccess", "com.apple.systempreferences", "com.apple.Passwords",
-        "com.apple.preferences.passwords"
+        "com.apple.preferences.passwords", "com.apple.SecurityAgent", "com.apple.loginwindow",
+        "com.apple.LocalAuthentication.UIAgent"
     ]
     public var disabledBuiltinIds: Set<String> = []
     public var provider: ModelProvider = .none
