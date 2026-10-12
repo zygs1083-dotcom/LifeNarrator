@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 public struct ThoughtDot: Sendable, Equatable {
     public let center: CGPoint

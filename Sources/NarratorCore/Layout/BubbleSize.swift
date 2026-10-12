@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// Size tier from visual-spec §1, plus the per-tier shape constants of §2 and §7.
 public enum BubbleSize: String, CaseIterable, Sendable {

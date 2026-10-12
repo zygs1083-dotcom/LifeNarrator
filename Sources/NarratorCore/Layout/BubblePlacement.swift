@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// A front window in screen coordinates (top-left origin, pt), visual-spec §8.
 public struct WindowGeometry: Sendable, Equatable {
