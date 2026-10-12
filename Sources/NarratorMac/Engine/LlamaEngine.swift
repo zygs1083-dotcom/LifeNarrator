@@ -89,7 +89,12 @@ public final class LlamaEngine {
         let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params())!
         defer { llama_sampler_free(sampler) }
         llama_sampler_chain_add(sampler, grammarSampler)
-        llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.8))
+        llama_sampler_chain_add(sampler, llama_sampler_init_penalties(
+            llama_vocab_n_tokens(vocabulary), 256, 1.15, 0, 0
+        ))
+        llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9, 1))
+        llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05, 1))
+        llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
         llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED))
         let tokens = try tokenize(prompt, special: true)
         try evaluate(tokens, position: 0)
