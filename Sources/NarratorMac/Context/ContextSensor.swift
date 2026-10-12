@@ -50,7 +50,10 @@ private final class SensorObservations {
 @MainActor
 public final class ContextSensor {
     public var onSnapshot: (ContextSnapshot, ContextChange) -> Void
+    /// Moves and resizes of the focused window.
     public var onWindowFrame: (CGRect) -> Void
+    /// Focus moved to another window or app, or the focused window closed.
+    public var onWindowChanged: () -> Void
     public var onError: (any Error) -> Void
 
     private let observations = SensorObservations(center: NSWorkspace.shared.notificationCenter)
@@ -63,13 +66,17 @@ public final class ContextSensor {
     private var pending: Task<Void, Never>?
     private var generation = 0
     private var appChangePending = false
+    private var windowChangePending = false
+    private var lastCapture = Date.distantPast
     private var lastHost: String?
     private var valueChanges: [AXUIElement: Date] = [:]
 
     public init(onSnapshot: @escaping (ContextSnapshot, ContextChange) -> Void,
-                onWindowFrame: @escaping (CGRect) -> Void, onError: @escaping (any Error) -> Void) {
+                onWindowFrame: @escaping (CGRect) -> Void, onWindowChanged: @escaping () -> Void,
+                onError: @escaping (any Error) -> Void) {
         self.onSnapshot = onSnapshot
         self.onWindowFrame = onWindowFrame
+        self.onWindowChanged = onWindowChanged
         self.onError = onError
     }
 
@@ -166,13 +173,14 @@ public final class ContextSensor {
         axLines = []
         window = try AXAccess.element(axApplication!, kAXFocusedWindowAttribute)
         windowFrame = nil
+        windowChangePending = true
+        onWindowChanged()
         guard let window else { return }
         for name in [kAXTitleChangedNotification, kAXMovedNotification, kAXResizedNotification,
                      kAXValueChangedNotification, kAXUIElementDestroyedNotification] {
             try observe(window, name, window: true)
         }
         windowFrame = try AXAccess.frame(window)
-        if let windowFrame { onWindowFrame(windowFrame) }
     }
 
     private func receive(_ name: String, element: AXUIElement) throws {
@@ -194,14 +202,24 @@ public final class ContextSensor {
         schedule()
     }
 
+    /// App and window switches are read after a 300 ms debounce. Content changes are read at most once per 2 s
+    /// (a read already scheduled sees the latest content), so constantly changing apps are not re-traversed.
     private func schedule() {
-        pending?.cancel()
-        generation += 1
+        let switching = appChangePending || windowChangePending
+        if switching {
+            pending?.cancel()
+            generation += 1
+        } else if pending != nil {
+            return
+        }
         let generation = generation
+        let delay = switching ? 0.3 : max(0.3, 2 - Date().timeIntervalSince(lastCapture))
         pending = Task { [weak self] in
             do {
-                try await Task.sleep(for: .milliseconds(300))
+                try await Task.sleep(for: .seconds(delay))
                 guard let self else { return }
+                self.pending = nil
+                self.lastCapture = Date()
                 try await self.capture(generation: generation)
             } catch is CancellationError {
                 return
@@ -256,6 +274,7 @@ public final class ContextSensor {
         let change = ContextChange(appChanged: appChangePending, hostChanged: host != lastHost)
         axLines = source == .ax ? reading.lines : []
         appChangePending = false
+        windowChangePending = false
         lastHost = host
         let screenIndex = Self.screenIndex(for: currentFrame)
         let snapshot = ContextSnapshot(bundleId: application.bundleIdentifier!, appName: application.localizedName ?? "",

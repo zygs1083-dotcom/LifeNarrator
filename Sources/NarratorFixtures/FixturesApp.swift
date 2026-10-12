@@ -40,6 +40,7 @@ private struct OpenFixtures: View {
 struct ChatFixtureView: View {
     let group: Bool
     @State private var imageContent = false
+    @State private var draft = ""
     private var title: String { group ? "项目群" : "张三" }
     private var messages: [String] {
         group ? ["李四：张三已经看过这份计划了", "我：收到，稍后更新进度", "王五：下周一起确认"]
@@ -86,6 +87,9 @@ struct ChatFixtureView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 120)
                         Spacer()
+                        TextField("输入消息", text: $draft)
+                            .textFieldStyle(.roundedBorder)
+                            .padding(20)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }

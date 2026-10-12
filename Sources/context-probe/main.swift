@@ -41,7 +41,7 @@ func run() throws {
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
     encoder.outputFormatting = [.sortedKeys]
-    let sensor = ContextSensor(onSnapshot: { _, _ in }, onWindowFrame: { _ in }, onError: { fail($0) })
+    let sensor = ContextSensor(onSnapshot: { _, _ in }, onWindowFrame: { _ in }, onWindowChanged: {}, onError: { fail($0) })
     sensor.onSnapshot = { [weak sensor] snapshot, change in
         do {
             let candidates = try matcher.candidates(in: snapshot, now: snapshot.capturedAt,

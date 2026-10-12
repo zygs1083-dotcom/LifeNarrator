@@ -11,7 +11,6 @@ public final class NarratorEngine {
     private var scheduler = Scheduler()
     private var picker = QuipPicker()
     private var random = SystemRandomNumberGenerator()
-    private var lastProcessedAt: Date?
     private var generation = 0
     private var windowID: CGWindowID?
     private var chromeHeight: CGFloat = 52
@@ -23,6 +22,7 @@ public final class NarratorEngine {
         overlay = OverlayController(style: store.settings.bubbleStyle)
         sensor = ContextSensor(onSnapshot: { [unowned self] in self.handle($0, $1) },
                                onWindowFrame: { [unowned self] in self.windowFrameChanged($0) },
+                               onWindowChanged: { [unowned self] in self.windowChanged() },
                                onError: { [unowned self] in self.store.error = String(describing: $0) })
     }
 
@@ -43,18 +43,13 @@ public final class NarratorEngine {
 
     private func handle(_ snapshot: ContextSnapshot, _ change: ContextChange) {
         generation += 1
-        let id = Self.lookupWindowID(pid: snapshot.pid, frame: snapshot.windowFrame)
-        if id != windowID { overlay.dismissAll() }
+        let id = windowID ?? Self.lookupWindowID(pid: snapshot.pid, frame: snapshot.windowFrame)
         windowID = id
         chromeHeight = snapshot.contentFrame.minY - snapshot.windowFrame.minY
         let settings = store.settings
         if settings.paused { return log(snapshot, [], shown: false, "paused") }
         if settings.blacklist.contains(snapshot.bundleId) { return log(snapshot, [], shown: false, "blacklisted") }
         let now = snapshot.capturedAt
-        if change.reason == .contentChanged, let last = lastProcessedAt, now.timeIntervalSince(last) < 2 {
-            return log(snapshot, [], shown: false, "content changed within 2s")
-        }
-        lastProcessedAt = now
         do {
             var candidates = matcher.candidates(in: snapshot, now: now, appChanged: change.appChanged, hostChanged: change.hostChanged)
             var typing = false
@@ -115,15 +110,14 @@ public final class NarratorEngine {
         log(snapshot, candidates, shown: true, "rule \(rule.id)\(anchor == nil ? "" : " anchored")")
     }
 
-    /// A move of the current window follows it; any other window taking focus retires the bubbles.
     private func windowFrameChanged(_ frame: CGRect) {
         guard let windowID else { return }
-        if let bounds = Self.bounds(of: windowID), Self.close(bounds, frame) {
-            overlay.windowFrameChanged(windowID, to: WindowGeometry(frame: frame, chromeHeight: chromeHeight))
-        } else {
-            overlay.dismissAll()
-            self.windowID = nil
-        }
+        overlay.windowFrameChanged(windowID, to: WindowGeometry(frame: frame, chromeHeight: chromeHeight))
+    }
+
+    private func windowChanged() {
+        overlay.dismissAll()
+        windowID = nil
     }
 
     private func log(_ snapshot: ContextSnapshot, _ candidates: [Candidate], shown: Bool, _ reason: String) {
@@ -132,24 +126,17 @@ public final class NarratorEngine {
         FileHandle.standardError.write(Data("[narrator] \(snapshot.bundleId) candidates=[\(ids)] show=\(shown) \(reason)\n".utf8))
     }
 
-    /// The on-screen window of `pid` overlapping `frame` the most; AX gives no window number directly.
+    /// The on-screen window of `pid` that best matches `frame` (intersection over union, so a larger window
+    /// behind it does not win); AX gives no window number directly.
     private static func lookupWindowID(pid: pid_t, frame: CGRect) -> CGWindowID {
         let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as! [[String: Any]]
         func overlap(_ info: [String: Any]) -> CGFloat {
             let bounds = CGRect(dictionaryRepresentation: info[kCGWindowBounds as String] as! CFDictionary)!
             let shared = bounds.intersection(frame)
-            return shared.width * shared.height
+            let union = bounds.width * bounds.height + frame.width * frame.height - shared.width * shared.height
+            return shared.width * shared.height / union
         }
         let own = windows.filter { $0[kCGWindowOwnerPID as String] as! pid_t == pid }
         return own.max { overlap($0) < overlap($1) }.map { $0[kCGWindowNumber as String] as! CGWindowID } ?? kCGNullWindowID
-    }
-
-    private static func bounds(of windowID: CGWindowID) -> CGRect? {
-        guard let info = (CGWindowListCreateDescriptionFromArray([windowID] as CFArray) as? [[String: Any]])?.first else { return nil }
-        return CGRect(dictionaryRepresentation: info[kCGWindowBounds as String] as! CFDictionary)
-    }
-
-    private static func close(_ a: CGRect, _ b: CGRect) -> Bool {
-        abs(a.minX - b.minX) < 1 && abs(a.minY - b.minY) < 1 && abs(a.width - b.width) < 1 && abs(a.height - b.height) < 1
     }
 }
