@@ -3,7 +3,7 @@ import NarratorCore
 import SwiftUI
 
 extension Color {
-    init(_ c: RGBColor) {
+    init(_ c: PaletteColor) {
         self.init(red: c.red, green: c.green, blue: c.blue)
     }
 }
@@ -146,7 +146,7 @@ struct ArtText: View {
         let neon = appearance.neon
         let text = appearance.group.text
         let w = max(1, 0.07 * fs)
-        let outlineColor = neon ? Color(RGBColor(hex: ColorTheme.neonFill)) : Color(appearance.group.stroke)
+        let outlineColor = neon ? Color(PaletteColor(hex: ColorTheme.neonFill)) : Color(appearance.group.stroke)
         let offsets: [CGPoint] = [
             CGPoint(x: w, y: 0), CGPoint(x: -w, y: 0), CGPoint(x: 0, y: w), CGPoint(x: 0, y: -w),
             CGPoint(x: 0.71 * w, y: 0.71 * w), CGPoint(x: -0.71 * w, y: 0.71 * w),

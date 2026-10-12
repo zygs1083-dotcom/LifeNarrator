@@ -11,18 +11,18 @@ final class LayoutColorTests: XCTestCase {
     }
 
     func testHexDecoding() {
-        let c = RGBColor(hex: 0x1F5A46)
+        let c = PaletteColor(hex: 0x1F5A46)
         XCTAssertEqual(c.red, 31 / 255, accuracy: 1e-9)
         XCTAssertEqual(c.green, 90 / 255, accuracy: 1e-9)
         XCTAssertEqual(c.blue, 70 / 255, accuracy: 1e-9)
     }
 
     func testHSBConversion() {
-        let red = RGBColor(hue: 0, saturation: 1, brightness: 1)
-        XCTAssertEqual(red, RGBColor(red: 1, green: 0, blue: 0))
-        let green = RGBColor(hue: 120, saturation: 1, brightness: 1)
-        XCTAssertEqual(green, RGBColor(red: 0, green: 1, blue: 0))
-        let wrapped = RGBColor(hue: 480, saturation: 1, brightness: 1)
+        let red = PaletteColor(hue: 0, saturation: 1, brightness: 1)
+        XCTAssertEqual(red, PaletteColor(red: 1, green: 0, blue: 0))
+        let green = PaletteColor(hue: 120, saturation: 1, brightness: 1)
+        XCTAssertEqual(green, PaletteColor(red: 0, green: 1, blue: 0))
+        let wrapped = PaletteColor(hue: 480, saturation: 1, brightness: 1)
         XCTAssertEqual(wrapped, green)
     }
 
@@ -38,7 +38,7 @@ final class LayoutColorTests: XCTestCase {
         let b = ColorSelection.randomGroup(baseHue: 10, index: 1)
         XCTAssertEqual(a, ColorSelection.randomGroup(baseHue: 10, index: 0))
         XCTAssertNotEqual(a, b)
-        XCTAssertEqual(ColorSelection.randomGroup(baseHue: 300, index: 1).fill, RGBColor(hue: 77.5, saturation: 0.35, brightness: 1))
+        XCTAssertEqual(ColorSelection.randomGroup(baseHue: 300, index: 1).fill, PaletteColor(hue: 77.5, saturation: 0.35, brightness: 1))
     }
 
     func testAnglesAreStableAndInRange() {

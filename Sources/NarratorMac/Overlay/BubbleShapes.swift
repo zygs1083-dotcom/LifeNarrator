@@ -77,7 +77,9 @@ struct CloudShape: Shape {
         }
 
         let n = max(3, Int((w / (0.5 * h)).rounded()))
-        let topXs = (0..<n).map { rect.minX + 0.2 * h + (w - 0.4 * h) * CGFloat($0) / CGFloat(n - 1) }
+        let firstX = rect.minX + 0.2 * h
+        let stepX = (w - 0.4 * h) / CGFloat(n - 1)
+        let topXs = (0..<n).map { firstX + stepX * CGFloat($0) }
         for (i, x) in topXs.enumerated() {
             circle(x, rect.minY + 0.3 * h, i.isMultiple(of: 2) ? 0.36 * h : 0.30 * h)
         }

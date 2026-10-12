@@ -1,5 +1,5 @@
 /// sRGB components in 0…1.
-public struct RGBColor: Hashable, Sendable {
+public struct PaletteColor: Hashable, Sendable {
     public let red: Double
     public let green: Double
     public let blue: Double
@@ -36,8 +36,8 @@ public struct RGBColor: Hashable, Sendable {
     }
 
     /// Linear mix toward white, used by the gradient text effect (§4).
-    public func mixedWithWhite(_ amount: Double) -> RGBColor {
-        RGBColor(
+    public func mixedWithWhite(_ amount: Double) -> PaletteColor {
+        PaletteColor(
             red: red + (1 - red) * amount,
             green: green + (1 - green) * amount,
             blue: blue + (1 - blue) * amount)
@@ -46,18 +46,18 @@ public struct RGBColor: Hashable, Sendable {
 
 /// One (fill, text, stroke) group; a bubble never mixes groups (§3).
 public struct ColorGroup: Hashable, Sendable {
-    public let fill: RGBColor
-    public let text: RGBColor
-    public let stroke: RGBColor
+    public let fill: PaletteColor
+    public let text: PaletteColor
+    public let stroke: PaletteColor
 
-    public init(fill: RGBColor, text: RGBColor, stroke: RGBColor) {
+    public init(fill: PaletteColor, text: PaletteColor, stroke: PaletteColor) {
         self.fill = fill
         self.text = text
         self.stroke = stroke
     }
 
     init(_ fill: UInt32, _ text: UInt32, _ stroke: UInt32) {
-        self.init(fill: RGBColor(hex: fill), text: RGBColor(hex: text), stroke: RGBColor(hex: stroke))
+        self.init(fill: PaletteColor(hex: fill), text: PaletteColor(hex: text), stroke: PaletteColor(hex: stroke))
     }
 }
 
@@ -104,8 +104,8 @@ public enum ColorSelection {
     public static func randomGroup(baseHue: Double, index: Int) -> ColorGroup {
         let hue = (baseHue + Double(index) * 137.5).truncatingRemainder(dividingBy: 360)
         return ColorGroup(
-            fill: RGBColor(hue: hue, saturation: 0.35, brightness: 1.0),
-            text: RGBColor(hue: hue, saturation: 0.80, brightness: 0.38),
-            stroke: RGBColor(hue: hue, saturation: 0.55, brightness: 0.85))
+            fill: PaletteColor(hue: hue, saturation: 0.35, brightness: 1.0),
+            text: PaletteColor(hue: hue, saturation: 0.80, brightness: 0.38),
+            stroke: PaletteColor(hue: hue, saturation: 0.55, brightness: 0.85))
     }
 }
