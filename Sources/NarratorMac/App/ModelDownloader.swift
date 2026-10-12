@@ -31,7 +31,8 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
     public var progressHandler: (@MainActor (Double) -> Void)?
     public let model: DownloadableModel
     public let destination: URL
-    private let resumeURL: URL
+    private let resumeDirectory: URL
+    private var resumeURL: URL
     private var task: URLSessionDownloadTask?
     private var paused = false
     private lazy var session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
@@ -39,7 +40,8 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
     public init(directory: AppDataDirectory, model: DownloadableModel = ModelCatalog.models[0]) {
         self.model = model
         destination = directory.models.appendingPathComponent(model.filename)
-        resumeURL = directory.root.appendingPathComponent("\(model.name).resume")
+        resumeDirectory = directory.root
+        resumeURL = directory.root.appendingPathComponent("\(model.name)-huggingface.co.resume")
         state = FileManager.default.fileExists(atPath: destination.path) ? .ready : .notDownloaded
         super.init()
     }
@@ -47,6 +49,9 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
     public func start(source: ModelDownloadSource) throws {
         error = nil
         paused = false
+        resumeURL = resumeDirectory.appendingPathComponent("\(model.name)-\(source.rawValue).resume")
+        let staging = destination.appendingPathExtension("download")
+        if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
         if FileManager.default.fileExists(atPath: resumeURL.path) {
             task = session.downloadTask(withResumeData: try Data(contentsOf: resumeURL))
         } else {
@@ -58,17 +63,14 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
         task!.resume()
     }
 
-    public func pause() {
+    public func pause() async throws {
         paused = true
-        task!.cancel { data in
-            Task { @MainActor in
-                do {
-                    if let data { try data.write(to: self.resumeURL, options: .atomic) }
-                } catch { self.error = String(describing: error) }
-                self.task = nil
-                self.state = .notDownloaded
-            }
+        let data = await withCheckedContinuation { continuation in
+            task!.cancel { continuation.resume(returning: $0) }
         }
+        task = nil
+        state = .notDownloaded
+        if let data { try data.write(to: resumeURL, options: .atomic) }
     }
 
     public func delete() throws {
@@ -81,6 +83,7 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
                                       totalBytesExpectedToWrite: Int64) {
         let progress = Double(totalBytesWritten) / Double(model.size)
         Task { @MainActor in
+            if self.paused { return }
             self.state = .downloading(progress)
             self.progressHandler?(progress)
         }
@@ -108,9 +111,13 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
                     self.task = nil
                     self.state = .ready
                 } catch {
+                    let failure = error
+                    do {
+                        if FileManager.default.fileExists(atPath: staging.path) { try FileManager.default.removeItem(at: staging) }
+                        self.error = String(describing: failure)
+                    } catch { self.error = String(describing: error) }
                     self.task = nil
                     self.state = .notDownloaded
-                    self.error = String(describing: error)
                 }
             }
         } catch {

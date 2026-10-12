@@ -51,7 +51,12 @@ struct ModelDownloadView: View {
         case .downloading(let progress):
             ProgressView(value: progress) { Text(store.text("model.downloading")) }
             Text(progress, format: .percent.precision(.fractionLength(0)))
-            Button(store.text("model.pause")) { downloader.pause() }
+            Button(store.text("model.pause")) {
+                Task {
+                    do { try await downloader.pause() }
+                    catch { store.error = String(describing: error) }
+                }
+            }
         case .verifying:
             ProgressView { Text(store.text("model.verifying")) }
         case .ready:

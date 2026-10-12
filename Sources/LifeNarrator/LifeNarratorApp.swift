@@ -56,4 +56,23 @@ private struct MenuContent: View {
 private final class AppDelegate: NSObject, NSApplicationDelegate {
     var store: AppStore!
     func applicationDidFinishLaunching(_ notification: Notification) { store.start() }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if case .downloading = store.downloader.state {
+            Task {
+                do {
+                    try await store.downloader.pause()
+                    sender.reply(toApplicationShouldTerminate: true)
+                } catch {
+                    let alert = NSAlert()
+                    alert.messageText = store.text("error")
+                    alert.informativeText = String(describing: error)
+                    alert.runModal()
+                    sender.reply(toApplicationShouldTerminate: false)
+                }
+            }
+            return .terminateLater
+        }
+        return .terminateNow
+    }
 }
