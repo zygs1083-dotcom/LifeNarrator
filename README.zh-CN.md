@@ -59,4 +59,4 @@ scripts/bundle.sh   # 需要 Xcode；生成 dist/LifeNarrator.app 和 dist/LifeN
 
 ## 许可证
 
-待定。
+[MIT](LICENSE)

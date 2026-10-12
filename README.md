@@ -59,4 +59,4 @@ scripts/bundle.sh   # needs Xcode; builds dist/LifeNarrator.app and dist/LifeNar
 
 ## License
 
-To be decided.
+[MIT](LICENSE)
