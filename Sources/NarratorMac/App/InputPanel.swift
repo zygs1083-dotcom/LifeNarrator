@@ -71,7 +71,7 @@ private struct RuleInputView: View {
         result = nil
         error = nil
         Task {
-            do { result = try await store.compile(input) }
+            do { result = try await store.compile(input, generator: try store.textGenerator()) }
             catch { self.error = String(describing: error) }
             compiling = false
             focused = true

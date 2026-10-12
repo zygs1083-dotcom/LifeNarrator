@@ -36,7 +36,7 @@ public struct APIConfiguration: Codable {
     }
 }
 
-public enum AppInputError: Error { case invalidURL, missingModel, builtinNotReady }
+public enum AppInputError: Error { case invalidURL, missingModel }
 
 public struct AppSettings: Codable {
     public var language: InterfaceLanguage = .system

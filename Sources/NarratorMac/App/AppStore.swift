@@ -83,21 +83,25 @@ public final class AppStore: ObservableObject {
         rules = updated
     }
 
-    public func compile(_ input: String) async throws -> Rule {
-        let rule: Rule
+    public func textGenerator() throws -> (any TextGenerator)? {
         switch settings.provider {
-        case .none:
-            rule = try RuleCompiler.compileWithoutModel(input: input, pack: builtin, now: Date())
+        case .builtin, .none: return nil
         case .openAICompatible:
             let configuration = settings.generationAPI
             let url = try configuration.validatedURL()
             guard !configuration.model.trimmingCharacters(in: .whitespaces).isEmpty else { throw AppInputError.missingModel }
-            let client = OpenAICompatibleClient(baseURL: url, model: configuration.model,
-                                                key: try KeychainStore.read(account: "generation"))
+            return OpenAICompatibleClient(baseURL: url, model: configuration.model,
+                                          key: try KeychainStore.read(account: "generation"))
+        }
+    }
+
+    public func compile(_ input: String, generator: (any TextGenerator)?) async throws -> Rule {
+        let rule: Rule
+        if let generator {
             rule = try await RuleCompiler.compile(input: input, lang: settings.language.lang, persona: settings.persona,
-                                                  now: Date(), generator: client, resolveBundleIds: Self.resolveBundleIds)
-        case .builtin:
-            throw AppInputError.builtinNotReady
+                                                  now: Date(), generator: generator, resolveBundleIds: Self.resolveBundleIds)
+        } else {
+            rule = try RuleCompiler.compileWithoutModel(input: input, pack: builtin, now: Date())
         }
         try saveRules(rules + [rule])
         return rule
