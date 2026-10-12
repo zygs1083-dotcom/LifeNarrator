@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 public func normalized(_ text: String) -> String {
     text.folding(options: [.caseInsensitive, .widthInsensitive, .diacriticInsensitive], locale: nil)

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 public enum Persona: String, Codable, CaseIterable, Sendable { case sharp, gentle, chuuni }
 public enum Lang: String, Codable, CaseIterable, Sendable { case zh, en }
