@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: swift build
-      - run: if [ -d Tests ]; then swift test; fi
+      - run: if [ -d Tests/NarratorCoreTests ]; then swift test; fi
 
   macos:
     runs-on: macos-15

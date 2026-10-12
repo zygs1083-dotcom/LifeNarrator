@@ -17,9 +17,11 @@ BIN_DIR=$(swift build -c "$CONFIG" --show-bin-path)
 
 APP=dist/LifeNarrator.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN_DIR/LifeNarrator" "$APP/Contents/MacOS/"
 find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
+find "$BIN_DIR" -maxdepth 1 -name '*.framework' -exec cp -R {} "$APP/Contents/Frameworks/" \;
+install_name_tool -add_rpath '@executable_path/../Frameworks' "$APP/Contents/MacOS/LifeNarrator"
 
 cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
