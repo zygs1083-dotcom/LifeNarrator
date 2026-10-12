@@ -11,12 +11,17 @@ KEYCHAIN="$DIR/dev.keychain-db"
 PASS=lifenarrator-dev
 NAME="LifeNarrator Dev"
 
+# Re-runnable: drop a previous attempt (only our own keychain file).
+[ -f "$KEYCHAIN" ] && security delete-keychain "$KEYCHAIN"
 mkdir -p "$DIR"
 cd "$DIR"
+# create-keychain adds the new keychain to the user search list; restore the list afterwards.
+SEARCH_LIST=$(security list-keychains -d user | tr -d '"')
 openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=$NAME" \
   -keyout key.pem -out cert.pem \
   -addext "keyUsage=critical,digitalSignature" -addext "extendedKeyUsage=critical,codeSigning"
-openssl pkcs12 -export -inkey key.pem -in cert.pem -out dev.p12 -passout "pass:$PASS"
+openssl pkcs12 -export -inkey key.pem -in cert.pem -out dev.p12 -passout "pass:$PASS" \
+  -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1
 
 security create-keychain -p "$PASS" "$KEYCHAIN"
 security set-keychain-settings "$KEYCHAIN"
@@ -24,4 +29,6 @@ security unlock-keychain -p "$PASS" "$KEYCHAIN"
 security import dev.p12 -k "$KEYCHAIN" -P "$PASS" -T /usr/bin/codesign
 security set-key-partition-list -S apple-tool:,apple: -s -k "$PASS" "$KEYCHAIN" >/dev/null
 rm key.pem dev.p12
+# shellcheck disable=SC2086
+security list-keychains -d user -s $SEARCH_LIST
 echo "identity '$NAME' in $KEYCHAIN"
