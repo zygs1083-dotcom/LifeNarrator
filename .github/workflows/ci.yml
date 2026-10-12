@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core-linux:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build
+      - run: if [ -d Tests ]; then swift test; fi
+
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift build
+      - run: if [ -d Tests ]; then swift test; fi
+      - run: scripts/bundle.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LifeNarrator-app
+          path: dist/LifeNarrator.zip

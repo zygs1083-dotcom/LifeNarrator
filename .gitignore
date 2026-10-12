@@ -7,3 +7,7 @@ dist/
 build/
 __pycache__/
 *.log
+.build/
+.swiftpm/
+.dev-data/
+.task.md
