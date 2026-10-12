@@ -51,6 +51,12 @@ final class LayoutPlacementTests: XCTestCase {
         XCTAssertEqual(p.frame.maxY, highlight.minY - 8)
     }
 
+    func testAnchoredHonorsCloudGap() throws {
+        let p = try XCTUnwrap(BubblePlacement.anchored(size: size, highlight: highlight, window: window, visibleFrame: screen, occupied: [], gap: BubblePlacement.cloudAnchorGap))
+        XCTAssertEqual(p.frame.maxY, highlight.minY - 36)
+        XCTAssertLessThanOrEqual(BubbleConnector.length(bubble: p.frame, highlight: highlight, side: .above), 40)
+    }
+
     func testAnchoredFlipsBelowWhenNoRoomAbove() throws {
         let hl = BubblePlacement.highlightBox(around: CGRect(x: 400, y: 160, width: 40, height: 18))
         let p = try XCTUnwrap(BubblePlacement.anchored(size: size, highlight: hl, window: window, visibleFrame: screen, occupied: []))

@@ -47,6 +47,8 @@ public struct AppStackLayout: Sendable, Equatable {
 public enum BubblePlacement {
     public static let edgeMargin: CGFloat = 8
     public static let anchorGap: CGFloat = 8
+    /// Clouds need room for the three §2.2 thought dots, which the 8pt gap cannot hold; stays under the 40pt connector cap.
+    public static let cloudAnchorGap: CGFloat = 36
     public static let maxConnectorLength: CGFloat = 40
     public static let minimumWindowSize = CGSize(width: 360, height: 200)
 
@@ -89,7 +91,7 @@ public enum BubblePlacement {
 
     /// §8.2 anchored placement. `highlight` is the box from `highlightBox(around:)`, `occupied` the
     /// frames of bubbles already on screen. nil means "skip this narration".
-    public static func anchored(size: CGSize, highlight: CGRect, window: WindowGeometry, visibleFrame: CGRect, occupied: [CGRect]) -> AnchoredPlacement? {
+    public static func anchored(size: CGSize, highlight: CGRect, window: WindowGeometry, visibleFrame: CGRect, occupied: [CGRect], gap: CGFloat = anchorGap) -> AnchoredPlacement? {
         let bounds = window.contentArea.intersection(visibleFrame)
         guard bounds.contains(highlight) else { return nil }
         let inner = bounds.insetBy(dx: edgeMargin, dy: 4)
@@ -97,9 +99,9 @@ public enum BubblePlacement {
 
         let centeredX = min(max(highlight.midX - size.width / 2, inner.minX), inner.maxX - size.width)
         let candidates = [
-            AnchoredPlacement(frame: CGRect(x: centeredX, y: highlight.minY - anchorGap - size.height, width: size.width, height: size.height), side: .above),
-            AnchoredPlacement(frame: CGRect(x: centeredX, y: highlight.maxY + anchorGap, width: size.width, height: size.height), side: .below),
-            AnchoredPlacement(frame: CGRect(x: highlight.maxX + anchorGap, y: highlight.midY - size.height / 2, width: size.width, height: size.height), side: .right),
+            AnchoredPlacement(frame: CGRect(x: centeredX, y: highlight.minY - gap - size.height, width: size.width, height: size.height), side: .above),
+            AnchoredPlacement(frame: CGRect(x: centeredX, y: highlight.maxY + gap, width: size.width, height: size.height), side: .below),
+            AnchoredPlacement(frame: CGRect(x: highlight.maxX + gap, y: highlight.midY - size.height / 2, width: size.width, height: size.height), side: .right),
         ]
         func fits(_ p: AnchoredPlacement) -> Bool {
             inner.contains(p.frame)

@@ -183,7 +183,7 @@ public final class OverlayController {
         var corner = WindowCorner.topRight
         if let anchor = n.anchor {
             let box = BubblePlacement.highlightBox(around: overlay.local(anchor))
-            guard let placement = BubblePlacement.anchored(size: appearance.outerSize, highlight: box, window: window, visibleFrame: overlay.visibleFrame, occupied: model.bubbles.map(\.frame)) else { return }
+            guard let placement = BubblePlacement.anchored(size: appearance.outerSize, highlight: box, window: window, visibleFrame: overlay.visibleFrame, occupied: model.bubbles.map(\.frame), gap: anchorGap(for: style.shape)) else { return }
             frame = placement.frame
             side = placement.side
             highlight = box
@@ -260,7 +260,7 @@ public final class OverlayController {
         for i in model.bubbles.indices where model.bubbles[i].windowID == windowID {
             guard let highlight = model.bubbles[i].highlight else { continue }
             let occupied = model.bubbles.indices.filter { $0 != i }.map { model.bubbles[$0].frame }
-            guard let placement = BubblePlacement.anchored(size: model.bubbles[i].appearance.outerSize, highlight: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied) else {
+            guard let placement = BubblePlacement.anchored(size: model.bubbles[i].appearance.outerSize, highlight: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied, gap: anchorGap(for: model.bubbles[i].appearance.shape)) else {
                 dropped.append(model.bubbles[i].id)
                 continue
             }
@@ -307,6 +307,10 @@ public final class OverlayController {
         let overlay = ScreenOverlay(screen: screen, primaryHeight: primaryHeight)
         screens[id] = overlay
         return overlay
+    }
+
+    private func anchorGap(for shape: BubbleShape) -> CGFloat {
+        shape == .cloud ? BubblePlacement.cloudAnchorGap : BubblePlacement.anchorGap
     }
 
     /// §6 slide: 24pt from whichever window edge is nearest to the bubble.

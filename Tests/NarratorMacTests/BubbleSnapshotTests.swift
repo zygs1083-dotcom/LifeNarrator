@@ -37,7 +37,8 @@ final class BubbleSnapshotTests: XCTestCase {
         let highlight = BubblePlacement.highlightBox(around: CGRect(x: 150, y: 170, width: 48, height: 20))
         for shape in BubbleShape.allCases {
             var a = appearance(shape: shape, theme: .macaron, size: .medium, text: "Pig Boss incoming", language: "en")
-            let placement = try XCTUnwrap(BubblePlacement.anchored(size: a.outerSize, highlight: highlight, window: window, visibleFrame: canvas, occupied: []))
+            let gap = shape == .cloud ? BubblePlacement.cloudAnchorGap : BubblePlacement.anchorGap
+            let placement = try XCTUnwrap(BubblePlacement.anchored(size: a.outerSize, highlight: highlight, window: window, visibleFrame: canvas, occupied: [], gap: gap))
             if shape == .speech {
                 a.setAnchoredTail(frame: placement.frame, highlight: highlight, side: placement.side)
             }
