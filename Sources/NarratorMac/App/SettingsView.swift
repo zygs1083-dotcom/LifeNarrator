@@ -33,7 +33,6 @@ public struct AppSettingsView: View {
 
 struct GeneralSettingsView: View {
     @ObservedObject var store: AppStore
-    @State private var showPrivacy = false
     @State private var blacklistText = ""
     var body: some View {
         Form {
@@ -54,9 +53,6 @@ struct GeneralSettingsView: View {
                 Stepper("\(store.text("cooldown")): \(Int(store.settings.ruleCooldown))", value: $store.settings.ruleCooldown, in: 0...3600, step: 30)
                 Stepper("\(store.text("perMinute")): \(store.settings.globalPerMinute)", value: $store.settings.globalPerMinute, in: 1...30)
                 Stepper("\(store.text("minGap")): \(Int(store.settings.minGap))", value: $store.settings.minGap, in: 0...300)
-                Toggle(store.text("freeComment"), isOn: Binding(get: { store.settings.freeComment }, set: { enabled in
-                    if enabled { showPrivacy = true } else { store.settings.freeComment = false }
-                }))
             }
             Section(store.text("blacklist")) {
                 Text(store.text("blacklist.hint")).font(.caption).foregroundStyle(.secondary)
@@ -70,10 +66,6 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .alert(store.text("privacy"), isPresented: $showPrivacy) {
-            Button(store.text("enable")) { store.settings.freeComment = true }
-            Button(store.text("cancel"), role: .cancel) {}
-        } message: { Text(store.text("freeComment.privacy")) }
     }
 }
 

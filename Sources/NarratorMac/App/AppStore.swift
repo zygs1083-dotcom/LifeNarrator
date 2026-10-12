@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import KeyboardShortcuts
 import NarratorCore
 import SwiftUI
@@ -28,6 +29,7 @@ public final class AppStore: ObservableObject {
     private var onboardingWindow: NSWindow?
     private var inputPanel: InputPanelController?
     private var engine: NarratorEngine?
+    private var downloadSubscription: AnyCancellable?
     private lazy var pregenerator = QuipPregenerator(store: self)
     private lazy var llama = LlamaGenerator(modelPath: downloader.destination.path)
 
@@ -42,6 +44,9 @@ public final class AppStore: ObservableObject {
             try RuleLoader.save([], to: directory.rules)
         }
         downloader = ModelDownloader(directory: directory)
+        downloadSubscription = downloader.$state.dropFirst().sink { [unowned self] state in
+            if case .ready = state { self.pregenerator.schedule() }
+        }
     }
 
     public func start() {

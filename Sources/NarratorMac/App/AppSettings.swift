@@ -47,7 +47,6 @@ public struct AppSettings: Codable {
     public var ruleCooldown: TimeInterval = 600
     public var globalPerMinute = 3
     public var minGap: TimeInterval = 5
-    public var freeComment = false
     public var paused = false
     public var blacklist = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.agilebits.onepassword-osx",
