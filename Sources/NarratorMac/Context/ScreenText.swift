@@ -8,7 +8,6 @@ actor ScreenText {
     enum Failure: Error { case windowUnavailable, grayscaleImage }
     private struct Cached {
         let hash: UInt64
-        let size: CGSize
         let lines: [TextLine]
     }
     private var cache: [CGWindowID: Cached] = [:]
@@ -32,7 +31,7 @@ actor ScreenText {
         try Task.checkCancellation()
         let hash = TextGeometry.dHash(try grayscaleSamples(image))
         let normalizedLines: [TextLine]
-        if let previous = cache[window.windowID], previous.hash == hash, previous.size == frame.size {
+        if let previous = cache[window.windowID], previous.hash == hash {
             normalizedLines = previous.lines
         } else {
             let request = VNRecognizeTextRequest()
@@ -45,7 +44,7 @@ actor ScreenText {
                 return trimmed.isEmpty ? nil : TextLine(text: trimmed, rect: observation.boundingBox)
             }
             try Task.checkCancellation()
-            cache[window.windowID] = Cached(hash: hash, size: frame.size, lines: normalizedLines)
+            cache[window.windowID] = Cached(hash: hash, lines: normalizedLines)
         }
         let lines = normalizedLines.map { TextLine(text: $0.text, rect: TextGeometry.screenRect($0.rect, in: frame)) }
         return TextGeometry.sortedIndices(lines).map { lines[$0] }

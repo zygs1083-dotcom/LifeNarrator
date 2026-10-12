@@ -44,7 +44,7 @@ enum AXAccess {
         let error = AXUIElementCopyParameterizedAttributeValue(
             element, kAXBoundsForRangeParameterizedAttribute as CFString, parameter, &result)
         switch error {
-        case .parameterizedAttributeUnsupported, .attributeUnsupported, .noValue, .notImplemented: return nil
+        case .parameterizedAttributeUnsupported, .attributeUnsupported, .noValue, .notImplemented, .illegalArgument: return nil
         case .success: break
         default: throw AXFailure(operation: kAXBoundsForRangeParameterizedAttribute, code: error)
         }
@@ -100,7 +100,7 @@ enum AXTextReader {
         var webURL: String?
         var focusedURL: String?
         var addressURL: String?
-        let textRoles: Set<String> = [kAXStaticTextRole, kAXTextFieldRole, kAXTextAreaRole, kAXLinkRole, kAXButtonRole]
+        let textRoles: Set<String> = [kAXStaticTextRole, kAXTextFieldRole, kAXTextAreaRole, "AXLink", kAXButtonRole]
         while let (element, depth, clip) = stack.popLast(), visited.count < 4000 {
             guard visited.insert(element).inserted else { continue }
             let role = try AXAccess.value(element, kAXRoleAttribute) as? String

@@ -1,4 +1,4 @@
-import ApplicationServices
+@preconcurrency import ApplicationServices
 
 public enum ContextPermissions {
     public enum Permission { case accessibility, screenCapture }
