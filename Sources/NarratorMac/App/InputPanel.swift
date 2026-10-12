@@ -6,11 +6,12 @@ import SwiftUI
 final class InputPanelController: NSObject, NSWindowDelegate {
     private let panel: NSPanel
     private let store: AppStore
+    private var compiling = false
 
     init(store: AppStore) {
         self.store = store
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 210),
-                        styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
+                        styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel], backing: .buffered, defer: false)
         super.init()
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
@@ -22,21 +23,26 @@ final class InputPanelController: NSObject, NSWindowDelegate {
     }
 
     func show() {
-        panel.contentView = NSHostingView(rootView: RuleInputView(store: store))
+        panel.contentView = NSHostingView(rootView: RuleInputView(store: store) { [weak self] in self?.compiling = $0 })
         let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main!
         panel.setFrameOrigin(NSPoint(x: screen.visibleFrame.midX - panel.frame.width / 2,
                                      y: screen.visibleFrame.midY - panel.frame.height / 2))
-        NSApplication.shared.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
     }
 
-    func windowDidResignKey(_ notification: Notification) { panel.orderOut(nil) }
+    // Stays up while compiling so a slow model load cannot hide the result or the error.
+    func windowDidResignKey(_ notification: Notification) {
+        if !compiling { panel.orderOut(nil) }
+    }
 }
 
 private struct RuleInputView: View {
     @ObservedObject var store: AppStore
+    let onCompiling: (Bool) -> Void
     @State private var input = ""
-    @State private var compiling = false
+    @State private var compiling = false {
+        didSet { onCompiling(compiling) }
+    }
     @State private var result: Rule?
     @State private var error: String?
     @FocusState private var focused: Bool

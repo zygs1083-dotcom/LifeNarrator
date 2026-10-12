@@ -11,6 +11,10 @@ let validGenerated = [GeneratedQuip(text: "第一句", emoji: ["👨‍👩‍�
     let english = validGenerated + [GeneratedQuip(text: String(repeating: "x", count: 40), emoji: ["🌷"]), GeneratedQuip(text: String(repeating: "x", count: 41), emoji: ["🌷"])]
     #expect(QuipValidator.validate(english, rule: rule(), lang: .en, persona: .sharp).count == 4)
 }
+@Test func validationDropsTrailingCommas() {
+    let generated = validGenerated + [GeneratedQuip(text: "又是刷寂寞的坑吧，", emoji: ["😒"]), GeneratedQuip(text: "又来了,", emoji: ["🙄"])]
+    #expect(QuipValidator.validate(generated, rule: rule(), lang: .zh, persona: .sharp).suffix(2).map(\.text) == ["又是刷寂寞的坑吧", "又来了"])
+}
 @Test func validationRejectsUnknownPlaceholders() {
     var target = rule()
     target.variables = ["name": "张三"]

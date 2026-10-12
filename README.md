@@ -10,9 +10,11 @@ LifeNarrator is a lightweight macOS menu bar app that watches what is on your sc
 - Open a chat with your boss → their name gets boxed with *"Pig Boss 🐷"*
 - Tell it *"I hate Google"* once → every time you open Google, it grumbles for you.
 
-> **Status:** early development. Nothing is ready to install yet.
+![A boxed name and a "Pig Boss" bubble on a test chat window](docs/images/boss-bubble.png)
 
-## Features (planned for v0.1)
+> **Status:** v0.1 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
+
+## Features
 
 - **Real-time, on the active window**: bubbles appear next to the window you are using, or right on the text they are talking about, and follow the window when it moves.
 - **Your own rules**: a global input box (hotkey) where you describe what you love or hate in plain words, e.g. "I hate meetings", "Zhang San is my boss". LifeNarrator turns them into rules and reacts when they come up on screen.
@@ -27,7 +29,7 @@ LifeNarrator is a lightweight macOS menu bar app that watches what is on your sc
 - Reads text through the Accessibility API first. Screen capture and on-device OCR are used only when needed, and skipped when the window has not changed.
 - Quips are generated ahead of time and cached, so bubbles appear instantly without waiting for a model.
 - No bundled models or fonts. It uses the cute fonts that already ship with macOS.
-- Targets: under 80 MB of memory without a model loaded, and near-zero CPU when idle.
+- Measured on an M1 Max: 22 MB of memory and 0% CPU when idle. The built-in model (Qwen3.5-4B, a 2.7 GB download) is loaded only while it writes rules and quips, and unloaded after 5 idle minutes.
 
 ## Privacy
 
@@ -39,14 +41,21 @@ Everything runs on your Mac by default. Screen text is never logged or saved to 
 - Apple silicon
 - Accessibility permission (required) and Screen Recording permission (optional, enables OCR for apps that do not expose their text)
 
+## Install and use
+
+1. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases), unzip it and move `LifeNarrator.app` to Applications.
+2. The app is not signed with an Apple Developer ID yet. On macOS 14, right-click it and choose **Open**. On macOS 15, open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**.
+3. Pick a model option in the welcome window and grant Accessibility permission.
+4. Press **⌥⇧N** (or use the menu bar icon) and type something like "I hate Google" or "Zhang San is my boss". **⌥⇧P** pauses the narrator.
+
+Because each build has a new ad-hoc signature, macOS may forget the Accessibility permission after an update. If bubbles stop appearing, remove LifeNarrator from **Privacy & Security → Accessibility** and add it again.
+
 ## Building from source
 
 ```sh
 swift build
 scripts/bundle.sh   # builds dist/LifeNarrator.app and dist/LifeNarrator.zip
 ```
-
-Releases are not signed with an Apple Developer ID yet. The first time you open the app, right-click it and choose **Open**.
 
 ## License
 

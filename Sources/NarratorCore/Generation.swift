@@ -31,7 +31,9 @@ public enum QuipValidator {
         var valid: [Quip] = []
         let placeholders = try! NSRegularExpression(pattern: "\\{([^{}]*)\\}")
         for item in generated {
-            let text = item.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            var text = item.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            // A dangling comma reads like a cut-off sentence.
+            while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
             guard !text.isEmpty, text.count <= (lang == .zh ? 14 : 40), !text.contains(where: isEmoji),
                   (1...3).contains(item.emoji.count), item.emoji.allSatisfy({ $0.count == 1 && isEmoji($0.first!) }) else { continue }
             let matches = placeholders.matches(in: text, range: NSRange(text.startIndex..., in: text))

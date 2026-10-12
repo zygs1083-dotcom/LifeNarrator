@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import NarratorCore
 
@@ -28,6 +29,8 @@ public actor LlamaGenerator: TextGenerator {
         unload = Task {
             do { try await Task.sleep(for: .seconds(300)) } catch { return }
             engine = nil
+            // Freed model and compute buffers otherwise stay in the process footprint.
+            malloc_zone_pressure_relief(nil, 0)
         }
     }
 }
