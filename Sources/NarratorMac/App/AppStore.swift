@@ -15,6 +15,8 @@ public final class AppStore: ObservableObject {
             if oldValue.persona != settings.persona || oldValue.bubbleStyle.font != settings.bubbleStyle.font {
                 downloadFonts()
             }
+            if oldValue.persona != settings.persona || oldValue.language != settings.language { pregenerator.schedule() }
+            engine?.configure()
         }
     }
     @Published public private(set) var rules: [Rule]
@@ -25,6 +27,9 @@ public final class AppStore: ObservableObject {
     private var shortcutTasks: [Task<Void, Never>] = []
     private var onboardingWindow: NSWindow?
     private var inputPanel: InputPanelController?
+    private var engine: NarratorEngine?
+    private lazy var pregenerator = QuipPregenerator(store: self)
+    private lazy var llama = LlamaGenerator(modelPath: downloader.destination.path)
 
     public init() throws {
         directory = try AppDataDirectory()
@@ -52,10 +57,21 @@ public final class AppStore: ObservableObject {
             onboardingWindow = window
             NSApplication.shared.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
+        } else {
+            startEngine()
         }
     }
 
-    public func closeOnboarding() { onboardingWindow!.close() }
+    public func closeOnboarding() {
+        onboardingWindow!.close()
+        startEngine()
+    }
+
+    private func startEngine() {
+        guard ContextPermissions.isGranted(.accessibility) else { return }
+        engine = NarratorEngine(store: self)
+        perform { try engine!.start() }
+    }
 
     public func text(_ key: String) -> String {
         AppLocalization.string(key, language: settings.language)
@@ -78,14 +94,24 @@ public final class AppStore: ObservableObject {
 
     public func deleteRule(id: String) throws { try saveRules(rules.filter { $0.id != id }) }
 
+    func update(_ rule: Rule) throws {
+        var updated = rules
+        updated[updated.firstIndex { $0.id == rule.id }!] = rule
+        try saveRules(updated)
+    }
+
     private func saveRules(_ updated: [Rule]) throws {
         try RuleLoader.save(updated, to: directory.rules)
         rules = updated
+        engine?.configure()
     }
 
     public func textGenerator() throws -> (any TextGenerator)? {
         switch settings.provider {
-        case .builtin, .none: return nil
+        case .none: return nil
+        case .builtin:
+            if case .ready = downloader.state { return llama }
+            return nil
         case .openAICompatible:
             let configuration = settings.generationAPI
             let url = try configuration.validatedURL()
@@ -98,12 +124,13 @@ public final class AppStore: ObservableObject {
     public func compile(_ input: String, generator: (any TextGenerator)?) async throws -> Rule {
         let rule: Rule
         if let generator {
-            rule = try await RuleCompiler.compile(input: input, lang: settings.language.lang, persona: .init(rawValue: settings.persona.rawValue)!,
-                                                  now: Date(), generator: generator, resolveBundleIds: Self.resolveBundleIds)
+            rule = try await RuleCompiler.compile(input: input, lang: settings.language.lang, now: Date(),
+                                                  generator: generator, resolveBundleIds: Self.resolveBundleIds)
         } else {
             rule = try RuleCompiler.compileWithoutModel(input: input, pack: builtin, now: Date())
         }
         try saveRules(rules + [rule])
+        pregenerator.schedule()
         return rule
     }
 

@@ -64,6 +64,7 @@ public final class ContextSensor {
     private var generation = 0
     private var appChangePending = false
     private var lastHost: String?
+    private var valueChanges: [AXUIElement: Date] = [:]
 
     public init(onSnapshot: @escaping (ContextSnapshot, ContextChange) -> Void,
                 onWindowFrame: @escaping (CGRect) -> Void, onError: @escaping (any Error) -> Void) {
@@ -108,6 +109,15 @@ public final class ContextSensor {
                                                                length: nsRange.length))
     }
 
+    /// The focused element is editable text and changed its value within the last 3 seconds.
+    public func isTyping(now: Date) throws -> Bool {
+        guard let axApplication, let focused = try AXAccess.element(axApplication, kAXFocusedUIElementAttribute),
+              let changed = valueChanges[focused], now.timeIntervalSince(changed) < 3 else { return false }
+        let role = try AXAccess.value(focused, kAXRoleAttribute) as? String
+        if role == kAXTextFieldRole || role == kAXTextAreaRole { return true }
+        return try AXAccess.value(focused, "AXEditable") as? Bool == true
+    }
+
     private func activate(_ app: NSRunningApplication) throws {
         if application?.processIdentifier == app.processIdentifier { return }
         pending?.cancel()
@@ -118,14 +128,15 @@ public final class ContextSensor {
         window = nil
         windowFrame = nil
         axLines = []
+        valueChanges = [:]
         guard app.bundleIdentifier != nil else { return }
         application = app
         axApplication = AXUIElementCreateApplication(app.processIdentifier)
         var observer: AXObserver?
-        let result = AXObserverCreate(app.processIdentifier, { _, _, notification, context in
+        let result = AXObserverCreate(app.processIdentifier, { _, element, notification, context in
             MainActor.assumeIsolated {
                 let sensor = Unmanaged<ContextSensor>.fromOpaque(context!).takeUnretainedValue()
-                do { try sensor.receive(notification as String) } catch { sensor.onError(error) }
+                do { try sensor.receive(notification as String, element: element) } catch { sensor.onError(error) }
             }
         }, &observer)
         guard result == .success else { throw AXFailure(operation: "AXObserverCreate", code: result) }
@@ -164,7 +175,12 @@ public final class ContextSensor {
         if let windowFrame { onWindowFrame(windowFrame) }
     }
 
-    private func receive(_ name: String) throws {
+    private func receive(_ name: String, element: AXUIElement) throws {
+        if name == kAXValueChangedNotification {
+            let now = Date()
+            valueChanges = valueChanges.filter { now.timeIntervalSince($0.value) < 3 }
+            valueChanges[element] = now
+        }
         if name == kAXMovedNotification || name == kAXResizedNotification {
             if let window, let frame = try AXAccess.frame(window) {
                 windowFrame = frame
