@@ -77,8 +77,9 @@ public final class ContextSensor {
         observations.activation = observations.center.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] notification in
+            guard let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier else { return }
             MainActor.assumeIsolated {
-                guard let self, let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+                guard let self, let app = NSRunningApplication(processIdentifier: pid) else { return }
                 do { try self.activate(app) } catch { self.onError(error) }
             }
         }
@@ -156,7 +157,7 @@ public final class ContextSensor {
         windowFrame = nil
         guard let window else { return }
         for name in [kAXTitleChangedNotification, kAXMovedNotification, kAXResizedNotification,
-                     kAXValueChangedNotification, kAXLayoutChangedNotification, kAXUIElementDestroyedNotification] {
+                     kAXValueChangedNotification, kAXUIElementDestroyedNotification] {
             try observe(window, name, window: true)
         }
         windowFrame = try AXAccess.frame(window)

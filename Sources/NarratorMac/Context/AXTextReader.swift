@@ -50,7 +50,7 @@ enum AXAccess {
         }
         guard let result, CFGetTypeID(result) == AXValueGetTypeID() else { return nil }
         var rect = CGRect.zero
-        return AXValueGetValue(result as! AXValue, .cgRect, &rect) ? rect : nil
+        return AXValueGetValue(result as! AXValue, .cgRect, &rect) && !rect.isEmpty ? rect : nil
     }
 }
 
@@ -121,8 +121,10 @@ enum AXTextReader {
                description.localizedCaseInsensitiveContains("address") {
                 addressURL = try AXAccess.value(element, kAXValueAttribute) as? String
             }
-            if let role, textRoles.contains(role), visible {
+            if let role, visible, textRoles.contains(role) || ["AXWebArea", "AXCheckBox", kAXScrollAreaRole].contains(role) {
                 valueElements.append(element)
+            }
+            if let role, textRoles.contains(role), visible {
                 let title = try AXAccess.value(element, kAXTitleAttribute) as? String
                 let text = role == kAXButtonRole ? title : (try AXAccess.value(element, kAXValueAttribute) as? String) ?? title
                 if let text {
