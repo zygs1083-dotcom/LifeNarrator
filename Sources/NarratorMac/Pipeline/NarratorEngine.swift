@@ -95,7 +95,7 @@ public final class NarratorEngine {
         guard scheduler.canShow(ruleID: rule.id, now: now) else { return log(snapshot, candidates, shown: false, "rate limited \(rule.id)") }
         let lang = store.settings.language.lang
         let persona = store.settings.persona
-        guard let quip = picker.pick(for: rule, lang: lang, persona: NarratorCore.Persona(rawValue: persona.rawValue)!, pack: store.builtin,
+        guard let quip = picker.pick(for: rule, lang: lang, persona: .init(rawValue: persona.rawValue)!, pack: store.builtin,
                                      disabledBuiltinIds: store.settings.disabledBuiltinIds, now: now, using: &random) else {
             return log(snapshot, candidates, shown: false, "no quip for \(rule.id)")
         }
