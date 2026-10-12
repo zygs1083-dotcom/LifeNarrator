@@ -28,8 +28,6 @@
 "cooldown" = "Rule cooldown (seconds)";
 "perMinute" = "Maximum per minute";
 "minGap" = "Minimum gap (seconds)";
-"freeComment" = "Free commentary";
-"freeComment.privacy" = "Free commentary processes screen text with your model, at most once every ten minutes. If you use a cloud API, screen text will be sent to that service.";
 "blacklist" = "Excluded apps";
 "blacklist.hint" = "One bundle ID per line. Excluded apps will not be read.";
 "shape" = "Shape";
@@ -111,8 +109,6 @@
 "delete" = "Delete";
 "error" = "Error";
 "ok" = "OK";
-"privacy" = "Privacy";
-"enable" = "Enable";
 "cancel" = "Cancel";
 "back" = "Back";
 "continue" = "Continue";

@@ -28,8 +28,6 @@
 "cooldown" = "规则冷却（秒）";
 "perMinute" = "每分钟上限";
 "minGap" = "最小间隔（秒）";
-"freeComment" = "自由吐槽";
-"freeComment.privacy" = "自由吐槽会将屏幕文字交给模型处理，每十分钟最多一次。使用云端 API 时，屏幕文字会发送到该服务。";
 "blacklist" = "应用黑名单";
 "blacklist.hint" = "每行一个 bundle ID。黑名单中的应用不会被读取。";
 "shape" = "形状";
@@ -111,8 +109,6 @@
 "delete" = "删除";
 "error" = "错误";
 "ok" = "好";
-"privacy" = "隐私";
-"enable" = "开启";
 "cancel" = "取消";
 "back" = "上一步";
 "continue" = "继续";

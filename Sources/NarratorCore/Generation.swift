@@ -66,13 +66,11 @@ public enum RuleCompiler {
         return rule
     }
 
-    public static func compile(input: String, lang: Lang, persona: Persona, now: Date,
+    public static func compile(input: String, lang: Lang, now: Date,
                                generator: any TextGenerator, resolveBundleIds: ([String]) throws -> [String]) async throws -> Rule {
         let json = try await generator.generateJSON(system: nil, prompt: GenerationPrompts.compile(input: input, lang: lang), schema: GenerationPrompts.compiledRuleSchema)
         let compiled = try JSONDecoder().decode(CompiledRule.self, from: Data(json.utf8))
-        var rule = try assemble(compiled, input: input, now: now, resolveBundleIds: resolveBundleIds)
-        rule.quips = try await generateQuips(for: rule, lang: lang, persona: persona, generator: generator)
-        return rule
+        return try assemble(compiled, input: input, now: now, resolveBundleIds: resolveBundleIds)
     }
 
     public static func generateQuips(for rule: Rule, lang: Lang, persona: Persona,

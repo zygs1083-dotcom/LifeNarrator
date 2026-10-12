@@ -5,18 +5,9 @@ public struct Scheduler: Sendable {
         public var ruleCooldown: TimeInterval = 600
         public var globalPerMinute: Int = 3
         public var minGap: TimeInterval = 5
-        public var maxOnScreen: Int = 3
-        public var dwell: TimeInterval = 6
         public init() {}
     }
-    public struct Display: Equatable, Sendable {
-        public let id: UUID
-        public let shownAt: Date
-        public let persistent: Bool
-        public let screenIndex: Int
-    }
-    public let settings: Settings
-    public private(set) var onScreen: [Display] = []
+    public var settings: Settings
     private var lastByRule: [String: Date] = [:]
     private var recent: [Date] = []
     private var lastFreeComment: Date?
@@ -41,26 +32,9 @@ public struct Scheduler: Sendable {
         return true
     }
 
-    @discardableResult
-    public mutating func recordShown(ruleID: String?, now: Date, screenIndex: Int = 0, persistent: Bool = false) -> (display: Display, retired: [UUID]) {
+    public mutating func recordShown(ruleID: String?, now: Date) {
         recent.removeAll { now.timeIntervalSince($0) >= 60 }
         recent.append(now)
         if let ruleID { lastByRule[ruleID] = now } else { lastFreeComment = now }
-        var retired = expire(now: now)
-        if onScreen.filter({ $0.screenIndex == screenIndex }).count >= settings.maxOnScreen {
-            let oldest = onScreen.firstIndex { $0.screenIndex == screenIndex }!
-            retired.append(onScreen.remove(at: oldest).id)
-        }
-        let display = Display(id: UUID(), shownAt: now, persistent: persistent, screenIndex: screenIndex)
-        onScreen.append(display)
-        return (display, retired)
     }
-
-    @discardableResult
-    public mutating func expire(now: Date) -> [UUID] {
-        let expired = onScreen.filter { !$0.persistent && now.timeIntervalSince($0.shownAt) >= settings.dwell }.map(\.id)
-        onScreen.removeAll { expired.contains($0.id) }
-        return expired
-    }
-    public mutating func dismiss(_ id: UUID) { onScreen.removeAll { $0.id == id } }
 }
