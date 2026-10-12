@@ -12,8 +12,8 @@ if [[ "${1:-}" == "--debug" ]]; then
 fi
 
 VERSION=$(sed -n 's/.*version = "\(.*\)".*/\1/p' Sources/NarratorCore/NarratorCore.swift)
-swift build -c "$CONFIG" --product LifeNarrator
-BIN_DIR=$(swift build -c "$CONFIG" --show-bin-path)
+swift build -c "$CONFIG" --disable-keychain --product LifeNarrator
+BIN_DIR=$(swift build -c "$CONFIG" --disable-keychain --show-bin-path)
 
 APP=dist/LifeNarrator.app
 rm -rf "$APP"

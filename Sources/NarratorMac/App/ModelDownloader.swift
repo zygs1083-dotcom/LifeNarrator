@@ -35,7 +35,12 @@ public final class ModelDownloader: NSObject, ObservableObject, URLSessionDownlo
     private var resumeURL: URL
     private var task: URLSessionDownloadTask?
     private var paused = false
-    private lazy var session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+    private lazy var session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        // Otherwise an unused Cache.db is created under ~/Library/Caches.
+        configuration.urlCache = nil
+        return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+    }()
 
     public init(directory: AppDataDirectory, model: DownloadableModel = ModelCatalog.models[0]) {
         self.model = model
