@@ -55,7 +55,7 @@ public struct AppSettings: Codable {
         "com.apple.LocalAuthentication.UIAgent"
     ]
     public var disabledBuiltinIds: Set<String> = []
-    public var provider: ModelProvider = .none
+    public var provider: ModelProvider = .builtin
     public var generationAPI = APIConfiguration()
     public var systemOne: APIConfiguration?
     public var inputShortcut: KeyboardShortcuts.Shortcut? = .init(.n, modifiers: [.option, .shift])
