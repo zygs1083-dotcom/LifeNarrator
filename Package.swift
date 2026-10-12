@@ -16,6 +16,7 @@ targets += [
     ),
     .target(name: "NarratorMac", dependencies: ["NarratorCore", "LlamaFramework"]),
     .executableTarget(name: "narrator-bench", dependencies: ["NarratorMac"]),
+    .executableTarget(name: "context-probe", dependencies: ["NarratorMac", "NarratorCore"]),
     .testTarget(name: "NarratorMacTests", dependencies: ["NarratorMac"]),
     .executableTarget(name: "LifeNarrator", dependencies: ["NarratorMac"]),
     .executableTarget(name: "NarratorFixtures"),

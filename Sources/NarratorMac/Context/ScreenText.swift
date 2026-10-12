@@ -1,0 +1,65 @@
+import CoreGraphics
+import Foundation
+import NarratorCore
+@preconcurrency import ScreenCaptureKit
+import Vision
+
+actor ScreenText {
+    enum Failure: Error { case windowUnavailable, grayscaleImage }
+    private struct Cached {
+        let hash: UInt64
+        let size: CGSize
+        let lines: [TextLine]
+    }
+    private var cache: [CGWindowID: Cached] = [:]
+
+    func read(pid: Int32, title: String?, frame: CGRect) async throws -> [TextLine] {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        try Task.checkCancellation()
+        guard let window = content.windows.first(where: {
+            $0.owningApplication?.processID == pid && $0.windowLayer == 0 && $0.frame == frame
+                && (title == nil || $0.title == title)
+        }) else { throw Failure.windowUnavailable }
+        let filter = SCContentFilter(desktopIndependentWindow: window)
+        let configuration = SCStreamConfiguration()
+        let pixelWidth = frame.width * CGFloat(filter.pointPixelScale)
+        configuration.width = max(1, Int(min(1280, pixelWidth)))
+        configuration.height = max(1, Int(CGFloat(configuration.width) * frame.height / frame.width))
+        configuration.showsCursor = false
+        configuration.ignoreShadowsSingleWindow = true
+        configuration.shouldBeOpaque = true
+        let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
+        try Task.checkCancellation()
+        let hash = TextGeometry.dHash(try grayscaleSamples(image))
+        let normalizedLines: [TextLine]
+        if let previous = cache[window.windowID], previous.hash == hash, previous.size == frame.size {
+            normalizedLines = previous.lines
+        } else {
+            let request = VNRecognizeTextRequest()
+            request.recognitionLanguages = ["zh-Hans", "en"]
+            request.recognitionLevel = .accurate
+            try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+            normalizedLines = (request.results ?? []).compactMap { observation in
+                guard let text = observation.topCandidates(1).first?.string else { return nil }
+                let trimmed = TextGeometry.trimmedText(text).text
+                return trimmed.isEmpty ? nil : TextLine(text: trimmed, rect: observation.boundingBox)
+            }
+            try Task.checkCancellation()
+            cache[window.windowID] = Cached(hash: hash, size: frame.size, lines: normalizedLines)
+        }
+        let lines = normalizedLines.map { TextLine(text: $0.text, rect: TextGeometry.screenRect($0.rect, in: frame)) }
+        return TextGeometry.sortedIndices(lines).map { lines[$0] }
+    }
+
+    private func grayscaleSamples(_ image: CGImage) throws -> [UInt8] {
+        var pixels = [UInt8](repeating: 0, count: 9 * 8)
+        try pixels.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(data: buffer.baseAddress, width: 9, height: 8, bitsPerComponent: 8,
+                                          bytesPerRow: 9, space: CGColorSpaceCreateDeviceGray(),
+                                          bitmapInfo: CGImageAlphaInfo.none.rawValue) else { throw Failure.grayscaleImage }
+            context.interpolationQuality = .low
+            context.draw(image, in: CGRect(x: 0, y: 0, width: 9, height: 8))
+        }
+        return pixels
+    }
+}
