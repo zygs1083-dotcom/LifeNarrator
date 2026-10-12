@@ -79,6 +79,10 @@ ws ::= [ \t\n\r]{0,4}
 """#
 
 func run() throws {
+    if CommandLine.arguments.count == 3 && CommandLine.arguments[2] == "--quality" {
+        try runQuality(modelPath: CommandLine.arguments[1])
+        return
+    }
     guard CommandLine.arguments.count == 2 else { throw BenchError.usage }
     let path = CommandLine.arguments[1]
     let size = try FileManager.default.attributesOfItem(atPath: path)[.size] as! NSNumber
