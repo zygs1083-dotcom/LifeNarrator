@@ -24,7 +24,7 @@ public struct OnboardingView: View {
                     Text(store.text("onboarding.accessibility.hint"))
                     Button(store.text("onboarding.accessibility.request")) {
                         accessibilityGranted = AXIsProcessTrustedWithOptions([
-                            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+                            "AXTrustedCheckOptionPrompt": true
                         ] as CFDictionary)
                     }
                     permissionStatus(accessibilityGranted)

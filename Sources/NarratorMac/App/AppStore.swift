@@ -98,7 +98,7 @@ public final class AppStore: ObservableObject {
     public func compile(_ input: String, generator: (any TextGenerator)?) async throws -> Rule {
         let rule: Rule
         if let generator {
-            rule = try await RuleCompiler.compile(input: input, lang: settings.language.lang, persona: settings.persona,
+            rule = try await RuleCompiler.compile(input: input, lang: settings.language.lang, persona: .init(rawValue: settings.persona.rawValue)!,
                                                   now: Date(), generator: generator, resolveBundleIds: Self.resolveBundleIds)
         } else {
             rule = try RuleCompiler.compileWithoutModel(input: input, pack: builtin, now: Date())
@@ -128,7 +128,7 @@ public final class AppStore: ObservableObject {
 
     private func downloadFonts() {
         BubbleFonts.requestDownload(choice: settings.bubbleStyle.font,
-                                    persona: Persona(rawValue: settings.persona.rawValue)!)
+                                    persona: settings.persona)
     }
 
     nonisolated private static func resolveBundleIds(_ names: [String]) throws -> [String] {

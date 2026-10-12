@@ -43,7 +43,7 @@ struct GeneralSettingsView: View {
                 }
             }
             Picker(store.text("persona"), selection: $store.settings.persona) {
-                ForEach(NarratorCore.Persona.allCases, id: \.self) { value in
+                ForEach(Persona.allCases, id: \.self) { value in
                     Text(store.text("persona.\(value.rawValue)")).tag(value)
                 }
             }
@@ -90,7 +90,7 @@ private struct AppearanceSettingsView: View {
                     effect("shadow", .shadow)
                     effect("gradient", .gradient)
                 }
-                choice("animation", values: BubbleAnimation.allCases, selection: $store.settings.bubbleStyle.animation)
+                choice("animation", values: BubbleAnimation.allCases, selection: Binding(get: { store.settings.bubbleStyle.animation }, set: { store.settings.bubbleStyle.animation = $0 }))
                 choice("emoji", values: EmojiDensity.allCases, selection: $store.settings.bubbleStyle.emojiDensity)
                 Picker(store.text("font"), selection: Binding(get: {
                     switch store.settings.bubbleStyle.font {
@@ -125,7 +125,7 @@ private struct AppearanceSettingsView: View {
 
     private var preview: some View {
         let style = store.settings.bubbleStyle
-        let font = BubbleFonts.font(choice: style.font, persona: Persona(rawValue: store.settings.persona.rawValue)!,
+        let font = BubbleFonts.font(choice: style.font, persona: store.settings.persona,
                                     language: store.settings.language.lang.rawValue, size: style.size.fontSize)
         let group = style.theme == .random ? ColorSelection.randomGroup(baseHue: 160, index: 0) : style.theme.palette[0]
         var appearance = BubbleAppearance.make(shape: style.shape, size: style.size, theme: style.theme, group: group,

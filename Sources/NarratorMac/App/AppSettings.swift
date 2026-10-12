@@ -38,9 +38,11 @@ public struct APIConfiguration: Codable {
 
 public enum AppInputError: Error { case invalidURL, missingModel }
 
+extension Persona: Codable {}
+
 public struct AppSettings: Codable {
     public var language: InterfaceLanguage = .system
-    public var persona: NarratorCore.Persona = .sharp
+    public var persona: Persona = .sharp
     public var bubbleStyle = BubbleStyle()
     public var ruleCooldown: TimeInterval = 600
     public var globalPerMinute = 3
