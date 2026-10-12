@@ -54,7 +54,7 @@
 
 ```sh
 swift build
-scripts/bundle.sh   # 生成 dist/LifeNarrator.app 和 dist/LifeNarrator.zip
+scripts/bundle.sh   # 需要 Xcode；生成 dist/LifeNarrator.app 和 dist/LifeNarrator.zip
 ```
 
 ## 许可证

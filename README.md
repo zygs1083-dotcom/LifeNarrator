@@ -54,7 +54,7 @@ Because each build has a new ad-hoc signature, macOS may forget the Accessibilit
 
 ```sh
 swift build
-scripts/bundle.sh   # builds dist/LifeNarrator.app and dist/LifeNarrator.zip
+scripts/bundle.sh   # needs Xcode; builds dist/LifeNarrator.app and dist/LifeNarrator.zip
 ```
 
 ## License

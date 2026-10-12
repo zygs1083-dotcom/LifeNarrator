@@ -4,16 +4,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-CONFIG=release
+CONFIG=Release
 BUNDLE_ID=dev.lifenarrator.app
 if [[ "${1:-}" == "--debug" ]]; then
-  CONFIG=debug
+  CONFIG=Debug
   BUNDLE_ID=dev.lifenarrator.debug
 fi
 
 VERSION=$(sed -n 's/.*version = "\(.*\)".*/\1/p' Sources/NarratorCore/NarratorCore.swift)
-swift build -c "$CONFIG" --disable-keychain --product LifeNarrator
-BIN_DIR=$(swift build -c "$CONFIG" --disable-keychain --show-bin-path)
+# xcodebuild, not `swift build`: SwiftPM's generated Bundle.module only looks at the .app root, where code
+# signing allows no extra files; Xcode's looks in Contents/Resources. This also covers KeyboardShortcuts.
+xcodebuild -scheme LifeNarrator -configuration "$CONFIG" -destination 'platform=macOS,arch=arm64' \
+  -derivedDataPath .build/xcode -quiet build
+BIN_DIR=.build/xcode/Build/Products/$CONFIG
 
 APP=dist/LifeNarrator.app
 rm -rf "$APP"
