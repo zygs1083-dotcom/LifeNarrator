@@ -33,6 +33,58 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertThrowsError(try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json)))
     }
 
+    func testMissingMarkGapDefaultsToTwoAndRoundTrips() throws {
+        var original = AppSettings()
+        original.markGap = 9
+        let data = try JSONEncoder().encode(original)
+        XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: data).markGap, 9)
+        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertEqual(json["markGap"] as? Double, 9)
+        json.removeValue(forKey: "markGap")
+        json["minGap"] = 5
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(decoded.markGap, 2)
+    }
+
+    func testDwellIsClampedAndMissingDwellStaysUntilDismissed() throws {
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as! [String: Any]
+        var style = json["bubbleStyle"] as! [String: Any]
+        for (value, expected) in [(45.0, 30.0), (0, 1), (3, 3)] {
+            style["dwell"] = value
+            json["bubbleStyle"] = style
+            let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json))
+            XCTAssertEqual(decoded.bubbleStyle.dwell, .seconds(expected))
+        }
+        style.removeValue(forKey: "dwell")
+        json["bubbleStyle"] = style
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(decoded.bubbleStyle.dwell, .untilDismissed)
+    }
+
+    @MainActor
+    func testMarkGapPersistsAndConfiguresEngineAcrossLivelinessLevels() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let previousDirectory = ProcessInfo.processInfo.environment["LIFENARRATOR_DATA_DIR"]
+        setenv("LIFENARRATOR_DATA_DIR", root.path, 1)
+        defer {
+            if let previousDirectory { setenv("LIFENARRATOR_DATA_DIR", previousDirectory, 1) }
+            else { unsetenv("LIFENARRATOR_DATA_DIR") }
+        }
+        defer { try! FileManager.default.removeItem(at: root) }
+        let store = try AppStore()
+        store.settings.markGap = 9
+        XCTAssertEqual(try store.directory.loadSettings().markGap, 9)
+        let engine = try NarratorEngine(store: store)
+        for level in [Liveliness.quiet, .lively, .rowdy] {
+            store.settings.liveliness = level
+            engine.configure()
+            let scheduler = Mirror(reflecting: engine).descendant("scheduler") as! Scheduler
+            XCTAssertEqual(scheduler.settings.minGap, 9)
+            XCTAssertEqual(store.settings.markGap, 9)
+            print("markGap=\(store.settings.markGap) scheduler.minGap=\(scheduler.settings.minGap) level=\(level.rawValue)")
+        }
+    }
+
     func testSameAppWindowSwitchHasItsOwnReason() {
         let change = ContextChange(appChanged: false, windowChanged: true, hostChanged: false)
         XCTAssertEqual(change.reason, .windowChanged)

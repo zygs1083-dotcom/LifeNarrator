@@ -142,6 +142,7 @@ public final class NarratorEngine {
         overlay.style = settings.bubbleStyle
         overlay.liveliness = settings.liveliness
         scheduler.settings = .init(level: settings.liveliness)
+        scheduler.settings.minGap = settings.markGap
         memory.level = settings.liveliness
         cancelScreen()
         if modelTask != nil { requestPending = true }
@@ -496,8 +497,7 @@ public final class NarratorEngine {
                 for (id, _) in queued { queuedPlaces.removeValue(forKey: id) }
             }
             do {
-                for (index, (id, attempt)) in queued.enumerated() {
-                    if index > 0 { try await Task.sleep(for: .seconds(SpriteTick.releaseGap(level: store.settings.liveliness))) }
+                for (id, attempt) in queued {
                     try Task.checkCancellation()
                     try await waitForGap(generation: generation)
                     _ = try await showMark(attempt.mark!, id: id, source: "cache", reason: attempt.reason, generation: generation)
@@ -545,7 +545,6 @@ public final class NarratorEngine {
             ready.finish()
             return ids
         }
-        let builtin = request.generator is LlamaGenerator
         let k = request.level == .rowdy ? 4 : 3
         let timeout = Task {
             do { try await Task.sleep(for: .seconds(20)); try Task.checkCancellation() }
@@ -555,18 +554,12 @@ public final class NarratorEngine {
         let releaseID = UUID()
         let reader = Task {
             defer { releases.removeValue(forKey: releaseID) }
-            var previous: Date?
             do {
                 for await (id, mark) in stream {
                     try Task.checkCancellation()
                     guard request.generation == generation else { throw CancellationError() }
-                    if !builtin, let previous {
-                        let remaining = SpriteTick.releaseGap(level: request.level) - Date().timeIntervalSince(previous)
-                        if remaining > 0 { try await Task.sleep(for: .seconds(remaining)) }
-                    }
                     try await waitForGap(generation: request.generation)
                     _ = try await showMark(mark, id: id, source: "model", reason: "ok", generation: request.generation)
-                    previous = Date()
                 }
             } catch is CancellationError { return }
             catch { report(error) }

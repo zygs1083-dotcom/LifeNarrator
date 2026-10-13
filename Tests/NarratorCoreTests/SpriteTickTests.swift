@@ -120,11 +120,10 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
 }
 
 @Test func tickTimingAndCapsFollowLiveliness() {
-    for (level, release, followup, requests, interval, burst, screen) in [
-        (Liveliness.quiet, 0.0, 0.0, 0, 0.0, [Double](), 0),
-        (.lively, 3, 20, 2, 8, [3], 8), (.rowdy, 1.5, 10, 3, 5, [1.5, 3], 14)
+    for (level, followup, requests, interval, burst, screen) in [
+        (Liveliness.quiet, 0.0, 0, 0.0, [Double](), 0),
+        (.lively, 20, 2, 8, [3], 8), (.rowdy, 10, 3, 5, [1.5, 3], 14)
     ] {
-        #expect(SpriteTick.releaseGap(level: level) == release)
         #expect(SpriteTick.followupDelay(level: level) == followup)
         #expect(SpriteTick.requestsPerScreen(level: level) == requests)
         #expect(SpriteTick.windowRequestInterval(level: level) == interval)

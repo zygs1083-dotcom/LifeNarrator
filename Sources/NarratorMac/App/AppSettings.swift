@@ -45,6 +45,7 @@ public struct AppSettings: Codable {
     public var persona: Persona = .sharp
     public var bubbleStyle = BubbleStyle()
     public var liveliness: Liveliness = .lively
+    public var markGap: Double = 2
     public var paused = false
     public var blacklist = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.agilebits.onepassword-osx",
@@ -62,12 +63,13 @@ public struct AppSettings: Codable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness
+        case language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         liveliness = try c.decodeIfPresent(Liveliness.self, forKey: .liveliness) ?? .lively
+        markGap = try c.decodeIfPresent(Double.self, forKey: .markGap) ?? 2
         language = try c.decode(InterfaceLanguage.self, forKey: .language)
         persona = try c.decode(Persona.self, forKey: .persona)
         bubbleStyle = try c.decode(BubbleStyle.self, forKey: .bubbleStyle)
@@ -107,7 +109,7 @@ extension BubbleStyle: Codable {
         let fontName = try c.decode(String.self, forKey: .font)
         if fontName == "persona" { font = .persona }
         else { font = .fixed(try value(NarratorFont.self, .font)) }
-        dwell = try c.decodeIfPresent(Double.self, forKey: .dwell).map(Dwell.seconds) ?? .untilDismissed
+        dwell = try c.decodeIfPresent(Double.self, forKey: .dwell).map { .seconds(min(max($0, 1), 30)) } ?? .untilDismissed
         maxOnScreen = try c.decode(Int.self, forKey: .maxOnScreen)
     }
 
