@@ -77,7 +77,15 @@ public final class AppStore: ObservableObject {
     }
 
     private func startEngine() {
-        guard ContextPermissions.isGranted(.accessibility) else { return }
+        guard ContextPermissions.isGranted(.accessibility) else {
+            // Each new build has a new ad-hoc signature, so an update loses the grant: ask, then start once granted.
+            ContextPermissions.request(.accessibility)
+            Task {
+                while !ContextPermissions.isGranted(.accessibility) { try await Task.sleep(for: .seconds(2)) }
+                startEngine()
+            }
+            return
+        }
         engine = NarratorEngine(store: self)
         perform { try engine!.start() }
     }
