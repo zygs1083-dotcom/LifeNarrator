@@ -128,8 +128,19 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
         #expect(SpriteTick.requestsPerScreen(level: level) == requests)
         #expect(SpriteTick.windowRequestInterval(level: level) == interval)
         #expect(SpriteTick.localBurst(level: level) == burst)
-        #expect(SpriteTick.screenLimit(level: level) == screen)
+        #expect(SpriteTick.screenLimit(level: level, maxOnScreen: 3) == max(screen, 3))
     }
+}
+
+@Test func spriteRequestCountFollowsOnScreenLimitUpToEight() {
+    for (level, counts) in [(Liveliness.lively, [3, 3, 3, 4, 5, 6, 7, 8, 8, 8]),
+                            (.rowdy, [4, 4, 4, 4, 5, 6, 7, 8, 8, 8])] {
+        for (index, expected) in counts.enumerated() {
+            #expect(SpriteTick.requestCount(level: level, maxOnScreen: index + 1) == expected)
+        }
+    }
+    #expect(SpriteTick.screenLimit(level: .lively, maxOnScreen: 10) == 10)
+    #expect(SpriteTick.screenLimit(level: .rowdy, maxOnScreen: 10) == 14)
 }
 
 @Test func spriteModelBudgetUsesSlidingWindowAndConfiguredLimit() {
@@ -147,8 +158,12 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
     let request = try OpenAICompatibleClient(baseURL: URL(string: "https://example.test")!, model: "fixture")
         .makeRequest(system: "system", prompt: "screen", schema: GenerationPrompts.spriteMarksSchema, maxTokens: SpriteGenerator.maxTokens)
     let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
-    #expect(body["max_tokens"] as? Int == 450)
+    #expect(body["max_tokens"] as? Int == 900)
     #expect((body["messages"] as? [[String: String]]) == [["role":"system","content":"system"], ["role":"user","content":"screen"]])
+    let schema = try JSONSerialization.jsonObject(with: Data(GenerationPrompts.spriteMarksSchema.utf8)) as! [String: Any]
+    let properties = schema["properties"] as! [String: Any]
+    let marks = properties["marks"] as! [String: Any]
+    #expect(marks["maxItems"] as? Int == 8)
 }
 
 @Test func tickContentRefreshPreservesWindowStateAndSwitchingResetsIt() {

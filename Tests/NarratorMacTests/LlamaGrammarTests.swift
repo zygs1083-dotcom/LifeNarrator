@@ -53,7 +53,7 @@ final class LlamaGrammarTests: XCTestCase {
             let quips = LlamaGrammar.quips.split(separator: "\n").first { $0.hasPrefix("\(name) ::=") }
             XCTAssertEqual(sprite, quips)
         }
-        XCTAssertEqual(bound(grammar, rule: "root") + 1, 4)
+        XCTAssertEqual(bound(grammar, rule: "root") + 1, 8)
         XCTAssertEqual(bound(grammar, rule: "quote"), 32)
         XCTAssertEqual(bound(grammar, rule: "zh"), 20)
         XCTAssertEqual(bound(grammar, rule: "en"), 56)

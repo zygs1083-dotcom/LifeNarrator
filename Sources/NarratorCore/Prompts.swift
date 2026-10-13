@@ -6,7 +6,7 @@ public enum GenerationPrompts {
   "type": "object", "required": ["marks"], "additionalProperties": false,
   "properties": {
     "marks": {
-      "type": "array", "maxItems": 4,
+      "type": "array", "maxItems": 8,
       "items": {
         "type": "object", "required": ["l", "q", "t", "e"], "additionalProperties": false,
         "properties": {

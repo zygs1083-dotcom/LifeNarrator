@@ -103,6 +103,10 @@ public final class OverlayController {
         self.style = style
     }
 
+    nonisolated static func dwellSeconds(_ seconds: TimeInterval, maxOnScreen: Int) -> TimeInterval {
+        maxOnScreen > 3 ? max(seconds, 2.5 * Double(maxOnScreen)) : seconds
+    }
+
     var visibleIDs: Set<String> { Set(screens.values.flatMap { $0.model.bubbles.map(\.id) }) }
     private(set) var lastShownColor: Int?
     private(set) var lastPlacement = "corner"
@@ -273,8 +277,9 @@ public final class OverlayController {
 
         switch style.dwell {
         case .seconds(let seconds):
+            let duration = Self.dwellSeconds(seconds, maxOnScreen: style.maxOnScreen)
             Task {
-                try await Task.sleep(for: .seconds(textDelay + BubbleTransitions.entranceDuration(animation) + seconds))
+                try await Task.sleep(for: .seconds(textDelay + BubbleTransitions.entranceDuration(animation) + duration))
                 remove(n.id, from: overlay)
             }
         case .untilDismissed:

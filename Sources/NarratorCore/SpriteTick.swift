@@ -95,8 +95,13 @@ public enum SpriteTick: String, Sendable {
         switch level { case .quiet: []; case .lively: [3]; case .rowdy: [1.5, 3] }
     }
 
-    public static func screenLimit(level: Liveliness) -> Int {
-        switch level { case .quiet: 0; case .lively: 8; case .rowdy: 14 }
+    public static func requestCount(level: Liveliness, maxOnScreen: Int) -> Int {
+        min(max(level == .rowdy ? 4 : 3, maxOnScreen), 8)
+    }
+
+    public static func screenLimit(level: Liveliness, maxOnScreen: Int) -> Int {
+        let limit = switch level { case .quiet: 0; case .lively: 8; case .rowdy: 14 }
+        return max(limit, maxOnScreen)
     }
 }
 

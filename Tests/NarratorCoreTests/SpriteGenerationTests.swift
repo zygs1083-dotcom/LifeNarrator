@@ -10,7 +10,7 @@ private struct SpriteStub: TextGenerator {
     enum Failure: Error { case generationLimit }
     func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         #expect(system != nil)
-        #expect(maxTokens == 450)
+        #expect(maxTokens == 900)
         #expect(schema == GenerationPrompts.spriteMarksSchema)
         return response
     }
@@ -63,6 +63,17 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     #expect(marks.map(\.lineIndex) == [0, 1, 2])
     #expect(recorder.marks.map(\.quote) == ["first phrase", "second phrase", "third phrase"])
     #expect(marks.map(\.quip.text) == ["第一句", "第二句", "第三句"])
+}
+
+@Test func spriteGenerationAcceptsEightMarksAndHonorsRequestCount() async throws {
+    let texts = (0..<8).map { "quoted phrase \($0)" }
+    let raw = (0..<8).map { ["l": $0, "q": texts[$0], "t": "一句旁白", "e": "🌷"] as [String: Any] }
+    let json = String(decoding: try JSONSerialization.data(withJSONObject: ["marks": raw]), as: UTF8.self)
+    let recorder = MarkRecorder()
+    let marks = try await generateSprite(json, texts: texts, k: 8, stream: true, recorder: recorder)
+    #expect(marks.map(\.lineIndex) == Array(0..<8))
+    #expect(recorder.marks.map(\.quote) == texts)
+    #expect(try await generateSprite(json, texts: texts, k: 5).count == 5)
 }
 
 @Test func spriteGenerationAPIAndDefaultProtocolImplementationReturnAllMarks() async throws {

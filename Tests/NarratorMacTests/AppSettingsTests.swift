@@ -4,6 +4,17 @@ import NarratorCore
 import XCTest
 
 final class AppSettingsTests: XCTestCase {
+    func testEffectiveDwellExtendsForMoreThanThreeMarksWithoutChangingSettings() {
+        var style = BubbleStyle()
+        for (count, seconds, expected) in [(1, 3.0, 3.0), (3, 3, 3), (4, 3, 10),
+                                          (5, 3, 12.5), (10, 3, 25), (10, 30, 30)] {
+            style.maxOnScreen = count
+            style.dwell = .seconds(seconds)
+            XCTAssertEqual(OverlayController.dwellSeconds(seconds, maxOnScreen: style.maxOnScreen), expected)
+            XCTAssertEqual(style.dwell, .seconds(seconds))
+        }
+    }
+
     func testOldFrequencyKeysAreIgnoredAndMissingLivelinessDefaultsToLively() throws {
         var original = AppSettings()
         original.bubbleStyle.theme = .macaron
