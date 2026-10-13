@@ -10,6 +10,8 @@ public enum Sentiment: String, Codable, Sendable { case dislike, like, neutral }
 public enum RuleSource: String, Codable, Sendable { case user, builtin }
 public enum Region: String, Codable, Sendable { case header, anywhere }
 public enum TextSource: String, Codable, Sendable { case ax, ocr, none }
+public enum TextRole: String, Codable, Sendable { case text, button, link, field }
+public enum Liveliness: String, Codable, Sendable { case quiet, lively, rowdy }
 public enum When: String, Codable, Sendable {
     case any, lateNight, mondayMorning, fridayEvening
 
@@ -96,7 +98,17 @@ public struct Rule: Codable, Equatable, Sendable {
 public struct TextLine: Codable, Equatable, Sendable {
     public var text: String
     public var rect: CGRect
-    public init(text: String, rect: CGRect) { self.text = text; self.rect = rect }
+    public var role: TextRole
+    public init(text: String, rect: CGRect, role: TextRole = .text) {
+        self.text = text; self.rect = rect; self.role = role
+    }
+    enum CodingKeys: String, CodingKey { case text, rect, role }
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        text = try c.decode(String.self, forKey: .text)
+        rect = try c.decode(CGRect.self, forKey: .rect)
+        role = try c.decodeIfPresent(TextRole.self, forKey: .role) ?? .text
+    }
 }
 
 public struct ContextSnapshot: Codable, Sendable {
@@ -111,13 +123,18 @@ public struct ContextSnapshot: Codable, Sendable {
     public var host: String?
     public var textLines: [TextLine]
     public var textSource: TextSource
+    public var sensitiveRects: [CGRect]
+    public var secureFocused: Bool
+    public var fullScreen: Bool
     public var capturedAt: Date
     public init(bundleId: String, appName: String, pid: Int32, windowTitle: String? = nil,
                 windowFrame: CGRect, contentFrame: CGRect, screenIndex: Int = 0, url: String? = nil,
-                host: String? = nil, textLines: [TextLine] = [], textSource: TextSource = .none, capturedAt: Date) {
+                host: String? = nil, textLines: [TextLine] = [], textSource: TextSource = .none,
+                sensitiveRects: [CGRect] = [], secureFocused: Bool = false, fullScreen: Bool = false, capturedAt: Date) {
         self.bundleId = bundleId; self.appName = appName; self.pid = pid; self.windowTitle = windowTitle
         self.windowFrame = windowFrame; self.contentFrame = contentFrame; self.screenIndex = screenIndex
         self.url = url; self.host = host; self.textLines = textLines; self.textSource = textSource
+        self.sensitiveRects = sensitiveRects; self.secureFocused = secureFocused; self.fullScreen = fullScreen
         self.capturedAt = capturedAt
     }
 }

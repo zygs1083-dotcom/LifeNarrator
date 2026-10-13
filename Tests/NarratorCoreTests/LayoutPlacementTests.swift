@@ -119,4 +119,50 @@ final class LayoutPlacementTests: XCTestCase {
         XCTAssertNil(BubblePlacement.sizeTier(requested: .small, window: WindowGeometry(frame: CGRect(x: 0, y: 0, width: 350, height: 400))))
         XCTAssertNil(BubblePlacement.sizeTier(requested: .small, window: WindowGeometry(frame: CGRect(x: 0, y: 0, width: 800, height: 200))))
     }
+    func testSpriteFrameExpansion() {
+        XCTAssertEqual(BubblePlacement.spriteFrame(around: CGRect(x: 400, y: 400, width: 40, height: 18)), CGRect(x: 395, y: 397, width: 50, height: 24))
+    }
+
+    func testSpriteTriesAllFivePositionsInOrder() throws {
+        let frame = CGRect(x: 450, y: 400, width: 100, height: 24)
+        // Tiny blockers identify each placement without covering the adjacent alternative.
+        let blockers = [CGRect(x: 660, y: 410, width: 2, height: 2),
+                        CGRect(x: 680, y: 360, width: 2, height: 2),
+                        CGRect(x: 430, y: 360, width: 2, height: 2),
+                        CGRect(x: 480, y: 440, width: 2, height: 2),
+                        CGRect(x: 300, y: 410, width: 2, height: 2)]
+        let sides: [AnchorSide] = [.right, .aboveRight, .above, .below, .left]
+        let origins = [CGPoint(x: 558, y: 390), CGPoint(x: 538, y: 352), CGPoint(x: 410, y: 348),
+                       CGPoint(x: 410, y: 432), CGPoint(x: 262, y: 390)]
+        for i in sides.indices {
+            let occupied = Array(blockers.prefix(i))
+            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: screen, occupied: occupied))
+            XCTAssertEqual(placement.side, sides[i])
+            XCTAssertEqual(placement.frame.origin, origins[i])
+            XCTAssertFalse(placement.frame.intersects(frame))
+            for other in occupied {
+                XCTAssertFalse(placement.frame.insetBy(dx: -4, dy: -4).intersects(other.insetBy(dx: -4, dy: -4)))
+            }
+        }
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: screen, occupied: blockers))
+    }
+
+    func testSpriteRightEdgeFallsBackAboveRightAndClampsX() throws {
+        let frame = CGRect(x: 880, y: 400, width: 100, height: 24)
+        let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: screen, occupied: []))
+        XCTAssertEqual(placement.side, .aboveRight)
+        XCTAssertEqual(placement.frame.maxX, window.contentArea.maxX - 8)
+        XCTAssertEqual(placement.frame.maxY, frame.minY - 4)
+        XCTAssertFalse(placement.frame.intersects(frame))
+    }
+
+    func testSpriteUsesVisibleIntersectionAndRejectsNoSpace() throws {
+        let visible = CGRect(x: 300, y: 300, width: 500, height: 300)
+        let frame = CGRect(x: 680, y: 400, width: 100, height: 24)
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: visible, occupied: []))
+        XCTAssertTrue(window.contentArea.intersection(visible).insetBy(dx: 8, dy: 4).contains(p.frame))
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: CGRect(x: 0, y: 0, width: 50, height: 50), occupied: []))
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: CGSize(width: 1000, height: 900), frame: frame, window: window, visibleFrame: screen, occupied: []))
+    }
+
 }

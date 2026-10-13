@@ -89,3 +89,21 @@ func pack(rules: [Rule] = [], generic: [Quip] = []) -> QuipPack {
     #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(generic: [quip("{label}来了")]), now: epoch, using: &random)?.text == "会议来了")
     #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(generic: [quip("{label}来了")]), now: epoch.addingTimeInterval(1), using: &random) == nil)
 }
+
+@Test func pickerForgetClearsQueuesAndTwoHourHistoryForOnlyThatRule() {
+    var picker = QuipPicker()
+    var random = SeededRandom(seed: 23)
+    let target = rule("target", quips: [quip("one"), quip("two"), quip("three")])
+    let other = rule("other", quips: [quip("alone")])
+    _ = picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random)
+    _ = picker.pick(for: other, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random)
+    picker.forget(ruleID: target.id)
+    let calls = random.calls
+    #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random) != nil)
+    #expect(random.calls > calls)
+    for _ in 0..<2 { #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random) != nil) }
+    #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random) == nil)
+    #expect(picker.pick(for: other, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random) == nil)
+    picker.forget(ruleID: target.id)
+    #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random) != nil)
+}

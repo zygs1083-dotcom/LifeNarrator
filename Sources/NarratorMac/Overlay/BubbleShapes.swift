@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Tail of a speech bubble in the body's local coordinates (visual-spec §2.3).
 struct SpeechTail: Equatable {
-    enum Edge { case top, bottom, left }
+    enum Edge { case top, bottom, left, right }
 
     var edge: Edge
     /// Root center along the edge: x for top/bottom, y for left.
@@ -39,6 +39,9 @@ struct SpeechShape: Shape {
         }
         p.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
         p.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.minY), tangent2End: CGPoint(x: rect.maxX, y: rect.minY + r), radius: r)
+        if let t = tail, t.edge == .right {
+            addTail(&p, t, from: CGPoint(x: rect.maxX, y: rect.minY + t.root - t.base / 2), to: CGPoint(x: rect.maxX, y: rect.minY + t.root + t.base / 2))
+        }
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
         p.addArc(tangent1End: CGPoint(x: rect.maxX, y: rect.maxY), tangent2End: CGPoint(x: rect.maxX - r, y: rect.maxY), radius: r)
         if let t = tail, t.edge == .bottom {

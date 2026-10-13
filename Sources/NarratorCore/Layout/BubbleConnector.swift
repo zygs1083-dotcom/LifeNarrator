@@ -14,8 +14,10 @@ public enum BubbleConnector {
     public static func endpoints(bubble: CGRect, highlight: CGRect, side: AnchorSide) -> (bubble: CGPoint, highlight: CGPoint) {
         switch side {
         case .above: (CGPoint(x: bubble.midX, y: bubble.maxY), CGPoint(x: highlight.midX, y: highlight.minY))
+        case .aboveRight: (CGPoint(x: bubble.midX, y: bubble.maxY), CGPoint(x: highlight.maxX, y: highlight.minY))
         case .below: (CGPoint(x: bubble.midX, y: bubble.minY), CGPoint(x: highlight.midX, y: highlight.maxY))
         case .right: (CGPoint(x: bubble.minX, y: bubble.midY), CGPoint(x: highlight.maxX, y: highlight.midY))
+        case .left: (CGPoint(x: bubble.maxX, y: bubble.midY), CGPoint(x: highlight.minX, y: highlight.midY))
         }
     }
 
@@ -27,9 +29,10 @@ public enum BubbleConnector {
     /// §7 connecting line for rounded / sticker / note. nil when the facing edges are 6pt apart or less.
     public static func line(bubble: CGRect, highlight: CGRect, side: AnchorSide) -> (from: CGPoint, to: CGPoint)? {
         let gap: CGFloat = switch side {
-        case .above: highlight.minY - bubble.maxY
+        case .above, .aboveRight: highlight.minY - bubble.maxY
         case .below: bubble.minY - highlight.maxY
         case .right: bubble.minX - highlight.maxX
+        case .left: highlight.minX - bubble.maxX
         }
         guard gap > 6 else { return nil }
         let (a, b) = endpoints(bubble: bubble, highlight: highlight, side: side)
@@ -53,9 +56,10 @@ public enum BubbleConnector {
     public static func speechTailTip(bubble: CGRect, highlight: CGRect, side: AnchorSide) -> CGPoint {
         let target = endpoints(bubble: bubble, highlight: highlight, side: side).highlight
         return switch side {
-        case .above: CGPoint(x: target.x, y: target.y - 2)
+        case .above, .aboveRight: CGPoint(x: target.x, y: target.y - 2)
         case .below: CGPoint(x: target.x, y: target.y + 2)
         case .right: CGPoint(x: target.x + 2, y: target.y)
+        case .left: CGPoint(x: target.x - 2, y: target.y)
         }
     }
 
@@ -65,7 +69,8 @@ public enum BubbleConnector {
         let margin = cornerRadius + tailBase / 2
         return switch side {
         case .above, .below: min(max(highlight.midX, bubble.minX + margin), bubble.maxX - margin)
-        case .right: min(max(highlight.midY, bubble.minY + margin), bubble.maxY - margin)
+        case .aboveRight: min(max(highlight.maxX, bubble.minX + margin), bubble.maxX - margin)
+        case .right, .left: min(max(highlight.midY, bubble.minY + margin), bubble.maxY - margin)
         }
     }
 }

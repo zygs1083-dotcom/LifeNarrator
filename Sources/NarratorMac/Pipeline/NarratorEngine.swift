@@ -57,7 +57,6 @@ public final class NarratorEngine {
                 typing = true
                 candidates.removeAll { $0.rule.kind == .person || $0.rule.kind == .topic }
             }
-            candidates = scheduler.triggers(from: candidates)
             guard !candidates.isEmpty else { return log(snapshot, [], shown: false, typing ? "typing, no candidates" : "no candidates") }
             let generation = self.generation
             Task {
@@ -117,7 +116,6 @@ public final class NarratorEngine {
 
     private func windowChanged() {
         overlay.dismissAll()
-        scheduler.clearPresence()
         windowID = nil
     }
 
