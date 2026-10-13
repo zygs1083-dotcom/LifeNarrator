@@ -38,11 +38,15 @@ final class UISnapshotTests: XCTestCase {
                 }
             }
         }
-        let fixtures: [(RuleKind, String)] = [(.person, "张三是我领导"), (.site, "我讨厌谷歌"), (.topic, "我讨厌开会")]
+        let fixtures: [(RuleKind, String, Match)] = [
+            (.person, "张三是我领导", Match(aliases: ["张三"], region: .header)),
+            (.site, "我讨厌谷歌", Match(domains: ["google.com"])),
+            (.topic, "我讨厌开会", Match(aliases: ["开会"]))
+        ]
         let rules = fixtures.enumerated().map { index, fixture in
             Rule(id: "snapshot.\(index)", kind: fixture.0, source: .user, input: fixture.1,
                  label: .init(zh: fixture.1, en: fixture.1), sentiment: .dislike,
-                 match: Match(aliases: [fixture.1]), highlight: true)
+                 match: fixture.2, highlight: true)
         }
         for filled in [false, true] {
             try RuleLoader.save(filled ? rules : [], to: store.directory.rules)
