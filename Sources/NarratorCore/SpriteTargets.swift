@@ -122,6 +122,6 @@ public enum SpriteScout {
     public static func isMediaFullScreen(_ snapshot: ContextSnapshot) -> Bool {
         snapshot.fullScreen && (snapshot.textSource == .ocr || snapshot.textLines.filter {
             $0.rect.minY >= snapshot.contentFrame.minY && $0.rect.height >= 10
-        }.count <= 12)
+        }.count <= 3)
     }
 }

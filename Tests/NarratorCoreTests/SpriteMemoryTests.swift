@@ -59,12 +59,22 @@ import Testing
 
 @Test func spriteMemoryScreenCountsAndLRUEvictsBeyondTwoHundred() {
     var memory = SpriteMemory()
-    #expect(memory.screenStatus(key: 0) == nil)
+    #expect(memory.screenStatus(key: 0, now: epoch) == nil)
     for key in UInt64(0)..<200 { #expect(memory.recordRequest(key: key, now: epoch) == nil) }
     memory.recordRequest(key: 0, now: epoch.addingTimeInterval(10))
-    #expect(memory.screenStatus(key: 0)?.requests == 2)
-    #expect(memory.screenStatus(key: 0)?.lastRequestAt == epoch.addingTimeInterval(10))
+    #expect(memory.screenStatus(key: 0, now: epoch.addingTimeInterval(10))?.requests == 2)
+    #expect(memory.screenStatus(key: 0, now: epoch.addingTimeInterval(10))?.lastRequestAt == epoch.addingTimeInterval(10))
     #expect(memory.recordRequest(key: 200, now: epoch) == 1)
-    #expect(memory.screenStatus(key: 1) == nil)
-    #expect(memory.screenStatus(key: 0)?.requests == 2)
+    #expect(memory.screenStatus(key: 1, now: epoch) == nil)
+    #expect(memory.screenStatus(key: 0, now: epoch.addingTimeInterval(10))?.requests == 2)
+}
+
+@Test func spriteMemoryScreenRequestsExpireWithTheQuoteTTL() {
+    var memory = SpriteMemory(level: .lively)
+    memory.recordRequest(key: 7, now: epoch)
+    memory.recordRequest(key: 7, now: epoch)
+    #expect(memory.screenStatus(key: 7, now: epoch.addingTimeInterval(1799))?.requests == 2)
+    #expect(memory.screenStatus(key: 7, now: epoch.addingTimeInterval(1800)) == nil)
+    memory.recordRequest(key: 7, now: epoch.addingTimeInterval(1800))
+    #expect(memory.screenStatus(key: 7, now: epoch.addingTimeInterval(1800))?.requests == 1)
 }

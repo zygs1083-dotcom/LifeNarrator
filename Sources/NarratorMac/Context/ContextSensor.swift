@@ -180,7 +180,13 @@ public final class ContextSensor {
         if textSource == .ocr || line.rect.height <= 1.5 * medianHeight {
             return (RuleMatcher.estimatedRect(for: line, range: range), .estimated)
         }
-        let lines = (try await visualLines()).filter { $0.rect.intersects(line.rect) }
+        let visual: [TextLine]
+        do { visual = try await visualLines() } catch is CancellationError { throw CancellationError() } catch {
+            // ScreenCaptureKit cannot always find the window (e.g. while it is animating); show the remark unframed.
+            FileHandle.standardError.write(Data("[sprite] ocr skipped: \(error)\n".utf8))
+            return nil
+        }
+        let lines = visual.filter { $0.rect.intersects(line.rect) }
         let quote = String(line.text[range])
         var prefixes = [quote]
         if quote.count > 6 { prefixes += stride(from: quote.count - 1, through: 6, by: -1).map { String(quote.prefix($0)) } }
@@ -329,6 +335,12 @@ public final class ContextSensor {
         if name == kAXFocusedWindowChangedNotification || name == kAXUIElementDestroyedNotification {
             try bindWindow()
         }
+        schedule()
+    }
+
+    /// Reads the focused window again as if it had just been switched to.
+    public func refresh() {
+        windowChangePending = true
         schedule()
     }
 

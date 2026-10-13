@@ -77,11 +77,13 @@ public struct SpriteMemory: Sendable {
             .prefix(12).map { $0.key.text }
     }
 
-    public func screenStatus(key: UInt64) -> ScreenStatus? { screens[key] }
+    public func screenStatus(key: UInt64, now: Date) -> ScreenStatus? {
+        screens[key].flatMap { now.timeIntervalSince($0.lastRequestAt) < ttl ? $0 : nil }
+    }
 
     @discardableResult
     public mutating func recordRequest(key: UInt64, now: Date) -> UInt64? {
-        screens[key] = ScreenStatus(requests: (screens[key]?.requests ?? 0) + 1, lastRequestAt: now)
+        screens[key] = ScreenStatus(requests: (screenStatus(key: key, now: now)?.requests ?? 0) + 1, lastRequestAt: now)
         recentScreens.removeAll { $0 == key }
         recentScreens.append(key)
         guard recentScreens.count > 200 else { return nil }

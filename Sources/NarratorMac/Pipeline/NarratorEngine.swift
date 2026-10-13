@@ -307,6 +307,14 @@ public final class NarratorEngine {
         let now = Date()
         if let reason = try quietReason(snapshot, now: now) {
             log(snapshot, kind, shown: false, reason: reason)
+            // Stage Manager animates new windows in from a thumbnail; read again once it has grown.
+            if reason == "small" && switching {
+                Task {
+                    try await Task.sleep(for: .seconds(1))
+                    guard generation == self.generation else { return }
+                    sensor.refresh()
+                }
+            }
             return
         }
         let level = store.settings.liveliness
@@ -646,7 +654,7 @@ public final class NarratorEngine {
     }
 
     private func scheduleFollowup(generation: Int) {
-        guard let screenKey, (memory.screenStatus(key: screenKey)?.requests ?? 0) < SpriteTick.requestsPerScreen(level: store.settings.liveliness) else { return }
+        guard let screenKey, (memory.screenStatus(key: screenKey, now: Date())?.requests ?? 0) < SpriteTick.requestsPerScreen(level: store.settings.liveliness) else { return }
         followup = Task {
             do {
                 try await Task.sleep(for: .seconds(SpriteTick.followupDelay(level: store.settings.liveliness)))

@@ -76,15 +76,15 @@ private func scout(_ lines: [TextLine], level: Liveliness = .lively) -> [SpriteT
 }
 
 @Test func spriteMediaFullScreenCountsContentLinesInsteadOfTargets() {
-    let lines = (0..<13).map { spriteLine("ordinary prose \($0)", y: 250 + CGFloat($0) * 20) }
-    #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(Array(lines.prefix(12)), fullScreen: true)))
+    let lines = (0..<4).map { spriteLine("ordinary prose \($0)", y: 250 + CGFloat($0) * 20) }
+    #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(Array(lines.prefix(3)), fullScreen: true)))
     #expect(!SpriteScout.isMediaFullScreen(spriteSnapshot(lines, fullScreen: true)))
     #expect(!SpriteScout.isMediaFullScreen(spriteSnapshot(lines)))
     #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(lines, fullScreen: true, source: .ocr)))
     var ignored = lines
-    ignored[12].rect.size.height = 9
+    ignored[3].rect.size.height = 9
     #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(ignored, fullScreen: true)))
-    ignored[12] = spriteLine("chrome", y: 40)
+    ignored[3] = spriteLine("chrome", y: 40)
     #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(ignored, fullScreen: true)))
 }
 

@@ -162,6 +162,23 @@ final class LayoutPlacementTests: XCTestCase {
         XCTAssertLessThanOrEqual(BubbleConnector.length(bubble: p.frame, highlight: frame, side: p.side), 240)
     }
 
+    func testSpriteTextPaddingMayOverlapNeighbouringLines() throws {
+        // Dense rows 26pt apart (22pt text); a 34pt-tall text-only remark has 6pt of transparent padding.
+        let window = WindowGeometry(frame: CGRect(x: 0, y: 0, width: 1000, height: 700), chromeHeight: 0)
+        let frame = CGRect(x: 200, y: 356, width: 120, height: 22)
+        let line = CGRect(x: 100, y: 356, width: 230, height: 22)
+        let obstacles = [CGRect(x: 96, y: 330, width: 300, height: 22), CGRect(x: 96, y: 382, width: 300, height: 22)]
+        let size = CGSize(width: 200, height: 34)
+        let blocked = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: line, window: window,
+            visibleFrame: screen, occupied: [], obstacles: obstacles))
+        XCTAssertNotEqual(blocked.frame.origin, CGPoint(x: 328, y: 350))
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: line, window: window,
+            visibleFrame: screen, occupied: [], obstacles: obstacles, inkInset: CGSize(width: 10, height: 6)))
+        XCTAssertEqual(p.frame.origin, CGPoint(x: 328, y: 350))
+        XCTAssertFalse(p.outside)
+        XCTAssertFalse(p.covered)
+    }
+
     func testSpriteNarrowRetryUsesMeasuredTwoLineSize() throws {
         let frame = CGRect(x: 650, y: 400, width: 100, height: 20)
         let line = CGRect(x: 210, y: 400, width: 540, height: 20)

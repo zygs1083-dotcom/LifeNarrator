@@ -83,7 +83,7 @@ public enum BubblePlacement {
 
     public static func anchoredSprite(size: CGSize, frame: CGRect, line: CGRect, window: WindowGeometry,
                                       visibleFrame: CGRect, occupied: [CGRect], obstacles: [CGRect],
-                                      narrowSize: CGSize? = nil) -> SpritePlacement? {
+                                      narrowSize: CGSize? = nil, inkInset: CGSize = .zero) -> SpritePlacement? {
         let bounds = window.contentArea.intersection(visibleFrame)
         guard !bounds.isNull, window.frame.width >= minimumWindowSize.width,
               window.frame.height >= minimumWindowSize.height else { return nil }
@@ -109,7 +109,8 @@ public enum BubblePlacement {
                 && (!placement.connector || BubbleConnector.length(bubble: placement.frame, highlight: frame, side: placement.side) <= 240)
         }
         func clear(_ placement: SpritePlacement) -> Bool {
-            fits(placement) && !obstacles.contains { $0.insetBy(dx: 1, dy: 1).intersects(placement.frame) }
+            // `inkInset` is the transparent padding of the text-only style; only the glyphs may not touch text.
+            fits(placement) && !obstacles.contains { $0.insetBy(dx: 1, dy: 1).intersects(placement.frame.insetBy(dx: inkInset.width, dy: inkInset.height)) }
         }
         var choices = candidates(size, narrow: false)
         if let placement = choices.first(where: clear) { return placement }
@@ -132,7 +133,7 @@ public enum BubblePlacement {
         }
         func overlap(_ placement: SpritePlacement) -> CGFloat {
             obstacles.reduce(0) { area, obstacle in
-                let shared = obstacle.insetBy(dx: 1, dy: 1).intersection(placement.frame)
+                let shared = obstacle.insetBy(dx: 1, dy: 1).intersection(placement.frame.insetBy(dx: inkInset.width, dy: inkInset.height))
                 return area + (shared.isNull ? 0 : shared.width * shared.height)
             }
         }

@@ -63,7 +63,7 @@ public enum SpriteTick: String, Sendable {
                 Attempt(mark: $0.mark, reason: "cache", ignoresRuleCooldown: true)
             }
             if !replay.isEmpty { return attempts + replay }
-            if !screen.lines.isEmpty && requestAllowed && (memory.screenStatus(key: screenKey)?.requests ?? 0) < requestsPerScreen(level: level) {
+            if !screen.lines.isEmpty && requestAllowed && (memory.screenStatus(key: screenKey, now: now)?.requests ?? 0) < requestsPerScreen(level: level) {
                 return attempts + [Attempt(reason: "request", ignoresRuleCooldown: false)]
             }
         }

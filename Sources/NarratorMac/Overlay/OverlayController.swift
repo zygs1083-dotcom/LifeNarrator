@@ -105,6 +105,10 @@ public final class OverlayController {
         self.style = style
     }
 
+    private func inkInset(_ appearance: BubbleAppearance) -> CGSize {
+        appearance.shape == .text ? CGSize(width: appearance.size.horizontalPadding, height: appearance.size.verticalPadding) : .zero
+    }
+
     nonisolated static func dwellSeconds(_ seconds: TimeInterval, maxOnScreen: Int) -> TimeInterval {
         maxOnScreen > 3 ? max(seconds, 2.5 * Double(maxOnScreen)) : seconds
     }
@@ -226,7 +230,7 @@ public final class OverlayController {
                 text: n.text, emoji: emoji, quipID: n.quipID, maxWidth: 160)
             guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box,
                 line: line, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied,
-                obstacles: obstacles, narrowSize: narrow.outerSize) else { return false }
+                obstacles: obstacles, narrowSize: narrow.outerSize, inkInset: inkInset(appearance)) else { return false }
             if placement.narrow { appearance = narrow }
             if placement.covered {
                 appearance.shape = .rounded
@@ -329,7 +333,7 @@ public final class OverlayController {
             guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize,
                 frame: highlight, line: model.bubbles[i].line ?? highlight, window: model.bubbles[i].window,
                 visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: model.bubbles[i].obstacles,
-                narrowSize: narrow.outerSize) else {
+                narrowSize: narrow.outerSize, inkInset: inkInset(model.bubbles[i].appearance)) else {
                 dropped.append(model.bubbles[i].id)
                 continue
             }
