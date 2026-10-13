@@ -3,6 +3,11 @@ import Foundation
 public struct ScrollLead {
     public enum Mode: String, Sendable { case fresh, throttled }
 
+    public static let lineDelta: CGFloat = 40
+    public static let pageOverlap: CGFloat = 20
+    public static let wheelDuration: TimeInterval = 0.175
+    public static let keyDuration: TimeInterval = 0.15
+
     public struct Mark {
         public let windowID: UInt32
         public fileprivate(set) var lead = CGPoint.zero
@@ -16,11 +21,21 @@ public struct ScrollLead {
         var positions: [UInt32: CGPoint]
     }
 
+    private struct Animation {
+        let delta: CGPoint
+        let windows: Set<UInt32>
+        let start: TimeInterval
+        let duration: TimeInterval
+        var progress: CGFloat = 0
+    }
+
     public let mode: Mode
     public private(set) var marks: [String: Mark] = [:]
-    public private(set) var events = 0
+    public private(set) var moves = 0
     public private(set) var samples = 0
     private var history: [Sample]
+    private var animations: [Animation] = []
+    private var movedSinceFollow = false
 
     public init(mode: Mode, time: TimeInterval) {
         self.mode = mode
@@ -35,16 +50,38 @@ public struct ScrollLead {
         marks.removeValue(forKey: id)
     }
 
-    public mutating func event(delta: CGPoint, windows: Set<UInt32>, time: TimeInterval) -> [String: CGPoint] {
-        events += 1
+    public mutating func event(delta: CGPoint, windows: Set<UInt32>, time: TimeInterval,
+                               duration: TimeInterval) -> [String: CGPoint] {
+        animations.append(Animation(delta: delta, windows: windows, start: time, duration: duration))
+        return advance(time: time)
+    }
+
+    public mutating func advance(time: TimeInterval) -> [String: CGPoint] {
+        var deltas: [UInt32: CGPoint] = [:]
+        for i in animations.indices {
+            let animation = animations[i]
+            let p = animation.duration == 0 ? 1 : min(1, max(0, (time - animation.start) / animation.duration))
+            let progress = CGFloat(3 * p * p - 2 * p * p * p)
+            let step = progress - animation.progress
+            for window in animation.windows {
+                deltas[window] = adding(deltas[window] ?? .zero,
+                    CGPoint(x: animation.delta.x * step, y: animation.delta.y * step))
+            }
+            animations[i].progress = progress
+        }
+        animations.removeAll { $0.progress == 1 }
+        deltas = deltas.filter { $0.value != .zero }
+        guard !deltas.isEmpty else { return [:] }
+        movedSinceFollow = true
         var next = history.last!
-        for window in windows {
+        for (window, delta) in deltas {
             next.positions[window] = adding(next.positions[window] ?? .zero, delta)
         }
         history.append(Sample(time: time, positions: next.positions))
         guard mode == .throttled else { return [:] }
         var translations: [String: CGPoint] = [:]
-        for (id, var mark) in marks where windows.contains(mark.windowID) && mark.predicting {
+        for (id, var mark) in marks where mark.predicting {
+            guard let delta = deltas[mark.windowID] else { continue }
             mark.lead = adding(mark.lead, delta)
             if mark.lead == .zero { mark.predictionSince = nil }
             else if mark.predictionSince == nil { mark.predictionSince = time }
@@ -56,6 +93,8 @@ public struct ScrollLead {
 
     /// Only successful AX reads participate; a busy app's marks are skipped for this frame.
     public mutating func follow(deltas: [String: CGPoint], time: TimeInterval) -> [String: CGPoint] {
+        if movedSinceFollow { moves += 1 }
+        movedSinceFollow = false
         let changed = deltas.filter { hypot($0.value.x, $0.value.y) >= 0.5 }
         if !changed.isEmpty { samples += 1 }
         let changedWindows = Set(changed.keys.map { marks[$0]!.windowID })
@@ -91,7 +130,7 @@ public struct ScrollLead {
     }
 
     public var classifiedMode: Mode? {
-        events >= 10 ? (samples * 2 >= events ? .fresh : .throttled) : nil
+        moves >= 10 ? (samples * 2 >= moves ? .fresh : .throttled) : nil
     }
 
     public mutating func end() -> [String: CGPoint] {
@@ -105,6 +144,8 @@ public struct ScrollLead {
             marks[id] = mark
         }
         history = []
+        animations = []
+        movedSinceFollow = false
         return translations
     }
 
