@@ -315,6 +315,14 @@ public final class NarratorEngine {
                     sensor.refresh()
                 }
             }
+            // Moving, resizing and the full-screen animation are quiet; look again once the window has settled.
+            if reason == "moving" {
+                Task {
+                    try await Task.sleep(for: .seconds(0.6))
+                    guard generation == self.generation else { return }
+                    runTick(kind, switching: switching)
+                }
+            }
             return
         }
         let level = store.settings.liveliness
