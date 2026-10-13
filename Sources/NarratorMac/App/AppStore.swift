@@ -9,7 +9,10 @@ public final class AppStore: ObservableObject {
     @Published public var settings: AppSettings {
         didSet {
             perform { try directory.saveSettings(settings) }
-            if oldValue.language != settings.language { onboardingWindow?.title = text("app.name") }
+            if oldValue.language != settings.language {
+                onboardingWindow?.title = text("app.name")
+                settingsWindow?.title = text("app.name")
+            }
             if oldValue.inputShortcut != settings.inputShortcut || oldValue.pauseShortcut != settings.pauseShortcut {
                 registerShortcuts()
             }
@@ -27,6 +30,7 @@ public final class AppStore: ObservableObject {
     public let downloader: ModelDownloader
     private var shortcutTasks: [Task<Void, Never>] = []
     private var onboardingWindow: NSWindow?
+    private var settingsWindow: NSWindow?
     private var inputPanel: InputPanelController?
     private var engine: NarratorEngine?
     private var downloadSubscription: AnyCancellable?
@@ -84,6 +88,22 @@ public final class AppStore: ObservableObject {
 
     public func perform(_ operation: () throws -> Void) {
         do { try operation() } catch { self.error = String(describing: error) }
+    }
+
+    // An AppKit window rather than a SwiftUI Settings scene so it can also open when the app is
+    // launched again, the only way in when macOS hides the menu bar icon (a full menu bar on a notched Mac).
+    public func showSettings() {
+        if settingsWindow == nil {
+            let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable],
+                                  backing: .buffered, defer: false)
+            window.title = text("app.name")
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: AppSettingsView(store: self))
+            window.center()
+            settingsWindow = window
+        }
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        settingsWindow!.makeKeyAndOrderFront(nil)
     }
 
     public func showInput() {

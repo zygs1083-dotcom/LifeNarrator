@@ -31,22 +31,17 @@ struct LifeNarratorApp: App {
                 .foregroundStyle(store.settings.paused ? .gray : .primary)
                 .accessibilityLabel(store.text(store.settings.paused ? "paused" : "app.name"))
         }
-        Settings { AppSettingsView(store: store) }
     }
 }
 
 private struct MenuContent: View {
     @ObservedObject var store: AppStore
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Button(store.text(store.settings.paused ? "resume" : "pause")) { store.settings.paused.toggle() }
         Button(store.text("input.open")) { store.showInput() }
         Divider()
-        Button(store.text("settings")) {
-            NSApplication.shared.activate(ignoringOtherApps: true)
-            openSettings()
-        }
+        Button(store.text("settings")) { store.showSettings() }
         Button(store.text("quit")) { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
 
     }
@@ -56,6 +51,11 @@ private struct MenuContent: View {
 private final class AppDelegate: NSObject, NSApplicationDelegate {
     var store: AppStore!
     func applicationDidFinishLaunching(_ notification: Notification) { store.start() }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        store.showSettings()
+        return false
+    }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if case .downloading = store.downloader.state {

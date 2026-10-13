@@ -20,6 +20,7 @@ public struct AppSettingsView: View {
                 Text(verbatim: "LifeNarrator").font(.title)
                 Text("\(store.text("version")) \(NarratorMac.version)")
                 Link(store.text("github"), destination: URL(string: "https://github.com/zygs1083-dotcom/LifeNarrator")!)
+                Button(store.text("quit")) { NSApplication.shared.terminate(nil) }
             }
             .tabItem { Label(store.text("about"), systemImage: "info.circle") }
         }
