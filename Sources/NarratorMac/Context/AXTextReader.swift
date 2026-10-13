@@ -34,15 +34,7 @@ enum AXAccess {
     }
 
     static func position(_ element: AXUIElement) throws -> CGPoint? {
-        var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &value)
-        switch result {
-        case .success: break
-        case .attributeUnsupported, .noValue, .notImplemented, .invalidUIElement: return nil
-        default: throw AXFailure(operation: kAXPositionAttribute, code: result)
-        }
-        guard let value,
-              CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+        guard let value = try value(element, kAXPositionAttribute), CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
         var point = CGPoint.zero
         return AXValueGetValue(value as! AXValue, .cgPoint, &point) ? point : nil
     }

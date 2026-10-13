@@ -120,7 +120,6 @@ public final class OverlayController: NSObject {
     private var displayLink: CADisplayLink?
     private var lastScroll = Date.distantPast
     private var followFrames = 0
-    private var followIndex = 0
     private var followMoved = 0
     private var followRemoved = 0
     private var followTime: TimeInterval = 0
@@ -209,9 +208,7 @@ public final class OverlayController: NSObject {
             stopFollowing()
             return
         }
-        let count = min(8, tracked.count)
-        for offset in 0..<count {
-            let (overlay, i) = tracked[(followIndex + offset) % tracked.count]
+        for (overlay, i) in tracked {
             let model = overlay.model
             let bubble = model.bubbles[i]
             let track = bubble.track!
@@ -241,7 +238,6 @@ public final class OverlayController: NSObject {
                 onError(error)
             }
         }
-        followIndex = (followIndex + count) % tracked.count
         if looping { followTime += Date().timeIntervalSince(start) }
         if screens.values.allSatisfy({ $0.model.bubbles.allSatisfy { $0.track == nil || $0.leaving } }) {
             stopFollowing()
