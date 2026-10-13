@@ -160,3 +160,9 @@ private func scout(_ lines: [TextLine], level: Liveliness = .lively) -> [SpriteT
     let result = try JSONDecoder().decode(ContextSnapshot.self, from: encoder.encode(snapshot))
     #expect(result.sensitiveRects == snapshot.sensitiveRects && result.secureFocused && result.fullScreen)
 }
+
+@Test func spriteHeaderNavigationIsNotNames() {
+    let nav = ["首页", "新闻", "视频", "图片"].enumerated().map { spriteLine($0.element, x: 300 + CGFloat($0.offset) * 100) }
+    #expect(!scout(nav).contains { $0.category == .name })
+    #expect(scout([spriteLine("张三"), spriteLine("李四", x: 500)]).filter { $0.category == .name }.count == 2)
+}
