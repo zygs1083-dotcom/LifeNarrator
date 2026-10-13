@@ -39,7 +39,7 @@ final class UISnapshotTests: XCTestCase {
 
     private func scrollView(in view: NSView) -> NSScrollView? {
         if let scroll = view as? NSScrollView { return scroll }
-        return view.subviews.lazy.compactMap { scrollView(in: $0) }.first
+        return view.subviews.lazy.compactMap { self.scrollView(in: $0) }.first
     }
 
     private func render<V: View>(_ view: V, dark: Bool, scrollToBottom: Bool = false) throws -> Data {
