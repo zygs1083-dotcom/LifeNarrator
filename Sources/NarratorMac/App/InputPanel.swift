@@ -61,7 +61,7 @@ struct RuleInputView: View {
                 .textFieldStyle(.plain).font(AppTheme.font(.input))
                 .overlay(alignment: .leading) {
                     if input.isEmpty {
-                        Text(store.text("input.placeholder")).foregroundStyle(AppTheme.textSecondary)
+                        Text(store.text("input.placeholder")).font(AppTheme.font(.input)).foregroundStyle(AppTheme.textSecondary)
                             .allowsHitTesting(false).accessibilityHidden(true)
                     }
                 }
