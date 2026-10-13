@@ -10,6 +10,9 @@ public struct QuipPack: Codable, Sendable {
     public var version: Int
     public var rules: [Rule]
     public var generic: [String: [Quip]]
+    public init(version: Int, rules: [Rule], generic: [String: [Quip]]) {
+        self.version = version; self.rules = rules; self.generic = generic
+    }
 }
 
 public enum RuleLoader {

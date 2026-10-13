@@ -14,7 +14,7 @@ public actor LlamaGenerator: TextGenerator {
 
     public init(modelPath: String) { self.modelPath = modelPath }
 
-    public func generateJSON(system: String?, prompt: String, schema: String) async throws -> String {
+    public func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         unload?.cancel()
         defer { scheduleUnload() }
         let grammar = try LlamaGrammar.grammar(for: schema)
@@ -22,7 +22,7 @@ public actor LlamaGenerator: TextGenerator {
         var chat = ""
         if let system { chat += "<|im_start|>system\n\(system)<|im_end|>\n" }
         chat += "<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
-        return try engine!.generate(prompt: chat, grammar: grammar, maxTokens: 1024)
+        return try engine!.generate(prompt: chat, grammar: grammar, maxTokens: maxTokens ?? 1024)
     }
 
     private func scheduleUnload() {

@@ -12,6 +12,22 @@ struct FixturesApp: App {
             ChatFixtureView(group: true)
         }
         .defaultSize(width: 800, height: 600)
+        Window("Fixture Feed", id: "feed") {
+            FeedFixtureView()
+        }
+        .defaultSize(width: 900, height: 850)
+        Window("Fixture Player", id: "player") {
+            VStack(spacing: 20) {
+                Image(systemName: "play.rectangle.fill")
+                    .resizable().scaledToFit().foregroundStyle(.indigo)
+                    .accessibilityHidden(true)
+                Text("Fixture Player").font(.title)
+                Text("Paused")
+            }
+            .padding(40)
+            .frame(minWidth: 600, minHeight: 400)
+        }
+        .defaultSize(width: 800, height: 600)
         Window("Fixture Document", id: "document") {
             VStack(alignment: .leading, spacing: 24) {
                 Text("工作安排").font(.title2)
@@ -33,6 +49,8 @@ private struct OpenFixtures: View {
         Color.clear.task {
             openWindow(id: "group")
             openWindow(id: "document")
+            openWindow(id: "feed")
+            openWindow(id: "player")
         }
     }
 }
@@ -100,5 +118,39 @@ struct ChatFixtureView: View {
         .toolbar {
             if group { Toggle("图片内容（OCR）", isOn: $imageContent) }
         }
+    }
+}
+
+
+private struct FeedFixtureView: View {
+    @State private var draft = ""
+    @State private var password = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            Text("本周精选好物").font(.system(size: 32, weight: .bold))
+            Text("¥1,299.00")
+            Text("截止周五 18:00 前提交")
+            Text("构建失败：3 个错误")
+            Text("12,345 次播放")
+            Button("立即购买") {}
+            Text("今天要不要试试新东西？")
+            Text("重要事项！")
+            Text(String(repeating: "这是一段普通的长正文，介绍日常生活里的小事。", count: 5))
+                .fixedSize(horizontal: false, vertical: true)
+            Text("let total = items.map { $0.price };")
+            Text("fixture@example.com")
+            TextField("输入草稿", text: $draft).textFieldStyle(.roundedBorder)
+            HStack {
+                Text("用户名")
+                SecureField("密码", text: $password).textFieldStyle(.roundedBorder)
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.system(size: 16))
+        .padding(.horizontal, 180)
+        .padding(.top, 60)
+        .padding(.bottom, 24)
+        .frame(minWidth: 850, minHeight: 800, alignment: .topLeading)
     }
 }

@@ -131,6 +131,10 @@ public enum SpriteScout {
         }
 
         if level != .quiet {
+            // A row of short names in the header is a navigation bar, not a chat partner.
+            let headerNames = snapshot.textLines.filter {
+                RuleMatcher.isHeader($0.rect, in: snapshot.contentFrame) && first(name, in: $0.text) != nil
+            }.count
             for (index, line) in snapshot.textLines.enumerated() {
                 let folded = FoldedLine(line.text)
                 let text = folded.text
@@ -156,7 +160,7 @@ public enum SpriteScout {
                 if let match = first(money, in: text) { substring(.money, match) }
                 if let match = first(stat, in: text) { substring(.stat, match) }
                 if long { continue }
-                if RuleMatcher.isHeader(line.rect, in: snapshot.contentFrame) && first(name, in: line.text) != nil { whole(.name) }
+                if headerNames <= 2 && RuleMatcher.isHeader(line.rect, in: snapshot.contentFrame) && first(name, in: line.text) != nil { whole(.name) }
                 let actionLimit = line.text.unicodeScalars.contains(where: isCJK) ? 12 : 24
                 if (line.role == .button || line.role == .link) && (2...actionLimit).contains(text.count)
                     && first(action, in: text) != nil { whole(.action) }

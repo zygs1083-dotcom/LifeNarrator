@@ -86,8 +86,10 @@ public final class AppStore: ObservableObject {
             }
             return
         }
-        engine = NarratorEngine(store: self)
-        perform { try engine!.start() }
+        perform {
+            engine = try NarratorEngine(store: self)
+            try engine!.start()
+        }
     }
 
     public func text(_ key: String) -> String {

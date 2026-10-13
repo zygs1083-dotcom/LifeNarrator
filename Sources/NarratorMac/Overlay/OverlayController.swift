@@ -99,8 +99,12 @@ public final class OverlayController {
         self.style = style
     }
 
-    public func show(_ narration: Narration) {
-        show([narration])
+    var visibleIDs: Set<String> { Set(screens.values.flatMap { $0.model.bubbles.map(\.id) }) }
+    private(set) var lastShownColor: Int?
+
+    @discardableResult
+    public func show(_ narration: Narration) -> Bool {
+        show(narration, delay: 0)
     }
 
     /// Narrations shown together get the §6 stagger of 60ms × k.
@@ -150,9 +154,10 @@ public final class OverlayController {
         }
     }
 
-    private func show(_ n: Narration, delay: Double) {
-        guard let size = BubblePlacement.sizeTier(requested: style.size, window: n.window) else { return }
-        guard let overlay = overlay(for: n.window.frame) else { return }
+    @discardableResult
+    private func show(_ n: Narration, delay: Double) -> Bool {
+        guard let size = BubblePlacement.sizeTier(requested: style.size, window: n.window) else { return false }
+        guard let overlay = overlay(for: n.window.frame) else { return false }
         let model = overlay.model
         let window = WindowGeometry(frame: overlay.local(n.window.frame), chromeHeight: n.window.chromeHeight)
 
@@ -198,7 +203,7 @@ public final class OverlayController {
         if let anchor = n.anchor {
             let box = BubblePlacement.spriteFrame(around: overlay.local(anchor))
             let occupied = model.bubbles.flatMap { [$0.frame] + [$0.highlight].compactMap { $0 } }
-            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied) else { return }
+            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied) else { return false }
             frame = placement.frame
             side = placement.side
             highlight = box
@@ -211,7 +216,7 @@ public final class OverlayController {
             }
             let stack = model.bubbles.filter { $0.windowID == n.windowID && $0.highlight == nil }.sorted { $0.order > $1.order }
             let layout = BubblePlacement.appStack(sizes: [appearance.outerSize] + stack.map(\.appearance.outerSize), window: window, visibleFrame: overlay.visibleFrame)
-            guard let first = layout.frames[0] else { return }
+            guard let first = layout.frames[0] else { return false }
             frame = first
             corner = layout.corner
             if style.shape == .speech {
@@ -247,6 +252,8 @@ public final class OverlayController {
         case .untilDismissed:
             installDismissMonitors()
         }
+        lastShownColor = groupIndex
+        return true
     }
 
     /// Re-runs the §8.1 stack for a window's app-level bubbles, newest on top.

@@ -4,8 +4,9 @@ import Testing
 
 private struct SpriteStub: TextGenerator {
     var response: String
-    func generateJSON(system: String?, prompt: String, schema: String) async throws -> String {
+    func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         #expect(system == nil)
+        #expect(maxTokens == 320)
         #expect(schema == GenerationPrompts.spriteMarksSchema)
         #expect(prompt.contains("0. [money] ¥1,299.00"))
         return response

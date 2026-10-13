@@ -50,10 +50,17 @@ struct GeneralSettingsView: View {
             KeyboardShortcuts.Recorder(store.text("shortcut.pause"), shortcut: $store.settings.pauseShortcut)
             KeyboardShortcuts.Recorder(store.text("shortcut.input"), shortcut: $store.settings.inputShortcut)
             Toggle(store.text("paused"), isOn: $store.settings.paused)
-            Section(store.text("frequency")) {
-                Stepper("\(store.text("cooldown")): \(Int(store.settings.ruleCooldown))", value: $store.settings.ruleCooldown, in: 0...3600, step: 30)
-                Stepper("\(store.text("perMinute")): \(store.settings.globalPerMinute)", value: $store.settings.globalPerMinute, in: 1...30)
-                Stepper("\(store.text("minGap")): \(Int(store.settings.minGap))", value: $store.settings.minGap, in: 0...300)
+            Section(store.text("liveliness")) {
+                Picker(store.text("liveliness"), selection: $store.settings.liveliness) {
+                    ForEach([Liveliness.quiet, .lively, .rowdy], id: \.self) { value in
+                        Text(store.text("liveliness.\(value.rawValue)")).tag(value)
+                    }
+                }
+                Text(store.text("liveliness.hint")).font(.caption).foregroundStyle(.secondary)
+                if store.settings.provider == .openAICompatible && store.settings.generationAPI.isCloud
+                    && store.settings.liveliness != .quiet {
+                    Text(store.text("api.privacy")).font(.caption).foregroundStyle(.secondary)
+                }
             }
             Section(store.text("blacklist")) {
                 Text(store.text("blacklist.hint")).font(.caption).foregroundStyle(.secondary)
