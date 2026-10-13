@@ -511,6 +511,7 @@ public final class NarratorEngine {
     }
 
     private func report(_ error: any Error) {
+        if Task.isCancelled { return }
         if let failure = error as? AXFailure, failure.code != .apiDisabled {
             FileHandle.standardError.write(Data("[sprite] skipped read: \(error)\n".utf8))
         } else { store.error = String(describing: error) }
