@@ -12,7 +12,7 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["售�
                        screenKey: 7, hasModel: hasModel, requestAllowed: allowed, now: now)
 }
 
-@Test func tickFourLayersPreferRuleCacheRequestLeastRecentThenRevisit() {
+@Test func tickPrefersRuleCacheRequestThenRevisitAndNeverRepeatsMarkedQuotes() {
     let snapshot = semanticsSnapshot(["售价 ¥99", "截止周五 18:00"])
     let candidate = Candidate(rule: rule("price"), lineIndex: 0, matchRange: snapshot.textLines[0].text.startIndex..<snapshot.textLines[0].text.endIndex)
     #expect(tickAttempts(snapshot, candidates: [candidate]).map(\.reason) == ["rule", "request"])
@@ -27,12 +27,11 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["售�
     #expect(tickAttempts(snapshot, memory: memory).map(\.reason) == ["request"])
     #expect(tickAttempts(snapshot, memory: memory, allowed: false).map(\.reason) == ["revisit"])
     memory.mark(key: key, quip: quip("模型句"), lineHint: 1, now: epoch.addingTimeInterval(-60))
-    #expect(tickAttempts(snapshot, memory: memory, allowed: false).map(\.reason) == ["least-recent"])
-    #expect(tickAttempts(snapshot, memory: memory, allowed: false).first?.mark?.quip.text == "模型句")
+    #expect(tickAttempts(snapshot, memory: memory, allowed: false).map(\.reason) == ["revisit"])
     #expect(tickAttempts(snapshot, memory: memory, allowed: false, switching: false).isEmpty)
     #expect(tickAttempts(snapshot, allowed: false, revisit: false).isEmpty)
     #expect(tickAttempts(snapshot, memory: memory, now: epoch.addingTimeInterval(1800)).first?.reason == "request")
-    #expect(tickAttempts(snapshot, memory: memory, allowed: false, now: epoch.addingTimeInterval(1800)).first?.reason == "least-recent")
+    #expect(tickAttempts(snapshot, memory: memory, allowed: false, now: epoch.addingTimeInterval(1800)).first?.reason == "revisit")
 }
 
 @Test func tickCacheReplaysAfterTTLAndDoesNotReplayMissingOrUnsentQuotes() {
@@ -83,11 +82,11 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["售�
     #expect(tickAttempts(snapshot, candidates: [candidate], level: .quiet).map(\.reason) == ["rule"])
 }
 
-@Test func tickLocalLeastRecentRotatesAndRevisitAnchorsTitle() {
+@Test func tickLocalNeverRepeatsWithinTTLAndRevisitAnchorsTitle() {
     var snapshot = semanticsSnapshot(["售价 ¥99"])
     var memory = SpriteMemory()
     memory.mark(key: .init(bundleId: snapshot.bundleId, text: "¥99"), quip: quip("旧句"), now: epoch.addingTimeInterval(-60))
-    #expect(tickAttempts(snapshot, memory: memory, hasModel: false).first?.reason == "least-recent")
+    #expect(tickAttempts(snapshot, memory: memory, hasModel: false).first?.reason == "revisit")
     snapshot.textLines = [line("Manual", y: 40)]
     #expect(tickAttempts(snapshot).first?.reason == "revisit")
     #expect(tickAttempts(snapshot).first?.target?.lineIndex == 0)
@@ -151,4 +150,37 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["售�
     let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
     #expect(body["max_tokens"] as? Int == 450)
     #expect((body["messages"] as? [[String: String]]) == [["role":"system","content":"system"], ["role":"user","content":"screen"]])
+}
+
+@Test func tickContentRefreshPreservesWindowStateAndSwitchingResetsIt() {
+    #expect(!SpriteTick.resetsWindow(appChanged: false, windowChanged: false))
+    #expect(SpriteTick.resetsWindow(appChanged: true, windowChanged: false))
+    #expect(SpriteTick.resetsWindow(appChanged: false, windowChanged: true))
+}
+
+@Test func tickRevisitRequiresRecentVisitAndTenMinutesBetweenRemarks() {
+    #expect(SpriteTick.revisitAllowed(lastVisit: epoch, lastRevisit: nil, now: epoch.addingTimeInterval(119)))
+    #expect(!SpriteTick.revisitAllowed(lastVisit: epoch, lastRevisit: nil, now: epoch.addingTimeInterval(120)))
+    #expect(!SpriteTick.revisitAllowed(lastVisit: epoch, lastRevisit: epoch.addingTimeInterval(-599), now: epoch))
+    #expect(SpriteTick.revisitAllowed(lastVisit: epoch, lastRevisit: epoch.addingTimeInterval(-600), now: epoch))
+    #expect(!SpriteTick.revisitAllowed(lastVisit: nil, lastRevisit: nil, now: epoch))
+}
+
+@Test func tickNeverReplaysWithinEitherTTLIncludingRepeatedSwitchesAndLocalRules() {
+    let snapshot = semanticsSnapshot(["售价 ¥99"])
+    for (level, ttl) in [(Liveliness.lively, 1800.0), (.rowdy, 900.0)] {
+        var memory = SpriteMemory(level: level)
+        let key = SpriteMemory.Key(bundleId: snapshot.bundleId, text: "¥99")
+        memory.cache(key: key, quip: quip("句"), lineHint: 0, now: epoch)
+        memory.mark(key: key, quip: quip("句"), lineHint: 0, now: epoch)
+        let candidate = Candidate(rule: rule("price"), lineIndex: 0, matchRange: snapshot.textLines[0].text.range(of: "¥99")!)
+        for second in [60.0, ttl - 0.001] {
+            for model in [true, false] {
+                #expect(tickAttempts(snapshot, candidates: [candidate], memory: memory, level: level, hasModel: model, allowed: false,
+                    revisit: false, now: epoch.addingTimeInterval(second)).isEmpty)
+            }
+        }
+        #expect(tickAttempts(snapshot, memory: memory, level: level, hasModel: false, revisit: false,
+            now: epoch.addingTimeInterval(ttl)).first?.reason == "local")
+    }
 }

@@ -139,3 +139,14 @@ func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
                                windowFrame: content, contentFrame: content, capturedAt: epoch)
     #expect(!matcher.candidates(in: snap, now: epoch, appChanged: true, hostChanged: true).contains { $0.rule.id == "builtin.app.dingtalk" })
 }
+
+@Test func modelAvailabilityKeepsUserRulesAndSuppressesBuiltinRules() {
+    let snapshot = snapshot(lines: [line("张三")])
+    let builtin = rule("builtin", kind: .person, match: Match(aliases: ["张三"]))
+    let user = rule("user", kind: .person, match: Match(aliases: ["张三"]))
+    for hasModel in [true, false] {
+        let matcher = RuleMatcher(userRules: [user], builtinRules: [builtin], hasModel: hasModel)
+        #expect(matcher.candidates(in: snapshot, now: epoch, appChanged: true, hostChanged: true).map(\.rule.id)
+            == (hasModel ? ["user"] : ["builtin", "user"]))
+    }
+}

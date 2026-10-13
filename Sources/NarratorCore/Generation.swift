@@ -184,7 +184,9 @@ public enum SpriteGenerator {
                         let rect = RuleMatcher.estimatedRect(for: line, range: hit.range)
                         guard !snapshot.sensitiveRects.contains(where: { $0.insetBy(dx: -60, dy: -60).intersects(rect) }),
                               !SpritePrompt.privacyRanges(in: line.text).contains(where: { $0.overlaps(hit.range) }),
-                              !state.marks.contains(where: { $0.lineIndex == lineIndex && $0.range.overlaps(hit.range) }),
+                              !SpriteLocator.conflicts(.init(lineIndex: lineIndex, rect: rect), with: state.marks.map {
+                                  .init(lineIndex: $0.lineIndex, rect: RuleMatcher.estimatedRect(for: snapshot.textLines[$0.lineIndex], range: $0.range))
+                              }),
                               state.marks.count < k else { continue }
                         let mark = SpriteMark(lineIndex: lineIndex, range: hit.range, quote: String(line.text[hit.range]),
                                               quip: Quip(lang: lang, persona: persona, text: text, emoji: [raw.e]))

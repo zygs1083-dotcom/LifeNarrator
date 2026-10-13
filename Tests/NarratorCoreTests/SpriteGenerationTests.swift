@@ -38,10 +38,16 @@ private final class MarkRecorder: @unchecked Sendable {
     var marks: [SpriteMark] { lock.withLock { values } }
 }
 
+private func generationSnapshot(_ texts: [String]) -> ContextSnapshot {
+    var snapshot = semanticsSnapshot(texts)
+    for i in snapshot.textLines.indices { snapshot.textLines[i].rect.origin.y = CGFloat(100 + i * 32) }
+    return snapshot
+}
+
 private func generateSprite(_ json: String, texts: [String] = ["quoted first phrase", "another second phrase", "last third phrase"],
                             lang: Lang = .zh, k: Int = 3, stream: Bool = false, fail: Bool = false,
                             recorder: MarkRecorder = MarkRecorder()) async throws -> [SpriteMark] {
-    let snapshot = semanticsSnapshot(texts)
+    let snapshot = generationSnapshot(texts)
     return try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
         app: "Fixture", title: "Manual", exclude: ["previous"], persona: .gentle, lang: lang, k: k,
         generator: SpriteStub(response: json, stream: stream, failAfterFirst: fail, afterPartial: { count in
@@ -65,7 +71,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     struct APIStub: TextGenerator {
         func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String { validMarksJSON }
     }
-    let snapshot = semanticsSnapshot(["first phrase", "second phrase", "third phrase"])
+    let snapshot = generationSnapshot(["first phrase", "second phrase", "third phrase"])
     let result = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
         app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 3, generator: APIStub(), onMark: { _ in })
     #expect(result.count == 3)
@@ -99,7 +105,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
         }
     }
     #expect(try await generateSprite(#"{"marks":[{"l":0,"q":"***","t":"隐私","e":"🌷"}]}"#, texts: ["Email alice@example.com checked"]).isEmpty)
-    let snapshot = semanticsSnapshot(["first phrase alice@example.com", "second phrase"])
+    let snapshot = generationSnapshot(["first phrase alice@example.com", "second phrase"])
     // Deliberately bypass prompt filtering to exercise the output boundary checks.
     let screen = SpriteScreen(lines: [(0, snapshot.textLines[0].text), (1, snapshot.textLines[1].text)], tokens: 10)
     var sensitive = snapshot
@@ -119,7 +125,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
 }
 
 @Test func spriteGenerationMapsFilteredRowsAndWrongHintsBackToOriginalText() async throws {
-    var snapshot = semanticsSnapshot(["draft phrase", "prefix ＨＥＬＬＯ   World suffix", "another phrase"])
+    var snapshot = generationSnapshot(["draft phrase", "prefix ＨＥＬＬＯ   World suffix", "another phrase"])
     snapshot.textLines[0].role = .field
     let result = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
         app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 3,
@@ -136,4 +142,13 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
         #expect(try await generateSprite(json, lang: lang).first?.quip.text == text)
     }
     #expect(try await generateSprite(#"{"marks":[]}"#).isEmpty)
+}
+
+@Test func spriteGenerationSpreadsPicksAcrossRowsAndDropsNearbyRows() async throws {
+    let snapshot = semanticsSnapshot(["first quote and other words", "second quote", "third quote"])
+    let json = #"{"marks":[{"l":0,"q":"first quote","t":"第一句","e":"🌷"},{"l":0,"q":"other words","t":"同行","e":"🌷"},{"l":1,"q":"second quote","t":"太近","e":"🌷"},{"l":2,"q":"third quote","t":"够远","e":"🌷"}]}"#
+    let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
+        app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 4,
+        generator: SpriteStub(response: json), onMark: { _ in })
+    #expect(marks.map(\.quote) == ["first quote", "third quote"])
 }

@@ -10,6 +10,15 @@ public enum SpriteTick: String, Sendable {
         public var ignoresRuleCooldown: Bool
     }
 
+    public static func resetsWindow(appChanged: Bool, windowChanged: Bool) -> Bool {
+        appChanged || windowChanged
+    }
+
+    public static func revisitAllowed(lastVisit: Date?, lastRevisit: Date?, now: Date) -> Bool {
+        lastVisit.map { now.timeIntervalSince($0) < 120 } == true
+            && lastRevisit.map { now.timeIntervalSince($0) < 600 } != true
+    }
+
     public static func quietReason(in snapshot: ContextSnapshot, typing: Bool, moving: Bool) -> String? {
         if typing { return "typing" }
         if snapshot.secureFocused { return "secure" }
@@ -29,6 +38,7 @@ public enum SpriteTick: String, Sendable {
                                       level: level)
         var attempts = all.filter {
             $0.category == .rule && scheduler.canShow(ruleID: $0.candidate!.rule.id, now: now)
+                && memory.status(key: .init(bundleId: snapshot.bundleId, text: $0.text), now: now)?.isMarked != true
         }.map { Attempt(target: $0, reason: "rule", ignoresRuleCooldown: false) }
         guard level != .quiet else { return attempts }
         if !hasModel {
@@ -58,19 +68,11 @@ public enum SpriteTick: String, Sendable {
             }
         }
         guard switching else { return attempts }
-        let keys = hasModel ? located.map(\.key) : all.map { SpriteMemory.Key(bundleId: snapshot.bundleId, text: $0.text) }
-        if let key = memory.leastRecent(among: keys, now: now) {
-            if hasModel {
-                attempts.append(Attempt(mark: located.first { $0.key == key }!.mark,
-                                        reason: "least-recent", ignoresRuleCooldown: true))
-            } else {
-                attempts.append(Attempt(target: all.first { normalized($0.text) == key.text }!,
-                                        reason: "least-recent", ignoresRuleCooldown: true))
-            }
-        } else if revisitAllowed {
+        if revisitAllowed {
             let title = snapshot.windowTitle ?? snapshot.appName
             let index = snapshot.textLines.firstIndex { normalized($0.text) == normalized(title) }
             let text = index.map { snapshot.textLines[$0].text } ?? title
+            guard memory.status(key: .init(bundleId: snapshot.bundleId, text: text), now: now)?.isMarked != true else { return attempts }
             attempts.append(Attempt(target: SpriteTarget(category: .revisit, lineIndex: index ?? -1,
                 range: text.startIndex..<text.endIndex, text: text, score: 0), reason: "revisit", ignoresRuleCooldown: true))
         }

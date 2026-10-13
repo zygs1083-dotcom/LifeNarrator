@@ -214,9 +214,10 @@ public final class ContextSensor {
         return try AXTextReader.isSecureFocused(axApplication)
     }
 
-    /// The focused element is editable text and changed its value within the last 3 seconds.
+    /// Editable text changed recently while the user actually pressed a key.
     public func isTyping(now: Date) throws -> Bool {
-        guard let axApplication, let focused = try AXAccess.element(axApplication, kAXFocusedUIElementAttribute),
+        guard CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown) < 2,
+              let axApplication, let focused = try AXAccess.element(axApplication, kAXFocusedUIElementAttribute),
               let changed = valueChanges[focused], now.timeIntervalSince(changed) < 3 else { return false }
         let role = try AXAccess.value(focused, kAXRoleAttribute) as? String
         if role == kAXTextFieldRole || role == kAXTextAreaRole { return true }

@@ -35,3 +35,12 @@ import Testing
     let hit = try #require(SpriteLocator.locate(quote: quote, lineHint: 0, in: [quoted]))
     #expect(String(quoted.text[hit.range]) == quote)
 }
+
+@Test func spritePositionsRejectSameRowsAndVerticalDistancesBelowTwentyFour() {
+    let first = SpriteLocator.Position(lineIndex: 0, rect: CGRect(x: 0, y: 100, width: 50, height: 16))
+    #expect(SpriteLocator.conflicts(.init(lineIndex: 0, rect: CGRect(x: 500, y: 200, width: 50, height: 16)), with: [first]))
+    #expect(SpriteLocator.conflicts(.init(lineIndex: 1, rect: CGRect(x: 500, y: 123.999, width: 50, height: 16)), with: [first]))
+    #expect(!SpriteLocator.conflicts(.init(lineIndex: 1, rect: CGRect(x: 0, y: 124, width: 50, height: 16)), with: [first]))
+    #expect(SpriteLocator.conflicts(.init(lineIndex: -1, rect: CGRect(x: 0, y: 110, width: 50, height: 16)), with: [first]))
+    #expect(!SpriteLocator.conflicts(first, with: []))
+}

@@ -72,6 +72,10 @@ public struct RuleMatcher: Sendable {
         }
     }
 
+    public init(userRules: [Rule], builtinRules: [Rule], hasModel: Bool, disabledBuiltinIds: Set<String> = []) {
+        self.init(rules: (hasModel ? [] : builtinRules) + userRules, disabledBuiltinIds: disabledBuiltinIds)
+    }
+
     public func candidates(in snapshot: ContextSnapshot, now: Date, appChanged: Bool, hostChanged: Bool,
                            calendar: Calendar = .current) -> [Candidate] {
         let title = snapshot.windowTitle.map(SearchText.init)

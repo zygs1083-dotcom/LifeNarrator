@@ -18,14 +18,20 @@ import Testing
     }
 }
 
-@Test func spriteMemoryLeastRecentUsesSixtySecondMinimum() {
-    var memory = SpriteMemory()
-    let keys = (0..<3).map { SpriteMemory.Key(bundleId: "test", text: String($0)) }
-    memory.mark(key: keys[0], quip: quip("早"), now: epoch)
-    memory.mark(key: keys[1], quip: quip("晚"), now: epoch.addingTimeInterval(5))
-    #expect(memory.leastRecent(among: keys, now: epoch.addingTimeInterval(59.999)) == nil)
-    #expect(memory.leastRecent(among: keys.reversed(), now: epoch.addingTimeInterval(60)) == keys[0])
-    #expect(memory.leastRecent(among: [keys[1], keys[2]], now: epoch.addingTimeInterval(65)) == keys[1])
+@Test func spriteMemoryExcludeUsesOnlyShownAppHistoryWithinTTLNewestFirst() {
+    for (level, ttl) in [(Liveliness.lively, 1800.0), (.rowdy, 900.0)] {
+        var memory = SpriteMemory(level: level)
+        for i in 0..<15 {
+            memory.mark(key: .init(bundleId: "test", text: "Quote \(i)"), quip: quip("句"), now: epoch.addingTimeInterval(Double(i)))
+        }
+        memory.mark(key: .init(bundleId: "other", text: "other app"), quip: quip("句"), now: epoch.addingTimeInterval(20))
+        memory.cache(key: .init(bundleId: "test", text: "never shown"), quip: quip("句"), lineHint: 0, now: epoch.addingTimeInterval(21))
+        // Refreshing the cache must not reorder the display history.
+        memory.cache(key: .init(bundleId: "test", text: "Quote 3"), quip: quip("句"), lineHint: 0, now: epoch.addingTimeInterval(22))
+        #expect(memory.shownQuotes(bundleId: "test", now: epoch.addingTimeInterval(30)) == (3...14).reversed().map { "quote \($0)" })
+        #expect(memory.shownQuotes(bundleId: "test", now: epoch.addingTimeInterval(ttl + 14)).isEmpty)
+        #expect(memory.shownQuotes(bundleId: "other", now: epoch.addingTimeInterval(30)) == ["other app"])
+    }
 }
 
 @Test func spriteMemoryCacheTTLIsIndependentOfMarkTTL() {

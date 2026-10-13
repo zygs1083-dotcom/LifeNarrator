@@ -71,10 +71,10 @@ public struct SpriteMemory: Sendable {
         recentMarks.filter { $0.bundleId == bundleId }
     }
 
-    public func leastRecent(among keys: [Key], now: Date) -> Key? {
-        keys.filter {
-            marks[$0]?.lastMarkedAt.map { now.timeIntervalSince($0) >= 60 } == true
-        }.min { marks[$0]!.lastMarkedAt! < marks[$1]!.lastMarkedAt! }
+    public func shownQuotes(bundleId: String, now: Date) -> [String] {
+        marks.filter { $0.key.bundleId == bundleId && status(key: $0.key, now: now)!.isMarked }
+            .sorted { $0.value.lastMarkedAt! > $1.value.lastMarkedAt! }
+            .prefix(12).map { $0.key.text }
     }
 
     public func screenStatus(key: UInt64) -> ScreenStatus? { screens[key] }
