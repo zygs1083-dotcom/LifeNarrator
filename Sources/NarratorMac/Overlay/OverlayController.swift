@@ -264,8 +264,11 @@ public final class OverlayController: NSObject {
         applyTranslations(translations)
         for (overlay, i) in tracked {
             let bubble = overlay.model.bubbles[i]
-            guard !bubble.leaving, let delta = deltas[bubble.id], hypot(delta.x, delta.y) >= 0.5 else { continue }
-            overlay.model.bubbles[i].track!.origin = positions[bubble.id]!
+            guard !bubble.leaving, let delta = deltas[bubble.id] else { continue }
+            // A new mark is checked once even if it has not moved: the model may pick text hidden under a sticky header.
+            let tested = bubble.track!.lastHitTest != .distantPast
+            if hypot(delta.x, delta.y) >= 0.5 { overlay.model.bubbles[i].track!.origin = positions[bubble.id]! }
+            else if tested { continue }
             guard start.timeIntervalSince(bubble.track!.lastHitTest) >= 0.1 else { continue }
             overlay.model.bubbles[i].track!.lastHitTest = start
             let lead = scrollLead?.marks[bubble.id]?.lead ?? .zero
