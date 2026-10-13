@@ -28,7 +28,7 @@
 "liveliness.quiet" = "安静";
 "liveliness.lively" = "热闹";
 "liveliness.rowdy" = "吵闹";
-"liveliness.hint" = "小精灵会在每次切屏后圈出屏幕上有意思的文字。安静 = 只响应规则。";
+"liveliness.hint" = "小精灵会读一遍每个窗口里的文字，圈出值得说的地方。安静 = 只响应规则。";
 "blacklist" = "应用黑名单";
 "blacklist.hint" = "每行一个 bundle ID。黑名单中的应用不会被读取。";
 "shape" = "形状";
@@ -96,7 +96,7 @@
 "api.saveKey" = "将密钥保存到钥匙串";
 "api.keySaved" = "密钥已保存";
 "api.invalidURL" = "请输入有效的 http:// 或 https:// 地址。";
-"api.privacy" = "屏幕文字会发送到该服务。";
+"api.privacy" = "热闹 / 吵闹模式下，每次切换窗口都会把当前窗口里可见的文字（最多约 60 行；输入框内容、邮箱、电话、网址已去掉）发送到该服务。";
 "onboarding.title" = "欢迎使用人生旁白";
 "onboarding.model" = "选择模型方式";
 "onboarding.accessibility" = "允许辅助功能访问";

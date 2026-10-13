@@ -6,7 +6,7 @@
 
 `ContextSensor` 的 `onSnapshot` 同时提供 `appChanged`、`hostChanged`；`reason` 按应用、host、内容的优先级给出原因。
 `onWindowFrame` 只更新窗口位置与尺寸，不触发文本读取。
-`preciseRect(lineIndex:range:)` 的行号和范围对应最近一次快照；返回 nil 时用 `RuleMatcher.estimatedRect`。
+`textRect(lineIndex:range:)` 的行号和范围对应最近一次快照；异步返回 bounds / estimated / ocr 矩形，返回 nil 时不画框。
 外部 API 的错误交给 `onError`，probe 遇到错误退出并打印到 stderr。
 
 ## Fixture 真机检查

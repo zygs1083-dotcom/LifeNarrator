@@ -28,7 +28,7 @@
 "liveliness.quiet" = "Quiet";
 "liveliness.lively" = "Lively";
 "liveliness.rowdy" = "Rowdy";
-"liveliness.hint" = "The sprite highlights interesting on-screen text after each switch. Quiet responds only to rules.";
+"liveliness.hint" = "The sprite reads the text in each window and boxes what is worth a remark. Quiet responds only to rules.";
 "blacklist" = "Excluded apps";
 "blacklist.hint" = "One bundle ID per line. Excluded apps will not be read.";
 "shape" = "Shape";
@@ -96,7 +96,7 @@
 "api.saveKey" = "Save key to Keychain";
 "api.keySaved" = "Key saved";
 "api.invalidURL" = "Enter a valid http:// or https:// URL.";
-"api.privacy" = "Screen text will be sent to this service.";
+"api.privacy" = "In Lively and Rowdy modes, every window switch sends the text visible in that window (up to about 60 lines; input fields, emails, phone numbers and URLs removed) to this service.";
 "onboarding.title" = "Welcome to LifeNarrator";
 "onboarding.model" = "Choose a model";
 "onboarding.accessibility" = "Allow Accessibility access";

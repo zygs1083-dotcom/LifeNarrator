@@ -18,7 +18,7 @@ public enum SpritePrompt {
     private static let privacy = try! NSRegularExpression(
         pattern: #"\S+@\S+\.\S+|\+?\d[\d\s-]{8,}\d|\d{12,}|(?:https?://|www\.)\S+"#)
 
-    static func privacyRanges(in original: String) -> [Range<String.Index>] {
+    public static func privacyRanges(in original: String) -> [Range<String.Index>] {
         let folded = FoldedLine(original)
         return privacy.matches(in: folded.text, range: NSRange(folded.text.startIndex..., in: folded.text)).map {
             folded.originalRange(Range($0.range, in: folded.text)!)

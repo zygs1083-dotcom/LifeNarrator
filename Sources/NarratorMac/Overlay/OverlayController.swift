@@ -10,6 +10,10 @@ struct PlacedBubble: Identifiable {
     var window: WindowGeometry
     /// Expanded highlight box; nil for an app-level bubble.
     var highlight: CGRect?
+    var framed: Bool
+    var line: CGRect?
+    var obstacles: [CGRect]
+    var connector: Bool
     var appearance: BubbleAppearance
     var frame: CGRect
     var side: AnchorSide?
@@ -19,8 +23,8 @@ struct PlacedBubble: Identifiable {
     let reduceMotion: Bool
 
     var decor: AnchorDecor? {
-        guard let highlight, let side else { return nil }
-        return AnchorDecor(highlight: highlight, bubbleFrame: frame, side: side, shape: appearance.shape, size: appearance.size, group: appearance.group)
+        guard framed, let highlight, let side else { return nil }
+        return AnchorDecor(highlight: highlight, bubbleFrame: frame, side: side, shape: appearance.shape, size: appearance.size, group: appearance.group, connector: connector)
     }
 }
 
@@ -101,6 +105,7 @@ public final class OverlayController {
 
     var visibleIDs: Set<String> { Set(screens.values.flatMap { $0.model.bubbles.map(\.id) }) }
     private(set) var lastShownColor: Int?
+    private(set) var lastPlacement = "corner"
 
     @discardableResult
     public func show(_ narration: Narration) -> Bool {
@@ -125,6 +130,8 @@ public final class OverlayController {
             for i in model.bubbles.indices where model.bubbles[i].windowID == windowID {
                 model.bubbles[i].window = local
                 model.bubbles[i].highlight = model.bubbles[i].highlight?.offsetBy(dx: dx, dy: dy)
+                model.bubbles[i].line = model.bubbles[i].line?.offsetBy(dx: dx, dy: dy)
+                model.bubbles[i].obstacles = model.bubbles[i].obstacles.map { $0.offsetBy(dx: dx, dy: dy) }
             }
             if hypot(dx, dy) <= 40 {
                 restack(windowID, on: overlay)
@@ -200,14 +207,32 @@ public final class OverlayController {
         var side: AnchorSide?
         var highlight: CGRect?
         var corner = WindowCorner.topRight
+        var connector = false
         if let anchor = n.anchor {
             let box = BubblePlacement.spriteFrame(around: overlay.local(anchor))
             let occupied = model.bubbles.flatMap { [$0.frame] + [$0.highlight].compactMap { $0 } }
-            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box, line: box, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: []) else { return false }
-            frame = placement.frame
+            let line = n.line.map(overlay.local) ?? box
+            let obstacles = n.obstacles.map(overlay.local)
+            let narrow = BubbleAppearance.make(
+                shape: style.shape, size: .small, theme: style.theme, group: group, effects: style.textEffects,
+                font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: BubbleSize.small.fontSize),
+                text: n.text, emoji: emoji, quipID: n.quipID, maxWidth: 160)
+            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box,
+                line: line, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied,
+                obstacles: obstacles, narrowSize: narrow.outerSize) else { return false }
+            if placement.narrow { appearance = narrow }
+            if placement.covered {
+                appearance.shape = .rounded
+                appearance.rotation = .zero
+                appearance.fillOpacity = 0.92
+                appearance.measure(maxWidth: placement.narrow ? 160 : appearance.size.maxWidth)
+            }
+            frame = CGRect(origin: placement.frame.origin, size: appearance.outerSize)
             side = placement.side
             highlight = box
-            if style.shape == .speech {
+            connector = placement.connector
+            lastPlacement = Self.place(placement, highlight: box)
+            if style.shape == .speech && n.framed && connector && !placement.covered {
                 appearance.setAnchoredTail(frame: frame, highlight: box, side: placement.side)
             }
         } else {
@@ -218,6 +243,7 @@ public final class OverlayController {
             let layout = BubblePlacement.appStack(sizes: [appearance.outerSize] + stack.map(\.appearance.outerSize), window: window, visibleFrame: overlay.visibleFrame)
             guard let first = layout.frames[0] else { return false }
             frame = first
+            lastPlacement = "corner"
             corner = layout.corner
             if style.shape == .speech {
                 appearance.setAppLevelTail(corner: corner)
@@ -226,9 +252,11 @@ public final class OverlayController {
 
         let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         let animation = reduceMotion ? .fade : style.animation
-        let textDelay = delay + (highlight == nil ? 0 : 0.12)
+        let textDelay = delay + (highlight == nil || !n.framed ? 0 : 0.12)
         let bubble = PlacedBubble(
-            id: n.id, windowID: n.windowID, order: order, window: window, highlight: highlight, appearance: appearance,
+            id: n.id, windowID: n.windowID, order: order, window: window, highlight: highlight,
+            framed: n.framed, line: n.line.map(overlay.local), obstacles: n.obstacles.map(overlay.local),
+            connector: connector, appearance: appearance,
             frame: frame, side: side, groupIndex: groupIndex,
             transition: BubbleTransitions.bubble(animation, anchor: appearance.scaleAnchor(side: side, corner: corner), slide: slideOffset(frame: frame, window: window.frame), delay: textDelay, reduceMotion: reduceMotion),
             decorDelay: delay, reduceMotion: reduceMotion)
@@ -287,18 +315,44 @@ public final class OverlayController {
         for i in model.bubbles.indices where model.bubbles[i].windowID == windowID {
             guard let highlight = model.bubbles[i].highlight else { continue }
             let occupied = model.bubbles.indices.filter { $0 != i }.flatMap { [model.bubbles[$0].frame] + [model.bubbles[$0].highlight].compactMap { $0 } }
-            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize, frame: highlight, line: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: []) else {
+            var narrow = model.bubbles[i].appearance
+            narrow.measure(maxWidth: 160)
+            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize,
+                frame: highlight, line: model.bubbles[i].line ?? highlight, window: model.bubbles[i].window,
+                visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: model.bubbles[i].obstacles,
+                narrowSize: narrow.outerSize) else {
                 dropped.append(model.bubbles[i].id)
                 continue
             }
+            if placement.narrow { model.bubbles[i].appearance = narrow }
+            model.bubbles[i].appearance.tail = nil
             model.bubbles[i].frame = placement.frame
             model.bubbles[i].side = placement.side
-            if model.bubbles[i].appearance.shape == .speech {
+            model.bubbles[i].connector = placement.connector
+            if placement.covered {
+                model.bubbles[i].appearance.shape = .rounded
+                model.bubbles[i].appearance.rotation = .zero
+                model.bubbles[i].appearance.fillOpacity = 0.92
+                model.bubbles[i].appearance.tail = nil
+            }
+            if model.bubbles[i].appearance.shape == .speech && model.bubbles[i].framed && placement.connector {
                 model.bubbles[i].appearance.setAnchoredTail(frame: placement.frame, highlight: highlight, side: placement.side)
             }
         }
         for id in dropped {
             remove(id, from: overlay)
+        }
+    }
+
+    private static func place(_ placement: SpritePlacement, highlight: CGRect) -> String {
+        if placement.covered { return "covered" }
+        switch placement.side {
+        case .above: return "above"
+        case .below: return "below"
+        case .left: return "leftMargin"
+        case .right:
+            if placement.connector { return "rightMargin" }
+            return abs(placement.frame.minX - highlight.maxX - 8) < 1 ? "right" : "lineEnd"
         }
     }
 
