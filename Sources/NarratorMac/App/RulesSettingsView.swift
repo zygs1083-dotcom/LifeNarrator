@@ -84,10 +84,19 @@ struct RulesSettingsView: View {
                                 Badge(text: count(rules.count), hue: hue)
                             }.padding(.top, 8)
                             ForEach(rules, id: \.id) { rule in
-                                LabeledContent(rule.label[store.settings.language.lang]) {
-                                    Toggle(rule.label[store.settings.language.lang], isOn: builtinRuleEnabled(rule.id))
-                                        .labelsHidden().disabled(!builtinEnabled.wrappedValue)
-                                        .frame(maxWidth: .infinity, alignment: .trailing)
+                                DisclosureGroup {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        ForEach(Array(previewQuips(rule).enumerated()), id: \.offset) { _, quip in
+                                            Text(verbatim: "\(quip.text) \(quip.emoji.joined())")
+                                                .font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+                                        }
+                                    }.padding(.vertical, 4)
+                                } label: {
+                                    LabeledContent(rule.label[store.settings.language.lang]) {
+                                        Toggle(rule.label[store.settings.language.lang], isOn: builtinRuleEnabled(rule.id))
+                                            .labelsHidden().disabled(!builtinEnabled.wrappedValue)
+                                            .frame(maxWidth: .infinity, alignment: .trailing)
+                                    }
                                 }.frame(minHeight: 28)
                             }
                         }
@@ -102,6 +111,11 @@ struct RulesSettingsView: View {
                 }
             }
         }
+    }
+
+    /// The lines this rule would show in the current language and persona.
+    private func previewQuips(_ rule: Rule) -> [Quip] {
+        rule.quips.filter { $0.lang == store.settings.language.lang && $0.persona.rawValue == store.settings.persona.rawValue }
     }
 
     private func count(_ value: Int) -> String { String(format: store.text("format.count"), value) }
