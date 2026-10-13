@@ -272,12 +272,17 @@ public final class OverlayController: NSObject {
             let highlight = bubble.highlight!
             let point = CGPoint(x: highlight.midX + overlay.origin.x - lead.x,
                                 y: highlight.midY + overlay.origin.y - lead.y)
-            if occluded(bubble.track!, at: point) {
-                removeImmediately(bubble.id, from: overlay)
-                if looping {
-                    followRemoved += 1
-                    followHitRemoved += 1
+            do {
+                if try occluded(bubble.track!, at: point) {
+                    removeImmediately(bubble.id, from: overlay)
+                    if looping {
+                        followRemoved += 1
+                        followHitRemoved += 1
+                    }
                 }
+            } catch {
+                if let failure = error as? AXFailure, failure.code == .cannotComplete { continue }
+                onError(error)
             }
         }
         if looping { followTime += Date().timeIntervalSince(start) }
@@ -324,19 +329,15 @@ public final class OverlayController: NSObject {
         }
     }
 
-    private func occluded(_ track: MarkTrack, at point: CGPoint) -> Bool {
+    private func occluded(_ track: MarkTrack, at point: CGPoint) throws -> Bool {
         var hit: AXUIElement?
         guard AXUIElementCopyElementAtPosition(track.application, Float(point.x), Float(point.y), &hit) == .success,
               var element = hit else { return false }
         if CFEqual(element, track.element) || track.ancestors.contains(where: { CFEqual($0, element) }) { return false }
-        do {
-            for _ in 0..<3 {
-                guard let parent = try AXAccess.element(element, kAXParentAttribute) else { break }
-                if CFEqual(parent, track.element) { return false }
-                element = parent
-            }
-        } catch {
-            return false
+        for _ in 0..<3 {
+            guard let parent = try AXAccess.element(element, kAXParentAttribute) else { break }
+            if CFEqual(parent, track.element) { return false }
+            element = parent
         }
         return true
     }
