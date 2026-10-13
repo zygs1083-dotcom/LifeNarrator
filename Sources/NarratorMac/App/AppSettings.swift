@@ -44,9 +44,7 @@ public struct AppSettings: Codable {
     public var language: InterfaceLanguage = .system
     public var persona: Persona = .sharp
     public var bubbleStyle = BubbleStyle()
-    public var ruleCooldown: TimeInterval = 600
-    public var globalPerMinute = 3
-    public var minGap: TimeInterval = 5
+    public var liveliness: Liveliness = .lively
     public var paused = false
     public var blacklist = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.agilebits.onepassword-osx",
@@ -62,6 +60,27 @@ public struct AppSettings: Codable {
     public var pauseShortcut: KeyboardShortcuts.Shortcut? = .init(.p, modifiers: [.option, .shift])
     public var onboardingCompleted = false
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        liveliness = try c.decodeIfPresent(Liveliness.self, forKey: .liveliness) ?? .lively
+        language = try c.decode(InterfaceLanguage.self, forKey: .language)
+        persona = try c.decode(Persona.self, forKey: .persona)
+        bubbleStyle = try c.decode(BubbleStyle.self, forKey: .bubbleStyle)
+        paused = try c.decode(Bool.self, forKey: .paused)
+        blacklist = try c.decode([String].self, forKey: .blacklist)
+        disabledBuiltinIds = try c.decode(Set<String>.self, forKey: .disabledBuiltinIds)
+        provider = try c.decode(ModelProvider.self, forKey: .provider)
+        generationAPI = try c.decode(APIConfiguration.self, forKey: .generationAPI)
+        systemOne = try c.decodeIfPresent(APIConfiguration.self, forKey: .systemOne)
+        inputShortcut = try c.decodeIfPresent(KeyboardShortcuts.Shortcut.self, forKey: .inputShortcut)
+        pauseShortcut = try c.decodeIfPresent(KeyboardShortcuts.Shortcut.self, forKey: .pauseShortcut)
+        onboardingCompleted = try c.decode(Bool.self, forKey: .onboardingCompleted)
+    }
 }
 
 extension BubbleStyle: Codable {

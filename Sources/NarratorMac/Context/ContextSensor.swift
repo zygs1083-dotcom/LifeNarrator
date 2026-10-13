@@ -3,10 +3,11 @@ import ApplicationServices
 import NarratorCore
 
 public struct ContextChange: Codable, Sendable {
-    public enum Reason: String, Codable, Sendable { case appChanged, hostChanged, contentChanged }
+    public enum Reason: String, Codable, Sendable { case appChanged, windowChanged, hostChanged, contentChanged }
     public let appChanged: Bool
+    public let windowChanged: Bool
     public let hostChanged: Bool
-    public var reason: Reason { appChanged ? .appChanged : hostChanged ? .hostChanged : .contentChanged }
+    public var reason: Reason { appChanged ? .appChanged : windowChanged ? .windowChanged : hostChanged ? .hostChanged : .contentChanged }
 }
 
 // The holder also tears down the run-loop source when the sensor is released.
@@ -112,8 +113,15 @@ public final class ContextSensor {
         guard !axLines.isEmpty else { return nil }
         let line = axLines[lineIndex]
         let nsRange = NSRange(range, in: line.line.text)
-        return try AXAccess.bounds(line.element, range: CFRange(location: nsRange.location + line.utf16Offset,
-                                                               length: nsRange.length))
+        if let bounds = try AXAccess.bounds(line.element, range: CFRange(location: nsRange.location + line.utf16Offset,
+                                                                         length: nsRange.length)) { return bounds }
+        guard let frame = try AXAccess.frame(line.element) else { return nil }
+        return RuleMatcher.estimatedRect(for: TextLine(text: line.line.text, rect: frame, role: line.line.role), range: range)
+    }
+
+    public func isSecureFocused() throws -> Bool {
+        guard let axApplication else { return false }
+        return try AXTextReader.isSecureFocused(axApplication)
     }
 
     /// The focused element is editable text and changed its value within the last 3 seconds.
@@ -162,6 +170,9 @@ public final class ContextSensor {
         try observe(axApplication!, kAXFocusedUIElementChangedNotification, window: false)
         try observe(axApplication!, kAXValueChangedNotification, window: false)
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer!), .commonModes)
+        if ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1" {
+            FileHandle.standardError.write(Data("[sprite] \(app.bundleIdentifier!) appChanged timestamp=\(Int(Date().timeIntervalSince1970 * 1000))\n".utf8))
+        }
         try bindWindow()
         appChangePending = true
         schedule()
@@ -184,6 +195,9 @@ public final class ContextSensor {
         window = try AXAccess.element(axApplication!, kAXFocusedWindowAttribute)
         windowFrame = nil
         windowChangePending = true
+        if ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1" {
+            FileHandle.standardError.write(Data("[sprite] \(application!.bundleIdentifier!) windowChanged timestamp=\(Int(Date().timeIntervalSince1970 * 1000))\n".utf8))
+        }
         onWindowChanged()
         guard let window else { return }
         for name in [kAXTitleChangedNotification, kAXMovedNotification, kAXResizedNotification,
@@ -204,6 +218,7 @@ public final class ContextSensor {
                 windowFrame = frame
                 onWindowFrame(frame)
             }
+            schedule()
             return
         }
         if name == kAXFocusedWindowChangedNotification || name == kAXUIElementDestroyedNotification {
@@ -270,7 +285,7 @@ public final class ContextSensor {
                                         width: line.rect.width / frame.width, height: line.rect.height / frame.height)
                 return TextLine(text: line.text, rect: TextGeometry.screenRect(normalized, in: currentFrame))
             }
-            return TextLine(text: line.text, rect: line.rect.offsetBy(dx: dx, dy: dy))
+            return TextLine(text: line.text, rect: line.rect.offsetBy(dx: dx, dy: dy), role: line.role)
         }
         let topInset = reading.contentFrame.minY - frame.minY
         let contentFrame = CGRect(x: currentFrame.minX, y: currentFrame.minY + min(topInset, currentFrame.height),
@@ -281,7 +296,7 @@ public final class ContextSensor {
             if host.hasPrefix("www.") { host.removeFirst(4) }
             return host
         }
-        let change = ContextChange(appChanged: appChangePending, hostChanged: host != lastHost)
+        let change = ContextChange(appChanged: appChangePending, windowChanged: windowChangePending, hostChanged: host != lastHost)
         axLines = source == .ax ? reading.lines : []
         appChangePending = false
         windowChangePending = false
@@ -290,7 +305,9 @@ public final class ContextSensor {
         let snapshot = ContextSnapshot(bundleId: application.bundleIdentifier!, appName: application.localizedName ?? "",
                                        pid: application.processIdentifier, windowTitle: title, windowFrame: currentFrame,
                                        contentFrame: contentFrame, screenIndex: screenIndex, url: reading.url, host: host,
-                                       textLines: lines, textSource: source, capturedAt: Date())
+                                       textLines: lines, textSource: source,
+                                       sensitiveRects: reading.sensitiveRects.map { $0.offsetBy(dx: dx, dy: dy) },
+                                       secureFocused: reading.secureFocused, fullScreen: reading.fullScreen, capturedAt: Date())
         onSnapshot(snapshot, change)
     }
 

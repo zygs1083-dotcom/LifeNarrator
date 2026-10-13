@@ -154,7 +154,7 @@ public enum SpriteGenerator {
         struct Batch: Decodable { var marks: [Mark] }
         let json = try await generator.generateJSON(system: nil,
             prompt: GenerationPrompts.spriteMarks(app: app, title: title, targets: targets, persona: persona, lang: lang),
-            schema: GenerationPrompts.spriteMarksSchema)
+            schema: GenerationPrompts.spriteMarksSchema, maxTokens: maxTokens)
         let batch = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
         var seen = Set<Int>()
         var quips: [Int: Quip] = [:]

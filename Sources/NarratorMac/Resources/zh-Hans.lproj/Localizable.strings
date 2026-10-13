@@ -24,10 +24,11 @@
 "persona.chuuni" = "中二";
 "shortcut.pause" = "暂停快捷键";
 "shortcut.input" = "输入框快捷键";
-"frequency" = "吐槽频率";
-"cooldown" = "规则冷却（秒）";
-"perMinute" = "每分钟上限";
-"minGap" = "最小间隔（秒）";
+"liveliness" = "热闹程度";
+"liveliness.quiet" = "安静";
+"liveliness.lively" = "热闹";
+"liveliness.rowdy" = "吵闹";
+"liveliness.hint" = "小精灵会在每次切屏后圈出屏幕上有意思的文字。安静 = 只响应规则。";
 "blacklist" = "应用黑名单";
 "blacklist.hint" = "每行一个 bundle ID。黑名单中的应用不会被读取。";
 "shape" = "形状";
