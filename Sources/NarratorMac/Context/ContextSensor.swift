@@ -73,6 +73,7 @@ public final class ContextSensor {
     private var visualTask: Task<[TextLine], any Error>?
     private var ocrLines: [TextLine] = []
     private var pending: Task<Void, Never>?
+    private var scrollSettle: Task<Void, Never>?
     private var generation = 0
     private var appChangePending = false
     private var windowChangePending = false
@@ -94,8 +95,14 @@ public final class ContextSensor {
         observations.scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [weak self] event in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                // Chromium posts no AX notification for a scroll, so read the newly visible content ourselves.
-                if self.application != nil { self.schedule() }
+                // Chromium posts no AX notification for a scroll, so read the newly visible content once it settles
+                // (reading during the scroll would stall the marks following it).
+                self.scrollSettle?.cancel()
+                self.scrollSettle = Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(0.8))
+                    guard let self, !Task.isCancelled, self.application != nil else { return }
+                    self.schedule()
+                }
                 self.onScroll(event)
             }
         }
