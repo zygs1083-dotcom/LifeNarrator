@@ -126,7 +126,7 @@ func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
 @Test func builtinPackLoadsAndEveryRuleValidates() throws {
     let pack = try RuleLoader.loadBuiltin()
     #expect(pack.version == 1)
-    #expect(pack.rules.count == 32)
+    #expect(pack.rules.count == 56)
     #expect(pack.generic.keys.sorted() == ["dislike", "like", "neutral"])
     for rule in pack.rules { try RuleLoader.validate(rule) }
     let matcher = RuleMatcher(rules: pack.rules, disabledBuiltinIds: ["builtin.app.dingtalk"])

@@ -27115,9 +27115,7 @@
   "unverified": {
     "builtin.app.feishu": "com.larksuite.larkApp（国际版 Lark）未经确认",
     "builtin.app.tencentmeeting": "VooV Meeting（国际版）的 bundleId 未经确认，未列入",
-    "builtin.app.qq": "com.tencent.qq 是新版 macOS QQ（NT 架构）的 bundleId，旧版 QQ for Mac 可能不同，未在真机确认",
-    "builtin.app.neteasemusic": "com.netease.163music 未在真机确认",
-    "builtin.app.telegram": "ru.keepcoder.Telegram（App Store 版）与 org.telegram.desktop（Telegram Desktop）均未在真机确认",
+    "builtin.app.telegram": "ru.keepcoder.Telegram（App Store 版）已在 Mac 上确认；org.telegram.desktop（Telegram Desktop）未确认",
     "builtin.app.discord": "com.hnc.Discord 未在真机确认"
   }
 }
