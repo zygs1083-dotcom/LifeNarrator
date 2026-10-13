@@ -12,7 +12,7 @@ LifeNarrator is a small macOS menu bar app with a noisy little sprite living in 
 
 ![A boxed name and a "Pig Boss" line on a test chat window](docs/images/boss-bubble.png)
 
-> **Status:** v0.6 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
+> **Status:** v0.7 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
 
 ## Features
 
