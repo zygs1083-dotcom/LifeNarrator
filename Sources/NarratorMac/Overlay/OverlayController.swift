@@ -184,7 +184,18 @@ public final class OverlayController: NSObject {
             followHitRemoved = 0
             followTime = 0
         }
-        if event.type == .scrollWheel {
+        var keyDelta: CGPoint?
+        if event.type == .keyDown,
+           let track = screens.values.flatMap({ $0.model.bubbles }).first(where: { $0.track != nil && !$0.leaving })?.track {
+            do {
+                keyDelta = try keyboardScrollDelta(event, application: track.application)
+            } catch {
+                if let failure = error as? AXFailure, failure.code == .cannotComplete { return }
+                onError(error)
+                return
+            }
+        }
+        if event.type == .scrollWheel || keyDelta != nil {
             for overlay in screens.values {
                 for bubble in overlay.model.bubbles where bubble.track == nil && bubble.highlight != nil && !bubble.leaving {
                     removeImmediately(bubble.id, from: overlay)
@@ -206,24 +217,56 @@ public final class OverlayController: NSObject {
             displayLink = link
             link.add(to: .main, forMode: .common)
         }
-        if event.type == .scrollWheel && event.hasPreciseScrollingDeltas {
+        if event.type == .scrollWheel {
             let point = CGPoint(x: event.locationInWindow.x, y: NSScreen.screens[0].frame.maxY - event.locationInWindow.y)
             let windows = Set(screens.values.flatMap { overlay in
                 overlay.model.bubbles.filter {
                     $0.track != nil && !$0.leaving && $0.window.frame.contains(CGPoint(x: point.x - overlay.origin.x, y: point.y - overlay.origin.y))
                 }.map(\.windowID)
             })
-            let translations = scrollLead!.event(delta: CGPoint(x: event.scrollingDeltaX, y: event.scrollingDeltaY),
-                windows: windows, time: lastScroll.timeIntervalSinceReferenceDate)
+            let scale: CGFloat = event.hasPreciseScrollingDeltas ? 1 : ScrollLead.lineDelta
+            let translations = scrollLead!.event(delta: CGPoint(x: event.scrollingDeltaX * scale, y: event.scrollingDeltaY * scale),
+                windows: windows, time: lastScroll.timeIntervalSinceReferenceDate,
+                duration: event.hasPreciseScrollingDeltas ? 0 : ScrollLead.wheelDuration)
+            applyTranslations(translations)
+        } else if let keyDelta {
+            let windows = Set(scrollLead!.marks.values.map(\.windowID))
+            let translations = scrollLead!.event(delta: keyDelta, windows: windows,
+                time: lastScroll.timeIntervalSinceReferenceDate, duration: ScrollLead.keyDuration)
             applyTranslations(translations)
         }
     }
 
+    private func keyboardScrollDelta(_ event: NSEvent, application: AXUIElement) throws -> CGPoint? {
+        let flags = event.modifierFlags
+        guard flags.intersection([.command, .control, .option]).isEmpty,
+              !flags.contains(.shift) || event.keyCode == 49,
+              [125, 126, 121, 116, 49].contains(event.keyCode) else { return nil }
+        guard var focused = try AXAccess.element(application, kAXFocusedUIElementAttribute),
+              let role = try AXAccess.value(focused, kAXRoleAttribute) as? String,
+              ["AXWebArea", "AXGroup", "AXLink", "AXStaticText", "AXHeading", "AXImage"].contains(role) else { return nil }
+        let direction: CGFloat = event.keyCode == 126 || event.keyCode == 116 || flags.contains(.shift) ? 1 : -1
+        if event.keyCode == 125 || event.keyCode == 126 {
+            return CGPoint(x: 0, y: direction * ScrollLead.lineDelta)
+        }
+        var focusedRole = role
+        while focusedRole != "AXWebArea" {
+            guard let parent = try AXAccess.element(focused, kAXParentAttribute),
+                  let parentRole = try AXAccess.value(parent, kAXRoleAttribute) as? String else { return nil }
+            focused = parent
+            focusedRole = parentRole
+        }
+        guard let frame = try AXAccess.frame(focused) else { return nil }
+        return CGPoint(x: 0, y: direction * (frame.height - ScrollLead.pageOverlap))
+    }
+
     @objc private func followFrame(_ link: CADisplayLink) {
-        guard Date().timeIntervalSince(lastScroll) < 0.8 else {
+        let now = Date()
+        guard now.timeIntervalSince(lastScroll) < 0.8 else {
             stopFollowing()
             return
         }
+        applyTranslations(scrollLead!.advance(time: now.timeIntervalSinceReferenceDate))
         follow()
     }
 
@@ -306,7 +349,7 @@ public final class OverlayController: NSObject {
         applyTranslations(lead.end())
         if debug {
             let average = followFrames == 0 ? 0 : followTime * 1000 / Double(followFrames)
-            FileHandle.standardError.write(Data("[sprite] follow frames=\(followFrames) moved=\(followMoved) removed=\(followRemoved) hitRemoved=\(followHitRemoved) events=\(lead.events) samples=\(lead.samples) mode=\(mode.rawValue) avgMs=\(String(format: "%.2f", average))\n".utf8))
+            FileHandle.standardError.write(Data("[sprite] follow frames=\(followFrames) moved=\(followMoved) removed=\(followRemoved) hitRemoved=\(followHitRemoved) moves=\(lead.moves) samples=\(lead.samples) mode=\(mode.rawValue) avgMs=\(String(format: "%.2f", average))\n".utf8))
         }
     }
 
