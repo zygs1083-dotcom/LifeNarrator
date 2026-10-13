@@ -74,7 +74,7 @@ public struct BubbleStyle: Sendable {
     // Default is the "glimpse": a small line of text with no bubble behind it, gone after a few seconds.
     public var shape: BubbleShape = .text
     public var size: BubbleSize = .small
-    public var theme: ColorTheme = .macaron
+    public var theme: ColorTheme = .clear
     public var textEffects: TextEffects = [.outline, .shadow]
     public var animation: BubbleAnimation = .fade
     public var emojiDensity: EmojiDensity = .moderate

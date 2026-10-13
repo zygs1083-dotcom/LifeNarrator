@@ -15,7 +15,8 @@ struct PlacedBubble: Identifiable {
     var side: AnchorSide?
     let groupIndex: Int?
     let transition: AnyTransition
-    let decorTransition: AnyTransition
+    let decorDelay: Double
+    let reduceMotion: Bool
 
     var decor: AnchorDecor? {
         guard let highlight, let side else { return nil }
@@ -36,8 +37,8 @@ struct OverlayRootView: View {
         ZStack(alignment: .topLeading) {
             ForEach(model.bubbles) { bubble in
                 if let decor = bubble.decor {
-                    AnchorDecorView(decor: decor)
-                        .transition(bubble.decorTransition)
+                    SpriteDecorEntrance(decor: decor, delay: bubble.decorDelay, reduceMotion: bubble.reduceMotion)
+                        .transition(BubbleTransitions.decor())
                 }
                 BubbleBodyView(appearance: bubble.appearance)
                     .position(x: bubble.frame.midX, y: bubble.frame.midY)
@@ -84,10 +85,13 @@ final class ScreenOverlay {
 @MainActor
 public final class OverlayController {
     public var style: BubbleStyle
+    public var liveliness: Liveliness = .lively
 
     private var screens: [CGDirectDisplayID: ScreenOverlay] = [:]
     private let baseHue = Double.random(in: 0..<360)
     private var randomIndex = 0
+    private var random = SystemRandomNumberGenerator()
+    private var recentGroups: [(theme: ColorTheme, index: Int)] = []
     private var order = 0
     private var dismissMonitors: [Any] = []
 
@@ -159,7 +163,17 @@ public final class OverlayController {
             randomIndex += 1
             groupIndex = nil
         } else {
-            let index = ColorSelection.groupIndex(ruleHash: stableHash(n.ruleID), quipSequence: n.sequence, occupied: Set(model.bubbles.compactMap(\.groupIndex)))
+            let occupied = Set(model.bubbles.filter { $0.appearance.theme == style.theme }.compactMap(\.groupIndex))
+            let index: Int
+            if liveliness == .quiet {
+                let hashed = Int((stableHash(n.ruleID) &+ UInt64(n.sequence)) % UInt64(style.theme.palette.count))
+                index = occupied.contains(hashed) ? (hashed + 1) % style.theme.palette.count : hashed
+            } else {
+                index = ColorSelection.spriteGroupIndex(
+                    count: style.theme.palette.count, occupied: occupied,
+                    recent: recentGroups.filter { $0.theme == style.theme }.map(\.index),
+                    hueOf: style.theme == .clear ? { ColorTheme.clearHues[$0] } : nil, using: &random)
+            }
             group = style.theme.palette[index]
             groupIndex = index
         }
@@ -182,8 +196,9 @@ public final class OverlayController {
         var highlight: CGRect?
         var corner = WindowCorner.topRight
         if let anchor = n.anchor {
-            let box = BubblePlacement.highlightBox(around: overlay.local(anchor))
-            guard let placement = BubblePlacement.anchored(size: appearance.outerSize, highlight: box, window: window, visibleFrame: overlay.visibleFrame, occupied: model.bubbles.map(\.frame), gap: anchorGap(for: style.shape)) else { return }
+            let box = BubblePlacement.spriteFrame(around: overlay.local(anchor))
+            let occupied = model.bubbles.flatMap { [$0.frame] + [$0.highlight].compactMap { $0 } }
+            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied) else { return }
             frame = placement.frame
             side = placement.side
             highlight = box
@@ -204,13 +219,18 @@ public final class OverlayController {
             }
         }
 
-        let animation = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? .fade : style.animation
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        let animation = reduceMotion ? .fade : style.animation
+        let textDelay = delay + (highlight == nil ? 0 : 0.12)
         let bubble = PlacedBubble(
             id: n.id, windowID: n.windowID, order: order, window: window, highlight: highlight, appearance: appearance,
             frame: frame, side: side, groupIndex: groupIndex,
-            transition: BubbleTransitions.bubble(animation, anchor: appearance.scaleAnchor(side: side, corner: corner), slide: slideOffset(frame: frame, window: window.frame), delay: delay),
-            decorTransition: BubbleTransitions.decor(animation, delay: delay))
+            transition: BubbleTransitions.bubble(animation, anchor: appearance.scaleAnchor(side: side, corner: corner), slide: slideOffset(frame: frame, window: window.frame), delay: textDelay, reduceMotion: reduceMotion),
+            decorDelay: delay, reduceMotion: reduceMotion)
         order += 1
+        if liveliness != .quiet, let groupIndex {
+            recentGroups = Array((recentGroups + [(style.theme, groupIndex)]).suffix(2))
+        }
         withAnimation(.easeInOut(duration: 0.2)) {
             model.bubbles.append(bubble)
             if highlight == nil {
@@ -221,7 +241,7 @@ public final class OverlayController {
         switch style.dwell {
         case .seconds(let seconds):
             Task {
-                try await Task.sleep(for: .seconds(delay + BubbleTransitions.entranceDuration(animation) + seconds))
+                try await Task.sleep(for: .seconds(textDelay + BubbleTransitions.entranceDuration(animation) + seconds))
                 remove(n.id, from: overlay)
             }
         case .untilDismissed:
@@ -259,8 +279,8 @@ public final class OverlayController {
         var dropped: [String] = []
         for i in model.bubbles.indices where model.bubbles[i].windowID == windowID {
             guard let highlight = model.bubbles[i].highlight else { continue }
-            let occupied = model.bubbles.indices.filter { $0 != i }.map { model.bubbles[$0].frame }
-            guard let placement = BubblePlacement.anchored(size: model.bubbles[i].appearance.outerSize, highlight: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied, gap: anchorGap(for: model.bubbles[i].appearance.shape)) else {
+            let occupied = model.bubbles.indices.filter { $0 != i }.flatMap { [model.bubbles[$0].frame] + [model.bubbles[$0].highlight].compactMap { $0 } }
+            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize, frame: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied) else {
                 dropped.append(model.bubbles[i].id)
                 continue
             }
@@ -307,10 +327,6 @@ public final class OverlayController {
         let overlay = ScreenOverlay(screen: screen, primaryHeight: primaryHeight)
         screens[id] = overlay
         return overlay
-    }
-
-    private func anchorGap(for shape: BubbleShape) -> CGFloat {
-        shape == .cloud ? BubblePlacement.cloudAnchorGap : BubblePlacement.anchorGap
     }
 
     /// §6 slide: 24pt from whichever window edge is nearest to the bubble.

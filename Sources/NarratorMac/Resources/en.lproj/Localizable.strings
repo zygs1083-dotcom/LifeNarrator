@@ -46,6 +46,7 @@
 "theme.candy" = "Candy";
 "theme.neon" = "Neon";
 "theme.random" = "Random";
+"theme.clear" = "Clear";
 "effects" = "Art text";
 "effects.outline" = "Outline";
 "effects.shadow" = "Shadow";
