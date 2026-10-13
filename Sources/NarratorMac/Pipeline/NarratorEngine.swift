@@ -452,11 +452,11 @@ public final class NarratorEngine {
                 tick: tick, generation: generation, reservation: id)
         }
         let anchor = lineIndex >= 0 ? rect?.rect ?? sensor.unframedRect(lineIndex: lineIndex, range: range) : nil
-        let line = lineIndex >= 0 ? sensor.placementLine(lineIndex: lineIndex, rect: rect?.rect, kind: rect?.kind) : nil
+        let line = lineIndex >= 0 ? sensor.placementLine(lineIndex: lineIndex, rect: anchor!, kind: rect?.kind) : nil
         guard try canShow(snapshot, ruleID: cooldownRuleID, now: Date()) else { return false }
         if let anchor, SpriteLocator.conflicts(.init(lineIndex: lineIndex, rect: anchor),
             with: positions(excluding: id, snapshot: snapshot)) { return false }
-        let obstacles = snapshot.textLines.filter { $0.rect.intersects(snapshot.contentFrame) }.map(\.rect) + snapshot.sensitiveRects
+        let obstacles = sensor.placementObstacles(in: snapshot.contentFrame) + snapshot.sensitiveRects
         let shown = overlay.show(Narration(id: UUID().uuidString, quipID: quip.text, ruleID: ruleID,
             sequence: screenCount, text: quip.text, emoji: quip.emoji, language: quip.lang.rawValue,
             persona: .init(rawValue: quip.persona.rawValue)!, anchor: anchor, windowID: windowID,

@@ -25,6 +25,7 @@ public final class AppStore: ObservableObject {
     }
     @Published public private(set) var rules: [Rule]
     @Published public var error: String?
+    @Published public private(set) var screenRecordingGranted = ContextPermissions.isGranted(.screenCapture)
     public let builtin: QuipPack
     public let directory: AppDataDirectory
     public let downloader: ModelDownloader
@@ -54,6 +55,7 @@ public final class AppStore: ObservableObject {
     }
 
     public func start() {
+        refreshScreenRecordingPermission()
         registerShortcuts()
         downloadFonts()
         if !settings.onboardingCompleted {
@@ -105,6 +107,7 @@ public final class AppStore: ObservableObject {
     // An AppKit window rather than a SwiftUI Settings scene so it can also open when the app is
     // launched again, the only way in when macOS hides the menu bar icon (a full menu bar on a notched Mac).
     public func showSettings() {
+        refreshScreenRecordingPermission()
         if settingsWindow == nil {
             let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
@@ -118,6 +121,29 @@ public final class AppStore: ObservableObject {
         }
         NSApplication.shared.activate(ignoringOtherApps: true)
         settingsWindow!.makeKeyAndOrderFront(nil)
+    }
+
+    private func refreshScreenRecordingPermission() {
+        screenRecordingGranted = ContextPermissions.isGranted(.screenCapture)
+        if ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1" {
+            FileHandle.standardError.write(Data("[sprite] screen-recording granted=\(screenRecordingGranted)\n".utf8))
+        }
+    }
+
+    func openScreenRecordingSettings() {
+        ContextPermissions.request(.screenCapture)
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+    }
+
+    func relaunch() {
+        Task {
+            do {
+                let configuration = NSWorkspace.OpenConfiguration()
+                configuration.createsNewApplicationInstance = true
+                _ = try await NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration)
+                NSApp.terminate(nil)
+            } catch { self.error = String(describing: error) }
+        }
     }
 
     public func showInput() {

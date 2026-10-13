@@ -104,6 +104,9 @@ private struct SpriteSettingsView: View {
     private let hue = AppTheme.hue(320)
     var body: some View {
         VStack(spacing: 14) {
+            if !store.screenRecordingGranted && store.settings.liveliness != .quiet {
+                ScreenRecordingReminder(store: store)
+            }
             GroupBox {
                 Text(store.text("sprite.onDuty.hint")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
             } label: {
@@ -154,6 +157,27 @@ private struct SpriteSettingsView: View {
         }
     }
     private func seconds(_ value: Int) -> String { String(format: store.text("format.seconds"), value) }
+}
+
+struct ScreenRecordingReminder: View {
+    @ObservedObject var store: AppStore
+    private let hue = AppTheme.hue(42)
+
+    var body: some View {
+        GroupBox {
+            Text(store.text("screenRecording.body"))
+                .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button(store.text("screenRecording.open")) { store.openScreenRecordingSettings() }
+                    .buttonStyle(AppTheme.CapsuleButton(hue: hue))
+                Button(store.text("screenRecording.relaunch")) { store.relaunch() }
+                    .buttonStyle(AppTheme.CapsuleButton(hue: hue, filled: false))
+            }
+        } label: {
+            CardHeading(title: store.text("screenRecording.title"), symbol: "record.circle", hue: hue)
+        }
+    }
 }
 
 struct GeneralSettingsView: View {

@@ -26,6 +26,13 @@ final class UISnapshotTests: XCTestCase {
         settings.provider = .builtin
         try AppDataDirectory().saveSettings(settings)
         let store = try AppStore()
+        for dark in [false, true] {
+            let view = ScreenRecordingReminder(store: store).padding(20)
+                .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+                .groupBoxStyle(.card).frame(width: 780, height: 220).background(AppTheme.windowBackground)
+            try render(view, dark: dark, size: NSSize(width: 780, height: 220))
+                .write(to: directory.appendingPathComponent("ui-screen-recording-\(dark ? "dark" : "light").png"))
+        }
         for tab in SettingsTab.allCases {
             for dark in [false, true] {
                 let view = AppSettingsView(store: store, tab: tab)
@@ -125,7 +132,7 @@ final class UISnapshotTests: XCTestCase {
                 if color != first { hasDifferentColor = true }
             }
         }
-        XCTAssertTrue(hasDifferentColor, "UI snapshot must not be a single color")
+        XCTAssertTrue(hasDifferentColor, "UI snapshot of \(V.self) must not be a single color (dark=\(dark), scrolled=\(scrollToBottom))")
         return png
     }
 }

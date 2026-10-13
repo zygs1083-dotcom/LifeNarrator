@@ -14,6 +14,7 @@ struct PlacedBubble: Identifiable {
     var line: CGRect?
     var obstacles: [CGRect]
     var connector: Bool
+    var outside: Bool
     var appearance: BubbleAppearance
     var frame: CGRect
     var side: AnchorSide?
@@ -23,8 +24,9 @@ struct PlacedBubble: Identifiable {
     let reduceMotion: Bool
 
     var decor: AnchorDecor? {
-        guard framed, let highlight, let side else { return nil }
-        return AnchorDecor(highlight: highlight, bubbleFrame: frame, side: side, shape: appearance.shape, size: appearance.size, group: appearance.group, connector: connector)
+        guard framed || outside, let highlight, let side else { return nil }
+        return AnchorDecor(highlight: highlight, bubbleFrame: frame, side: side, shape: appearance.shape,
+                           size: appearance.size, group: appearance.group, connector: connector, outside: outside, framed: framed)
     }
 }
 
@@ -212,6 +214,7 @@ public final class OverlayController {
         var highlight: CGRect?
         var corner = WindowCorner.topRight
         var connector = false
+        var outside = false
         if let anchor = n.anchor {
             let box = BubblePlacement.spriteFrame(around: overlay.local(anchor))
             let occupied = model.bubbles.flatMap { [$0.frame] + [$0.highlight].compactMap { $0 } }
@@ -235,8 +238,9 @@ public final class OverlayController {
             side = placement.side
             highlight = box
             connector = placement.connector
+            outside = placement.outside
             lastPlacement = Self.place(placement, highlight: box)
-            if style.shape == .speech && n.framed && connector && !placement.covered {
+            if style.shape == .speech && n.framed && connector && !placement.covered && !placement.outside {
                 appearance.setAnchoredTail(frame: frame, highlight: box, side: placement.side)
             }
         } else {
@@ -260,7 +264,7 @@ public final class OverlayController {
         let bubble = PlacedBubble(
             id: n.id, windowID: n.windowID, order: order, window: window, highlight: highlight,
             framed: n.framed, line: n.line.map(overlay.local), obstacles: n.obstacles.map(overlay.local),
-            connector: connector, appearance: appearance,
+            connector: connector, outside: outside, appearance: appearance,
             frame: frame, side: side, groupIndex: groupIndex,
             transition: BubbleTransitions.bubble(animation, anchor: appearance.scaleAnchor(side: side, corner: corner), slide: slideOffset(frame: frame, window: window.frame), delay: textDelay, reduceMotion: reduceMotion),
             decorDelay: delay, reduceMotion: reduceMotion)
@@ -334,13 +338,14 @@ public final class OverlayController {
             model.bubbles[i].frame = placement.frame
             model.bubbles[i].side = placement.side
             model.bubbles[i].connector = placement.connector
+            model.bubbles[i].outside = placement.outside
             if placement.covered {
                 model.bubbles[i].appearance.shape = .rounded
                 model.bubbles[i].appearance.rotation = .zero
                 model.bubbles[i].appearance.fillOpacity = 0.92
                 model.bubbles[i].appearance.tail = nil
             }
-            if model.bubbles[i].appearance.shape == .speech && model.bubbles[i].framed && placement.connector {
+            if model.bubbles[i].appearance.shape == .speech && model.bubbles[i].framed && placement.connector && !placement.outside {
                 model.bubbles[i].appearance.setAnchoredTail(frame: placement.frame, highlight: highlight, side: placement.side)
             }
         }
@@ -351,6 +356,7 @@ public final class OverlayController {
 
     private static func place(_ placement: SpritePlacement, highlight: CGRect) -> String {
         if placement.covered { return "covered" }
+        if placement.outside { return placement.side == .right ? "outsideRight" : "outsideLeft" }
         switch placement.side {
         case .above: return "above"
         case .below: return "below"
