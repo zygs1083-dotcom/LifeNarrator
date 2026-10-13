@@ -139,3 +139,34 @@ public enum RuleCompiler {
         return rule
     }
 }
+
+public enum SpriteGenerator {
+    public static let maxTokens = 320
+
+    public static func generate(targets: [(category: String, text: String)], app: String, title: String,
+                                persona: Persona, lang: Lang, generator: any TextGenerator) async throws
+        -> (quips: [Int: Quip], declined: Set<Int>) {
+        struct Mark: Decodable {
+            var i: Int
+            var text: String
+            var emoji: [String]
+        }
+        struct Batch: Decodable { var marks: [Mark] }
+        let json = try await generator.generateJSON(system: nil,
+            prompt: GenerationPrompts.spriteMarks(app: app, title: title, targets: targets, persona: persona, lang: lang),
+            schema: GenerationPrompts.spriteMarksSchema)
+        let batch = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
+        var seen = Set<Int>()
+        var quips: [Int: Quip] = [:]
+        for mark in batch.marks {
+            guard targets.indices.contains(mark.i), (0...7).contains(mark.i), seen.insert(mark.i).inserted else { continue }
+            var text = mark.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
+            guard !text.isEmpty, text.count <= (lang == .zh ? 14 : 40), !text.contains(where: QuipValidator.isEmoji),
+                  mark.emoji.count == 1, mark.emoji[0].count == 1, QuipValidator.isEmoji(mark.emoji[0].first!),
+                  text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil else { continue }
+            quips[mark.i] = Quip(lang: lang, persona: persona, text: text, emoji: mark.emoji)
+        }
+        return (quips, Set(targets.indices).subtracting(quips.keys))
+    }
+}

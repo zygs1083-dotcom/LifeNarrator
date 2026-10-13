@@ -1,6 +1,6 @@
 import NarratorCore
 
-/// Hand-written GBNF for the two schemas `TextGenerator.generateJSON` receives.
+/// Hand-written GBNF for the schemas `TextGenerator.generateJSON` receives.
 public enum LlamaGrammar {
     public enum Failure: Error { case unsupportedSchema }
 
@@ -8,6 +8,7 @@ public enum LlamaGrammar {
         switch schema {
         case GenerationPrompts.compiledRuleSchema: return compiledRule
         case GenerationPrompts.quipsSchema: return quips
+        case GenerationPrompts.spriteMarksSchema: return spriteMarks
         default: throw Failure.unsupportedSchema
         }
     }
@@ -18,6 +19,17 @@ public enum LlamaGrammar {
     public static let quips = #"""
     root ::= "{" ws "\"quips\"" ws ":" ws "[" ws quip (ws "," ws quip){2,11} ws "]" ws "}" ws
     quip ::= "{" ws "\"text\"" ws ":" ws text ws "," ws "\"emoji\"" ws ":" ws "[" ws emoji (ws "," ws emoji){0,2} ws "]" ws "}"
+    text ::= "\"" (zh | en) "\""
+    zh ::= [一-鿿，。！？、：；～—…《》“”「」A-Za-z0-9 ]{1,14}
+    en ::= [A-Za-z0-9 ,.!?'’:;…()-]{1,40}
+    emoji ::= "\"" ebase [️]? ([‍] ebase [️]?){0,3} "\""
+    ebase ::= [\U0001f300-\U0001faff☀-➿] [\U0001f3fb-\U0001f3ff]?
+    ws ::= [ \t\n\r]{0,4}
+    """#
+
+    public static let spriteMarks = #"""
+    root ::= "{" ws "\"marks\"" ws ":" ws "[" ws (mark (ws "," ws mark){0,7})? ws "]" ws "}" ws
+    mark ::= "{" ws "\"i\"" ws ":" ws [0-7] ws "," ws "\"text\"" ws ":" ws text ws "," ws "\"emoji\"" ws ":" ws "[" ws emoji ws "]" ws "}"
     text ::= "\"" (zh | en) "\""
     zh ::= [一-鿿，。！？、：；～—…《》“”「」A-Za-z0-9 ]{1,14}
     en ::= [A-Za-z0-9 ,.!?'’:;…()-]{1,40}

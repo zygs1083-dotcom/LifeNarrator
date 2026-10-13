@@ -1,0 +1,985 @@
+{
+  "version": 1,
+  "categories": {
+    "money": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "又在给钱包放血",
+        "emoji": [
+          "💸"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "钱包抖了一下",
+        "emoji": [
+          "💸"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Your wallet just flinched.",
+        "emoji": [
+          "💸"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "That price has main character energy.",
+        "emoji": [
+          "💸"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "买之前先深呼吸",
+        "emoji": [
+          "🌬️"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "先想想再买",
+        "emoji": [
+          "🌬️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Sleep on it, maybe?",
+        "emoji": [
+          "🛏️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "A little pause before the purchase.",
+        "emoji": [
+          "🛏️"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "金币结界，启动",
+        "emoji": [
+          "🪙"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "金币守护者，集合",
+        "emoji": [
+          "🪙"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The gold tribute is demanded!",
+        "emoji": [
+          "👑"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "Guardians of gold, assemble!",
+        "emoji": [
+          "👑"
+        ]
+      }
+    ],
+    "deadline": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "DDL 在看着你",
+        "emoji": [
+          "⏳"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "时间催你了",
+        "emoji": [
+          "⏳"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Tick tock, champ.",
+        "emoji": [
+          "⏰"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "The clock is giving you a look.",
+        "emoji": [
+          "⏰"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "时间还够，慢慢来",
+        "emoji": [
+          "🍵"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "一步一步来",
+        "emoji": [
+          "🍵"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "You'll make it in time.",
+        "emoji": [
+          "🌤️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "One step at a time.",
+        "emoji": [
+          "🌤️"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "命运倒计时，开始",
+        "emoji": [
+          "⌛"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "时之封印将解",
+        "emoji": [
+          "⌛"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The hourglass has spoken!",
+        "emoji": [
+          "🔮"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The seal of time is breaking!",
+        "emoji": [
+          "🔮"
+        ]
+      }
+    ],
+    "alert": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "它说失败，不是我说的",
+        "emoji": [
+          "🙈"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "红字又来抢镜",
+        "emoji": [
+          "🙈"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Computer says no.",
+        "emoji": [
+          "🖥️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Red text wants attention again.",
+        "emoji": [
+          "🖥️"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "报错而已，不是你的错",
+        "emoji": [
+          "🫂"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "先喘口气吧",
+        "emoji": [
+          "🫂"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Bugs happen. Breathe.",
+        "emoji": [
+          "🍃"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "One breath, then one small fix.",
+        "emoji": [
+          "🍃"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "异常之兽现身",
+        "emoji": [
+          "🐉"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "警报结界展开",
+        "emoji": [
+          "🐉"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "A wild error appears!",
+        "emoji": [
+          "⚡"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The warning barrier awakens!",
+        "emoji": [
+          "⚡"
+        ]
+      }
+    ],
+    "stat": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "数字，还挺能唠",
+        "emoji": [
+          "📊"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "数字挺会撑场",
+        "emoji": [
+          "📊"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Numbers go brrr.",
+        "emoji": [
+          "📈"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Quite the crowd of digits.",
+        "emoji": [
+          "📈"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "数字只是数字",
+        "emoji": [
+          "🌱"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "每一点都算数",
+        "emoji": [
+          "🌱"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Just a number, not a verdict.",
+        "emoji": [
+          "🌼"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Every little bit counts.",
+        "emoji": [
+          "🌼"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "数据之海，深不可测",
+        "emoji": [
+          "🌊"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "数值之力觉醒",
+        "emoji": [
+          "🌊"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "Behold the sacred count!",
+        "emoji": [
+          "🔢"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The power of numbers awakens!",
+        "emoji": [
+          "🔢"
+        ]
+      }
+    ],
+    "name": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "这位又来了",
+        "emoji": [
+          "👀"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "这位有点眼熟",
+        "emoji": [
+          "👀"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Oh look, a familiar name.",
+        "emoji": [
+          "👀"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "A familiar face in the list.",
+        "emoji": [
+          "👀"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "好好聊吧",
+        "emoji": [
+          "🍃"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "好好说，慢慢聊",
+        "emoji": [
+          "🍃"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Be kind in this chat today.",
+        "emoji": [
+          "🌷"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "A little kindness for this chat.",
+        "emoji": [
+          "🌷"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "主角，登场",
+        "emoji": [
+          "🎭"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "新角色已入场",
+        "emoji": [
+          "🎭"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "A hero enters the stage!",
+        "emoji": [
+          "🎭"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "A new character takes the stage!",
+        "emoji": [
+          "🎭"
+        ]
+      }
+    ],
+    "action": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "点下去就回不了头",
+        "emoji": [
+          "🖱️"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "手指先冷静",
+        "emoji": [
+          "🖱️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Big button energy.",
+        "emoji": [
+          "🔘"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Your finger looks ambitious.",
+        "emoji": [
+          "🔘"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "想好了再点哦",
+        "emoji": [
+          "🌸"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "按你的节奏来",
+        "emoji": [
+          "🌸"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "No rush to click.",
+        "emoji": [
+          "🐢"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Click when you feel ready.",
+        "emoji": [
+          "🐢"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "命运按钮，就在眼前",
+        "emoji": [
+          "🔘"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "抉择之刻已至",
+        "emoji": [
+          "🔘"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The button of destiny!",
+        "emoji": [
+          "⚔️"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The moment of choice is here!",
+        "emoji": [
+          "⚔️"
+        ]
+      }
+    ],
+    "question": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "问得好，答不上",
+        "emoji": [
+          "🤷"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "这个问题有点东西",
+        "emoji": [
+          "🤷"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Great question. No idea.",
+        "emoji": [
+          "🤷"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "That one deserves a raised eyebrow.",
+        "emoji": [
+          "🤷"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "慢慢想，不着急",
+        "emoji": [
+          "💭"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "答案可以慢慢找",
+        "emoji": [
+          "💭"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Take your time with that one.",
+        "emoji": [
+          "💭"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "The answer can take its time.",
+        "emoji": [
+          "💭"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "此问，直指真理",
+        "emoji": [
+          "🔮"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "真理之门待开启",
+        "emoji": [
+          "🔮"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "A riddle for the ages!",
+        "emoji": [
+          "📜"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The gate of truth awaits!",
+        "emoji": [
+          "📜"
+        ]
+      }
+    ],
+    "emphasis": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "感叹号有点多了",
+        "emoji": [
+          "❗"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "这行嗓门挺大",
+        "emoji": [
+          "❗"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Easy on the exclamation marks.",
+        "emoji": [
+          "❗"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "This line brought a megaphone.",
+        "emoji": [
+          "❗"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "别被语气吓到",
+        "emoji": [
+          "🌼"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "慢慢读就好",
+        "emoji": [
+          "🌼"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Loud words, soft heart.",
+        "emoji": [
+          "🫶"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Read it at your own pace.",
+        "emoji": [
+          "🫶"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "此处必有大事",
+        "emoji": [
+          "⚡"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "雷鸣宣言降临",
+        "emoji": [
+          "⚡"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "A proclamation!",
+        "emoji": [
+          "📣"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "A thunderous decree arrives!",
+        "emoji": [
+          "📣"
+        ]
+      }
+    ],
+    "heading": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "标题起得挺大",
+        "emoji": [
+          "📰"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "标题先赢一局",
+        "emoji": [
+          "📰"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Bold title. Let's see.",
+        "emoji": [
+          "🧐"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "The title made an entrance.",
+        "emoji": [
+          "🧐"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "从这里开始读吧",
+        "emoji": [
+          "📖"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "一行一行读吧",
+        "emoji": [
+          "📖"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Start here, one line at a time.",
+        "emoji": [
+          "📖"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "A gentle place to begin.",
+        "emoji": [
+          "📖"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "篇章之门，开启",
+        "emoji": [
+          "📜"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "故事序章显现",
+        "emoji": [
+          "📜"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "Chapter one begins!",
+        "emoji": [
+          "📜"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The story reveals its prologue!",
+        "emoji": [
+          "📜"
+        ]
+      }
+    ],
+    "revisit": [
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "又回来了？",
+        "emoji": [
+          "🔁"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "sharp",
+        "text": "这里挺有吸引力",
+        "emoji": [
+          "🔁"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "Back again already?",
+        "emoji": [
+          "🔁"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "sharp",
+        "text": "This window has a pull, huh?",
+        "emoji": [
+          "🔁"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "欢迎回来呀",
+        "emoji": [
+          "🌷"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "gentle",
+        "text": "回来歇一会儿",
+        "emoji": [
+          "🌷"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "Welcome back.",
+        "emoji": [
+          "🌷"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "gentle",
+        "text": "A familiar little resting spot.",
+        "emoji": [
+          "🌷"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "汝再度归来",
+        "emoji": [
+          "🌀"
+        ]
+      },
+      {
+        "lang": "zh",
+        "persona": "chuuni",
+        "text": "归来之门再开",
+        "emoji": [
+          "🌀"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "Thou returnest!",
+        "emoji": [
+          "🌀"
+        ]
+      },
+      {
+        "lang": "en",
+        "persona": "chuuni",
+        "text": "The gate of return opens again!",
+        "emoji": [
+          "🌀"
+        ]
+      }
+    ]
+  }
+}
