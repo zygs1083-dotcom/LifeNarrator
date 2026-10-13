@@ -10,8 +10,12 @@ private final class SpriteRequestProgress: @unchecked Sendable {
     private var first: Date?
     private var timedOut = false
 
-    func feed(_ text: String) throws {
-        try lock.withLock { marks += try parser.feed(text).count }
+    func feed(_ text: String) throws -> [RawMark] {
+        try lock.withLock {
+            let raw = try parser.feed(text)
+            marks += raw.count
+            return raw
+        }
     }
 
     func accepted() {
@@ -37,6 +41,9 @@ private final class SpriteRequestProgress: @unchecked Sendable {
 private struct SpriteRequestGenerator: TextGenerator {
     let base: any TextGenerator
     let progress: SpriteRequestProgress
+    let lines: [TextLine]
+    let lineIndices: [Int]
+    let onMissing: @Sendable (Int) -> Void
 
     func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         try await generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: maxTokens, partial: { _ in true })
@@ -47,12 +54,20 @@ private struct SpriteRequestGenerator: TextGenerator {
         try Task.checkCancellation()
         let json = try await base.generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: maxTokens) {
             // SpriteGenerator owns parsing errors; this parser only counts completed raw marks.
-            do { try progress.feed($0) } catch { return partial($0) }
+            do { inspect(try progress.feed($0)) } catch { return partial($0) }
             return !Task.isCancelled && partial($0)
         }
         try Task.checkCancellation()
-        try progress.feed(json)
+        inspect(try progress.feed(json))
         return json
+    }
+
+    private func inspect(_ raw: [RawMark]) {
+        for mark in raw where lines.indices.contains(mark.l) {
+            if SpriteLocator.locate(quote: mark.q, lineHint: mark.l, in: lines) == nil {
+                onMissing(lineIndices[mark.l])
+            }
+        }
     }
 }
 
@@ -86,6 +101,7 @@ public final class NarratorEngine {
     private var ocr: Task<Void, Never>?
     private var modelTask: Task<Void, Never>?
     private var pendingRequest: ModelRequest?
+    private var emptyScreens: Set<UInt64> = []
     private var windowRequests: [CGWindowID: Date] = [:]
     private var modelBudget = SpriteModelBudget(perMinute: 4)
     private let debug = ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1"
@@ -97,7 +113,7 @@ public final class NarratorEngine {
         let windowID: CGWindowID
         let generation: Int
         let lang: Lang
-        let persona: NarratorCore.Persona
+        let persona: String
         let level: Liveliness
         let exclude: [String]
         let generator: any TextGenerator
@@ -186,7 +202,7 @@ public final class NarratorEngine {
     }
 
     private func requestAllowed(now: Date) -> Bool {
-        guard let windowID else { return false }
+        guard let windowID, let screenKey, !emptyScreens.contains(screenKey) else { return false }
         var budget = modelBudget
         return now.timeIntervalSince(windowRequests[windowID] ?? .distantPast) >= SpriteTick.windowRequestInterval(level: store.settings.liveliness)
             && budget.begin(now: now)
@@ -218,7 +234,7 @@ public final class NarratorEngine {
             log(snapshot, kind, source: "model", shown: false, reason: "waiting-model")
             enqueueModel(ModelRequest(snapshot: snapshot, screen: screen, key: screenKey, windowID: windowID!,
                 generation: generation, lang: store.settings.language.lang,
-                persona: .init(rawValue: store.settings.persona.rawValue)!, level: level,
+                persona: store.settings.persona.rawValue, level: level,
                 exclude: Array(shownQuotes.suffix(6)), generator: generator))
         } else {
             var shown = false
@@ -376,7 +392,7 @@ public final class NarratorEngine {
         if modelTask != nil { pendingRequest = request; return }
         let now = Date()
         guard request.generation == generation, requestAllowed(now: now), modelBudget.begin(now: now) else { return }
-        memory.recordRequest(key: request.key, now: now)
+        if let evicted = memory.recordRequest(key: request.key, now: now) { emptyScreens.remove(evicted) }
         windowRequests = windowRequests.filter { now.timeIntervalSince($0.value) < 60 }
         windowRequests[request.windowID] = now
         modelTask = Task { await generate(request, started: now) }
@@ -384,7 +400,17 @@ public final class NarratorEngine {
 
     private func generate(_ request: ModelRequest, started: Date) async {
         let progress = SpriteRequestProgress()
-        let (stream, continuation) = AsyncStream<SpriteMark>.makeStream()
+        let (incoming, continuation) = AsyncStream<SpriteMark>.makeStream()
+        let (stream, ready) = AsyncStream<SpriteMark>.makeStream()
+        let cache = Task {
+            for await mark in incoming {
+                let key = SpriteMemory.Key(bundleId: request.snapshot.bundleId, text: mark.quote)
+                let marked = memory.status(key: key, now: Date())?.isMarked == true
+                forget(memory.cache(key: key, quip: mark.quip, lineHint: mark.lineIndex, now: Date()))
+                if !marked && request.generation == generation { ready.yield(mark) }
+            }
+            ready.finish()
+        }
         let builtin = request.generator is LlamaGenerator
         let k = request.level == .rowdy ? 4 : 3
         let timeout = Task {
@@ -398,8 +424,6 @@ public final class NarratorEngine {
                 for await mark in stream {
                     try Task.checkCancellation()
                     guard request.generation == generation else { throw CancellationError() }
-                    forget(memory.cache(key: .init(bundleId: request.snapshot.bundleId, text: mark.quote),
-                        quip: mark.quip, lineHint: mark.lineIndex, now: Date()))
                     if !builtin, let previous {
                         let remaining = SpriteTick.releaseGap(level: request.level) - Date().timeIntervalSince(previous)
                         if remaining > 0 { try await Task.sleep(for: .seconds(remaining)) }
@@ -427,8 +451,14 @@ public final class NarratorEngine {
         do {
             _ = try await SpriteGenerator.generate(screen: request.screen, snapshot: request.snapshot,
                 app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "", exclude: request.exclude,
-                persona: request.persona, lang: request.lang, k: k,
-                generator: SpriteRequestGenerator(base: request.generator, progress: progress)) { mark in
+                persona: .init(rawValue: request.persona)!, lang: request.lang, k: k,
+                generator: SpriteRequestGenerator(base: request.generator, progress: progress,
+                    lines: request.screen.lines.map { request.snapshot.textLines[$0.lineIndex] },
+                    lineIndices: request.screen.lines.map(\.lineIndex), onMissing: { index in
+                        Task { @MainActor in
+                            self.log(request.snapshot, .mark, pick: index, source: "model", shown: false, reason: "quote-missing")
+                        }
+                    })) { mark in
                     progress.accepted()
                     continuation.yield(mark)
                 }
@@ -440,6 +470,7 @@ public final class NarratorEngine {
         let finished = Date()
         timeout.cancel()
         continuation.finish()
+        await cache.value
         if reason == "cancelled" || reason == "timeout" { reader.cancel() }
         await reader.value
         let prefill = if let llama = request.generator as? LlamaGenerator { await llama.lastPrefillSeconds } else { 0.0 }
@@ -448,11 +479,12 @@ public final class NarratorEngine {
             let first = metrics.first.map { Int($0.timeIntervalSince(started) * 1000) } ?? -1
             FileHandle.standardError.write(Data("[sprite] model request k=\(k) lines=\(request.screen.lines.count) tokens≈\(Int(request.screen.tokens)) prefill=\(Int(prefill * 1000)) first=\(first) total=\(Int(finished.timeIntervalSince(started) * 1000)) marks=\(metrics.marks) located=\(metrics.located) reason=\(reason) exclude=\(request.exclude.count) started=\(Int(started.timeIntervalSince1970 * 1000))\n".utf8))
         }
+        if reason == "ok" && metrics.located == 0 { emptyScreens.insert(request.key) }
         modelTask = nil
         if let pending = pendingRequest {
             pendingRequest = nil
             enqueueModel(pending)
-        } else if reason == "ok" && request.generation == generation {
+        } else if reason == "ok" && metrics.located > 0 && request.generation == generation {
             scheduleFollowup(generation: request.generation)
         }
     }

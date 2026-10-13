@@ -213,8 +213,10 @@ public final class OverlayController {
             let occupied = model.bubbles.flatMap { [$0.frame] + [$0.highlight].compactMap { $0 } }
             let line = n.line.map(overlay.local) ?? box
             let obstacles = n.obstacles.map(overlay.local)
-            var narrow = appearance
-            narrow.measure(maxWidth: 160)
+            let narrow = BubbleAppearance.make(
+                shape: style.shape, size: .small, theme: style.theme, group: group, effects: style.textEffects,
+                font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: BubbleSize.small.fontSize),
+                text: n.text, emoji: emoji, quipID: n.quipID, maxWidth: 160)
             guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box,
                 line: line, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied,
                 obstacles: obstacles, narrowSize: narrow.outerSize) else { return false }
@@ -223,7 +225,7 @@ public final class OverlayController {
                 appearance.shape = .rounded
                 appearance.rotation = .zero
                 appearance.fillOpacity = 0.92
-                appearance.measure(maxWidth: placement.narrow ? 160 : size.maxWidth)
+                appearance.measure(maxWidth: placement.narrow ? 160 : appearance.size.maxWidth)
             }
             frame = CGRect(origin: placement.frame.origin, size: appearance.outerSize)
             side = placement.side
@@ -313,10 +315,17 @@ public final class OverlayController {
         for i in model.bubbles.indices where model.bubbles[i].windowID == windowID {
             guard let highlight = model.bubbles[i].highlight else { continue }
             let occupied = model.bubbles.indices.filter { $0 != i }.flatMap { [model.bubbles[$0].frame] + [model.bubbles[$0].highlight].compactMap { $0 } }
-            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize, frame: highlight, line: model.bubbles[i].line ?? highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: model.bubbles[i].obstacles) else {
+            var narrow = model.bubbles[i].appearance
+            narrow.measure(maxWidth: 160)
+            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize,
+                frame: highlight, line: model.bubbles[i].line ?? highlight, window: model.bubbles[i].window,
+                visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: model.bubbles[i].obstacles,
+                narrowSize: narrow.outerSize) else {
                 dropped.append(model.bubbles[i].id)
                 continue
             }
+            if placement.narrow { model.bubbles[i].appearance = narrow }
+            model.bubbles[i].appearance.tail = nil
             model.bubbles[i].frame = placement.frame
             model.bubbles[i].side = placement.side
             model.bubbles[i].connector = placement.connector
