@@ -36,7 +36,7 @@ public final class NarratorEngine {
         var targets: [SpriteTarget]
         var snapshot: ContextSnapshot
         var lang: Lang
-        var persona: NarratorCore.Persona
+        var persona: String
         var generator: any TextGenerator
     }
 
@@ -202,7 +202,7 @@ public final class NarratorEngine {
                 }
             }
             let lang = store.settings.language.lang
-            let persona = NarratorCore.Persona(rawValue: store.settings.persona.rawValue)!
+            let persona = store.settings.persona.rawValue
             let key = SpriteMemory.Key(bundleId: snapshot.bundleId, text: target.text)
             let status = memory.status(key: key, now: showTime)
             let rule = target.candidate?.rule ?? quips.rule(for: target.category.rawValue, text: target.text,
@@ -210,11 +210,11 @@ public final class NarratorEngine {
             var nextPicker = picker
             var chosen: Quip?
             var source = target.category == .revisit ? "revisit" : target.category == .rule ? "rule" : "template"
-            if target.category != .revisit, let cached = status?.cachedQuip, cached.lang == lang, cached.persona == persona,
+            if target.category != .revisit, let cached = status?.cachedQuip, cached.lang == lang, cached.persona.rawValue == persona,
                attempt.reason != "least-recent" || cached.text != status?.lastQuip?.text {
                 var modelRule = rule
                 modelRule.quips = [cached]
-                chosen = nextPicker.pick(for: modelRule, lang: lang, persona: persona, pack: .init(version: 1, rules: [], generic: [:]),
+                chosen = nextPicker.pick(for: modelRule, lang: lang, persona: .init(rawValue: persona)!, pack: .init(version: 1, rules: [], generic: [:]),
                                          now: showTime, using: &random)
                 if chosen != nil { source = "model" }
             }
@@ -223,7 +223,7 @@ public final class NarratorEngine {
                 if attempt.reason == "least-recent" {
                     templateRule.quips.removeAll { QuipPicker.render($0.text, rule: rule, lang: lang) == status?.lastQuip?.text }
                 }
-                chosen = nextPicker.pick(for: templateRule, lang: lang, persona: persona,
+                chosen = nextPicker.pick(for: templateRule, lang: lang, persona: .init(rawValue: persona)!,
                     pack: target.category == .rule ? store.builtin : .init(version: 1, rules: [], generic: [:]),
                     disabledBuiltinIds: store.settings.disabledBuiltinIds, now: showTime, using: &random)
             }
@@ -293,7 +293,7 @@ public final class NarratorEngine {
                   return cached?.lang == store.settings.language.lang && cached?.persona.rawValue == store.settings.persona.rawValue
               }), let generator = try store.textGenerator() else { return }
         let request = ModelRequest(targets: targets, snapshot: snapshot, lang: store.settings.language.lang,
-                                   persona: .init(rawValue: store.settings.persona.rawValue)!, generator: generator)
+                                   persona: store.settings.persona.rawValue, generator: generator)
         if modelTask != nil { modelPending = request; return }
         startModel(request)
     }
@@ -302,7 +302,7 @@ public final class NarratorEngine {
         guard !ProcessInfo.processInfo.isLowPowerModeEnabled, store.settings.liveliness != .quiet,
               !request.targets.allSatisfy({
                   let cached = memory.status(key: .init(bundleId: request.snapshot.bundleId, text: $0.text), now: Date())?.cachedQuip
-                  return cached?.lang == request.lang && cached?.persona == request.persona
+                  return cached?.lang == request.lang && cached?.persona.rawValue == request.persona
               }), modelBudget.begin(now: Date()) else { return }
         modelTask = Task {
             let start = Date()
@@ -310,7 +310,7 @@ public final class NarratorEngine {
                 let result = try await SpriteGenerator.generate(
                     targets: request.targets.map { ($0.category.rawValue, $0.text) },
                     app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "",
-                    persona: request.persona, lang: request.lang, generator: request.generator)
+                    persona: .init(rawValue: request.persona)!, lang: request.lang, generator: request.generator)
                 let now = Date()
                 for (index, quip) in result.quips {
                     forget(memory.cache(key: .init(bundleId: request.snapshot.bundleId, text: request.targets[index].text), quip: quip, now: now))
