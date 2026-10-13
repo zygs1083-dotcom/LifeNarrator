@@ -40,6 +40,7 @@ public struct SpritePlacement: Sendable, Equatable {
     public let connector: Bool
     public let covered: Bool
     public let narrow: Bool
+    public var outside: Bool = false
 }
 
 public enum WindowCorner: Sendable, Equatable {
@@ -116,6 +117,18 @@ public enum BubblePlacement {
         if let narrowSize {
             choices = candidates(narrowSize, narrow: true)
             if let placement = choices.first(where: clear) { return placement }
+        }
+        let outsideSize = narrowSize ?? size
+        for side in [AnchorSide.right, .left] {
+            let x = side == .right ? window.frame.maxX + 12 : window.frame.minX - 12 - outsideSize.width
+            let bubble = CGRect(x: x, y: frame.midY - outsideSize.height / 2,
+                                width: outsideSize.width, height: outsideSize.height)
+            if visibleFrame.contains(bubble), !bubble.intersects(frame),
+               !occupied.contains(where: { $0.insetBy(dx: -4, dy: -4).intersects(bubble) }),
+               BubbleConnector.length(bubble: bubble, highlight: frame, side: side) <= 400 {
+                return SpritePlacement(frame: bubble, side: side, connector: true, covered: false,
+                                       narrow: narrowSize != nil, outside: true)
+            }
         }
         func overlap(_ placement: SpritePlacement) -> CGFloat {
             obstacles.reduce(0) { area, obstacle in

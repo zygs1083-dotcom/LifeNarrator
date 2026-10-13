@@ -147,3 +147,7 @@
 "onboarding.step" = "Step %d of 3";
 "input.saved" = "Got it";
 "menu.onDuty" = "On duty";
+"screenRecording.title" = "Turn on Screen Recording for sharper frames";
+"screenRecording.body" = "Chat apps and terminals don't report where their text is. With Screen Recording on, the sprite takes a quick look at the window to find it (processed on your Mac, never saved).";
+"screenRecording.open" = "Open Settings";
+"screenRecording.relaunch" = "Relaunch";

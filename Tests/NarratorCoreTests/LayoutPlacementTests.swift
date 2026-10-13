@@ -185,7 +185,7 @@ final class LayoutPlacementTests: XCTestCase {
                          CGRect(x: 250, y: 266, width: 100, height: 10)]
         let occupied = [CGRect(x: 0, y: 100, width: 50, height: 30)]
         let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: line, window: window,
-            visibleFrame: screen, occupied: occupied, obstacles: obstacles))
+            visibleFrame: window.frame, occupied: occupied, obstacles: obstacles))
         XCTAssertTrue(p.covered)
         XCTAssertEqual(p.side, .above)
         XCTAssertEqual(p.frame.origin, CGPoint(x: 260, y: 266))
@@ -207,6 +207,73 @@ final class LayoutPlacementTests: XCTestCase {
         XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame, window: small,
             visibleFrame: screen, occupied: [], obstacles: []))
         XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame, window: window,
-            visibleFrame: screen, occupied: [window.frame], obstacles: []))
+            visibleFrame: window.frame, occupied: [window.frame], obstacles: []))
+    }
+
+    func testInkFindsLineEndWhereFullColumnWouldBeCovered() throws {
+        let window = WindowGeometry(frame: CGRect(x: 0, y: 0, width: 600, height: 500), chromeHeight: 0)
+        let lines = stride(from: 0, to: 500, by: 20).map { y in
+            TextLine(text: String(repeating: "a", count: 25), rect: CGRect(x: 0, y: y, width: 600, height: 20))
+        }
+        let frame = CGRect(x: 20, y: 200, width: 40, height: 20)
+        let size = CGSize(width: 120, height: 24)
+        let full = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame,
+            window: window, visibleFrame: window.frame, occupied: [], obstacles: lines.map(\.rect)))
+        XCTAssertTrue(full.covered)
+
+        let ink = lines.flatMap { TextInk.rects(for: $0, medianHeight: 20) }
+        let inkLine = TextInk.rects(for: lines[10], medianHeight: 20)[0].insetBy(dx: 4, dy: 1)
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: inkLine,
+            window: window, visibleFrame: window.frame, occupied: [], obstacles: ink))
+        XCTAssertFalse(p.covered)
+        XCTAssertFalse(p.outside)
+        XCTAssertFalse(p.connector)
+        XCTAssertEqual(p.frame.minX, inkLine.maxX + 8)
+    }
+
+    func testOutsideRightThenLeftThenCovered() throws {
+        let window = WindowGeometry(frame: CGRect(x: 300, y: 100, width: 600, height: 600), chromeHeight: 0)
+        let frame = CGRect(x: 550, y: 300, width: 100, height: 20)
+        let size = CGSize(width: 240, height: 24)
+        let narrow = CGSize(width: 160, height: 44)
+        for (visible, side, outside) in [(screen, AnchorSide.right, true),
+                                        (CGRect(x: 0, y: 25, width: 900, height: 800), .left, true),
+                                        (window.frame, .below, false)] {
+            let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame,
+                window: window, visibleFrame: visible, occupied: [], obstacles: [window.frame], narrowSize: narrow))
+            XCTAssertEqual(p.outside, outside)
+            XCTAssertEqual(p.covered, !outside)
+            XCTAssertEqual(p.side, side)
+            XCTAssertTrue(p.narrow)
+            XCTAssertEqual(p.frame.size, narrow)
+            if outside {
+                XCTAssertTrue(p.connector)
+                XCTAssertTrue(visible.contains(p.frame))
+                XCTAssertEqual(p.frame.minX, side == .right ? 912 : 128)
+                XCTAssertEqual(p.frame.midY, frame.midY)
+                XCTAssertLessThanOrEqual(BubbleConnector.length(bubble: p.frame, highlight: frame, side: side), 400)
+            }
+        }
+    }
+
+    func testOutsideAvoidsOccupiedAndRejectsLongConnectors() throws {
+        let window = WindowGeometry(frame: CGRect(x: 300, y: 100, width: 600, height: 600), chromeHeight: 0)
+        let frame = CGRect(x: 550, y: 300, width: 100, height: 20)
+        let size = CGSize(width: 160, height: 44)
+        let right = CGRect(x: 912, y: 288, width: 160, height: 44)
+        let left = CGRect(x: 128, y: 288, width: 160, height: 44)
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame,
+            window: window, visibleFrame: screen, occupied: [right], obstacles: [window.frame]))
+        XCTAssertTrue(p.outside)
+        XCTAssertEqual(p.side, .left)
+        let covered = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame,
+            window: window, visibleFrame: screen, occupied: [right, left], obstacles: [window.frame]))
+        XCTAssertTrue(covered.covered)
+
+        let nearLeft = CGRect(x: 340, y: 300, width: 40, height: 20)
+        let limited = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: nearLeft, line: nearLeft,
+            window: window, visibleFrame: screen, occupied: [left], obstacles: [window.frame]))
+        XCTAssertTrue(limited.covered)
+        XCTAssertFalse(limited.outside)
     }
 }

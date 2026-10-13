@@ -12,11 +12,15 @@ enum AXAccess {
     static func value(_ element: AXUIElement, _ name: String) throws -> CFTypeRef? {
         var value: CFTypeRef?
         let result = AXUIElementCopyAttributeValue(element, name as CFString, &value)
+        return try attributeValue(value, result: result, name: name)
+    }
+
+    static func attributeValue(_ value: CFTypeRef?, result: AXError, name: String) throws -> CFTypeRef? {
         switch result {
         case .success: return value
         // invalidUIElement: the element was destroyed while the window was being read.
         // failure: some apps return the generic error for individual elements; skip them instead of failing the whole read.
-        case .attributeUnsupported, .noValue, .notImplemented, .invalidUIElement, .failure: return nil
+        case .attributeUnsupported, .noValue, .notImplemented, .illegalArgument, .invalidUIElement, .failure: return nil
         default: throw AXFailure(operation: name, code: result)
         }
     }

@@ -13,6 +13,11 @@ public struct MenuBarView: View {
                 Text(store.text("app.name")).font(AppTheme.font(.cardTitle))
                 Spacer(minLength: 0)
                 Badge(text: status, hue: AppTheme.hue(store.settings.paused ? 42 : 150))
+                if !store.screenRecordingGranted {
+                    Circle().fill(AppTheme.hue(42).text).frame(width: 6, height: 6)
+                        .help(store.text("screenRecording.title"))
+                        .accessibilityLabel(store.text("screenRecording.title"))
+                }
             }
             LabeledContent(store.text("sprite.onDuty")) {
                 Toggle(store.text("sprite.onDuty"), isOn: Binding(get: { !store.settings.paused }, set: {

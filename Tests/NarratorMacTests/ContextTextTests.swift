@@ -1,9 +1,18 @@
 import Foundation
+import ApplicationServices
 import NarratorCore
 @testable import NarratorMac
 import XCTest
 
 final class ContextTextTests: XCTestCase {
+    func testUnavailableVisibleCharacterRangeReturnsNilButOtherErrorsThrow() throws {
+        XCTAssertNil(try AXAccess.attributeValue(nil, result: .illegalArgument, name: kAXVisibleCharacterRangeAttribute))
+        XCTAssertNil(try AXAccess.attributeValue(nil, result: .attributeUnsupported, name: kAXVisibleCharacterRangeAttribute))
+        let text = "整段文字" as CFString
+        XCTAssertEqual(try AXAccess.attributeValue(text, result: .success, name: kAXValueAttribute) as? String, "整段文字")
+        XCTAssertThrowsError(try AXAccess.attributeValue(nil, result: .cannotComplete, name: kAXVisibleCharacterRangeAttribute))
+    }
+
     func testDHashUsesAllEightRowsAndAdjacentColumns() {
         XCTAssertEqual(TextGeometry.dHash([UInt8](repeating: 100, count: 72)), 0)
         let rising = (0..<8).flatMap { _ in (0..<9).map(UInt8.init) }

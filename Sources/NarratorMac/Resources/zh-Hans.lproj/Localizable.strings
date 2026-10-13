@@ -147,3 +147,7 @@
 "onboarding.step" = "第 %d 步，共 3 步";
 "input.saved" = "记住了";
 "menu.onDuty" = "在岗";
+"screenRecording.title" = "开启屏幕录制，框得更准";
+"screenRecording.body" = "聊天、终端这类应用拿不到文字的精确位置，开启后小精灵会截一眼窗口来找准位置（只在本机处理，不保存截图）。";
+"screenRecording.open" = "去开启";
+"screenRecording.relaunch" = "开启后重新打开";

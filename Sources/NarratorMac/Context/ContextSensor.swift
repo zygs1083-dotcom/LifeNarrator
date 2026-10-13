@@ -192,19 +192,24 @@ public final class ContextSensor {
         return nil
     }
 
-    public func placementLine(lineIndex: Int, rect: CGRect?, kind: RectKind?) -> CGRect {
-        let line = textLines[lineIndex]
-        if kind == .ocr, let rect { return ocrLines.first { $0.rect.intersects(rect) }!.rect }
-        return line.rect
+    public func placementObstacles(in contentFrame: CGRect) -> [CGRect] {
+        textLines.filter { $0.rect.intersects(contentFrame) }.flatMap { TextInk.rects(for: $0, medianHeight: medianHeight) }
+    }
+
+    public func placementLine(lineIndex: Int, rect: CGRect, kind: RectKind?) -> CGRect {
+        let line = kind == .ocr ? ocrLines.first { $0.rect.intersects(rect) }! : textLines[lineIndex]
+        let ink = TextInk.rects(for: line, medianHeight: medianHeight).map { $0.insetBy(dx: 4, dy: 1) }
+        if ink.count == 1 { return ink[0] }
+        if rect.midY >= ink[1].minY { return ink[1] }
+        let row = floor((rect.midY - line.rect.minY) / medianHeight)
+        return CGRect(x: line.rect.minX, y: line.rect.minY + row * medianHeight,
+                      width: line.rect.width, height: medianHeight)
     }
 
     /// This estimate is used only to place the remark; it is never framed.
     public func unframedRect(lineIndex: Int, range: Range<String.Index>) -> CGRect {
         let line = textLines[lineIndex]
-        func weight(_ text: Substring) -> CGFloat {
-            CGFloat(text.reduce(0) { $0 + ($1.unicodeScalars.contains { (0x3400...0x9FFF).contains($0.value) || (0x20000...0x323AF).contains($0.value) || (0x3040...0x30FF).contains($0.value) || (0xAC00...0xD7AF).contains($0.value) || (0xFF01...0xFF60).contains($0.value) || (0xFFE0...0xFFE6).contains($0.value) } ? 2 : 1) })
-        }
-        let row = floor(weight(line.text[..<range.lowerBound]) / (line.rect.width / (0.55 * medianHeight)))
+        let row = floor(TextInk.weight(line.text[..<range.lowerBound]) / (line.rect.width / (0.55 * medianHeight)))
         return CGRect(x: line.rect.minX, y: line.rect.minY + row * medianHeight,
                       width: line.rect.width, height: medianHeight)
     }
