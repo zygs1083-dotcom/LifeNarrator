@@ -101,10 +101,13 @@ public struct Narration: Sendable {
     public var persona: Persona
     /// Rect of the hit text to box, before the §7 expansion. nil for an app-level bubble.
     public var anchor: CGRect?
+    public var framed: Bool
+    public var line: CGRect?
+    public var obstacles: [CGRect]
     public var windowID: CGWindowID
     public var window: WindowGeometry
 
-    public init(id: String, quipID: String, ruleID: String, sequence: Int, text: String, emoji: [String], language: String, persona: Persona, anchor: CGRect?, windowID: CGWindowID, window: WindowGeometry) {
+    public init(id: String, quipID: String, ruleID: String, sequence: Int, text: String, emoji: [String], language: String, persona: Persona, anchor: CGRect?, windowID: CGWindowID, window: WindowGeometry, framed: Bool = true, line: CGRect? = nil, obstacles: [CGRect] = []) {
         self.id = id
         self.quipID = quipID
         self.ruleID = ruleID
@@ -114,6 +117,9 @@ public struct Narration: Sendable {
         self.language = language
         self.persona = persona
         self.anchor = anchor
+        self.framed = framed
+        self.line = line
+        self.obstacles = obstacles
         self.windowID = windowID
         self.window = window
     }

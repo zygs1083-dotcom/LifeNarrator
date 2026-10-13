@@ -16,6 +16,7 @@ public final class LlamaEngine {
     private var prefixTokens: [llama_token] = []
     public private(set) var prefixPrefillSeconds = 0.0
     public private(set) var generatedTokens = 0
+    public private(set) var lastPrefillSeconds = 0.0
 
     public init(modelPath: String) throws {
         _ = Self.backend
@@ -26,8 +27,8 @@ public final class LlamaEngine {
             throw Failure.modelLoad
         }
         var configuration = llama_context_default_params()
-        configuration.n_ctx = 2048
-        configuration.n_batch = 2048
+        configuration.n_ctx = 4096
+        configuration.n_batch = 4096
         guard let context = llama_init_from_model(model, configuration) else {
             llama_model_free(model)
             throw Failure.contextCreation
@@ -80,9 +81,11 @@ public final class LlamaEngine {
         return weights.map { $0 / total }
     }
 
-    public func generate(prompt: String, grammar: String, maxTokens: Int) throws -> String {
+    public func generate(prompt: String, grammar: String, maxTokens: Int,
+                         onToken: (String) -> Bool = { _ in true }) throws -> String {
         clear()
         generatedTokens = 0
+        lastPrefillSeconds = 0
         guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else {
             throw Failure.invalidGrammar
         }
@@ -97,7 +100,10 @@ public final class LlamaEngine {
         llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
         llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED))
         let tokens = try tokenize(prompt, special: true)
+        let start = ContinuousClock.now
         try evaluate(tokens, position: 0)
+        lastPrefillSeconds = seconds(since: start)
+        var text = ""
         var bytes: [UInt8] = []
         for index in 0..<maxTokens {
             let token = llama_sampler_sample(sampler, context, -1)
@@ -107,6 +113,9 @@ public final class LlamaEngine {
             }
             bytes += try tokenBytes(token)
             generatedTokens += 1
+            // Tokens may split a UTF-8 scalar; still check cancellation on every token.
+            if let complete = String(bytes: bytes, encoding: .utf8) { text = complete }
+            guard onToken(text) else { throw CancellationError() }
             try evaluate([token], position: tokens.count + index)
         }
         throw Failure.generationLimit

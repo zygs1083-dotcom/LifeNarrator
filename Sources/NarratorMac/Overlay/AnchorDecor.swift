@@ -9,6 +9,7 @@ struct AnchorDecor {
     var shape: BubbleShape
     var size: BubbleSize
     var group: ColorGroup
+    var connector: Bool = true
 }
 
 struct AnchorDecorView: View {
@@ -48,24 +49,26 @@ struct AnchorDecorView: View {
             }
             .compositingGroup()
             .shadow(color: .black.opacity(0.3), radius: 1.5)
-            switch d.shape {
-            case .speech:
-                EmptyView()
-            case .cloud:
-                let dots = BubbleConnector.thoughtDots(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side, cloudHeight: d.bubbleFrame.height)
-                ForEach(0..<3, id: \.self) { i in
-                    let dot = dots[i]
-                    let circle = Path(ellipseIn: CGRect(x: dot.center.x - dot.radius, y: dot.center.y - dot.radius, width: 2 * dot.radius, height: 2 * dot.radius))
-                    circle.fill(Color(d.group.fill))
-                    circle.stroke(stroke, lineWidth: d.size.strokeWidth)
-                }
-            case .text, .rounded, .sticker, .note:
-                if gap > 12, let line = BubbleConnector.line(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side) {
-                    Path { p in
-                        p.move(to: line.from)
-                        p.addLine(to: line.to)
+            if d.connector {
+                switch d.shape {
+                case .speech:
+                    EmptyView()
+                case .cloud:
+                    let dots = BubbleConnector.thoughtDots(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side, cloudHeight: d.bubbleFrame.height)
+                    ForEach(0..<3, id: \.self) { i in
+                        let dot = dots[i]
+                        let circle = Path(ellipseIn: CGRect(x: dot.center.x - dot.radius, y: dot.center.y - dot.radius, width: 2 * dot.radius, height: 2 * dot.radius))
+                        circle.fill(Color(d.group.fill))
+                        circle.stroke(stroke, lineWidth: d.size.strokeWidth)
                     }
-                    .stroke(stroke, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                case .text, .rounded, .sticker, .note:
+                    if gap > 12, let line = BubbleConnector.line(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side) {
+                        Path { p in
+                            p.move(to: line.from)
+                            p.addLine(to: line.to)
+                        }
+                        .stroke(stroke, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    }
                 }
             }
         }

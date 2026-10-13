@@ -43,9 +43,11 @@ func run() throws {
     encoder.outputFormatting = [.sortedKeys]
     let sensor = ContextSensor(onSnapshot: { _, _ in }, onWindowFrame: { _ in }, onWindowChanged: {}, onError: { fail($0) })
     sensor.onSnapshot = { [weak sensor] snapshot, change in
+        Task {
         do {
-            let candidates = try matcher.candidates(in: snapshot, now: snapshot.capturedAt,
-                                                     appChanged: change.appChanged, hostChanged: change.hostChanged).map { candidate in
+            var candidates: [ProbeCandidate] = []
+            for candidate in matcher.candidates(in: snapshot, now: snapshot.capturedAt,
+                                                     appChanged: change.appChanged, hostChanged: change.hostChanged) {
                 var index = candidate.lineIndex
                 var range = candidate.matchRange
                 if candidate.rule.highlight && index == nil,
@@ -55,17 +57,17 @@ func run() throws {
                 }
                 var highlight: CGRect?
                 if candidate.rule.highlight, let index, let range {
-                    highlight = try sensor!.preciseRect(lineIndex: index, range: range)
-                        ?? RuleMatcher.estimatedRect(for: snapshot.textLines[index], range: range)
+                    highlight = try await sensor!.textRect(lineIndex: index, range: range)?.rect
                 }
                 let nsRange = index.flatMap { index in range.map { NSRange($0, in: snapshot.textLines[index].text) } }
-                return ProbeCandidate(ruleID: candidate.rule.id, kind: candidate.rule.kind,
+                candidates.append(ProbeCandidate(ruleID: candidate.rule.id, kind: candidate.rule.kind,
                                       matchedText: candidate.matchedText, lineIndex: index,
-                                      matchRange: nsRange, highlightRect: highlight)
+                                      matchRange: nsRange, highlightRect: highlight))
             }
             let output = ProbeOutput(snapshot: snapshot, change: change, reason: change.reason, candidates: candidates)
             FileHandle.standardOutput.write(try encoder.encode(output) + Data([10]))
         } catch { fail(error) }
+        }
     }
     try sensor.start()
     withExtendedLifetime(sensor) { app.run() }

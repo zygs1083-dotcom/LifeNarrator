@@ -24,23 +24,29 @@ struct BubbleAppearance {
     /// Speech only, in body-local coordinates.
     var tail: SpeechTail?
     /// Speech only: room reserved under the body for an app-level tail so stacked bubbles don't overlap it.
+    var fillOpacity: Double = 1
     var tailBelowBody: CGFloat
 
     var neon: Bool { theme == .neon }
 
     /// Builds the appearance and measures the content box with the real SwiftUI layout.
     @MainActor
-    static func make(shape: BubbleShape, size: BubbleSize, theme: ColorTheme, group: ColorGroup, effects: TextEffects, font: Font, text: String, emoji: [String], quipID: String) -> BubbleAppearance {
+    static func make(shape: BubbleShape, size: BubbleSize, theme: ColorTheme, group: ColorGroup, effects: TextEffects, font: Font, text: String, emoji: [String], quipID: String, maxWidth: CGFloat? = nil) -> BubbleAppearance {
         let rotation: Angle = switch shape {
         case .sticker: .degrees(stickerAngle(quipID: quipID))
         case .note: .degrees(noteAngle(quipID: quipID))
         default: .zero
         }
         var a = BubbleAppearance(shape: shape, size: size, theme: theme, group: group, effects: effects, font: font, text: text, emoji: emoji, rotation: rotation, contentSize: .zero, tail: nil, tailBelowBody: 0)
-        let measured = NSHostingController(rootView: BubbleContentView(appearance: a))
-            .sizeThatFits(in: CGSize(width: size.maxWidth, height: 10_000))
-        a.contentSize = CGSize(width: (measured.width * 2).rounded(.up) / 2, height: (measured.height * 2).rounded(.up) / 2)
+        a.measure(maxWidth: maxWidth ?? size.maxWidth)
         return a
+    }
+
+    @MainActor
+    mutating func measure(maxWidth: CGFloat) {
+        let measured = NSHostingController(rootView: BubbleContentView(appearance: self))
+            .sizeThatFits(in: CGSize(width: maxWidth, height: 10_000))
+        contentSize = CGSize(width: (measured.width * 2).rounded(.up) / 2, height: (measured.height * 2).rounded(.up) / 2)
     }
 
     /// Outer box handed to placement (§2 per-shape expansion).
@@ -218,7 +224,7 @@ struct BubbleBodyView: View {
             EmptyView()
         case .rounded:
             let shape = RoundedRectangle(cornerRadius: min(a.contentSize.height / 2, a.size.roundedCornerRadius), style: .continuous)
-            shape.fill(fill)
+            shape.fill(fill.opacity(a.fillOpacity))
                 .overlay(shape.stroke(stroke, lineWidth: a.size.strokeWidth).shadow(color: glow, radius: glowRadius))
                 .compositingGroup()
                 .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 3)

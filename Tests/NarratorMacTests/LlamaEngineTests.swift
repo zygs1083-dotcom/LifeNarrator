@@ -55,12 +55,34 @@ final class LlamaEngineTests: XCTestCase {
         XCTAssertEqual(probabilities.reduce(0, +), 1, accuracy: 1e-12)
     }
 
+    func testTokenCallbackCancelsAndEngineCanGenerateAgain() throws {
+        let engine = try engine()
+        let prompt = "<|im_start|>user\nWrite JSON.<|im_end|>\n<|im_start|>assistant\n"
+        let grammar = #"root ::= "{\"text\":\"你好\"}""#
+        var callbacks = 0
+        XCTAssertThrowsError(try engine.generate(prompt: prompt, grammar: grammar, maxTokens: 32) { _ in
+            callbacks += 1
+            return false
+        }) { XCTAssertTrue($0 is CancellationError) }
+        XCTAssertEqual(callbacks, 1)
+        XCTAssertEqual(engine.generatedTokens, 1)
+        XCTAssertGreaterThan(engine.lastPrefillSeconds, 0)
+        var partials: [String] = []
+        let output = try engine.generate(prompt: prompt, grammar: grammar, maxTokens: 32) {
+            partials.append($0)
+            return true
+        }
+        XCTAssertEqual(output, "{\"text\":\"你好\"}")
+        XCTAssertEqual(partials.last, output)
+        XCTAssertEqual(partials.count, engine.generatedTokens)
+    }
+
     func testLibraryFailuresAreExposed() throws {
         let engine = try engine()
         XCTAssertThrowsError(try LlamaEngine(modelPath: ".dev-data/models/missing.gguf"))
         XCTAssertThrowsError(try engine.generate(prompt: "Hello", grammar: "root ::= [", maxTokens: 32))
         XCTAssertThrowsError(try engine.generate(prompt: "Hello", grammar: #"root ::= "hello""#, maxTokens: 1))
-        XCTAssertThrowsError(try engine.optionProbabilities(prefix: "", suffix: String(repeating: " word", count: 3000), options: [" A", " B"]))
+        XCTAssertThrowsError(try engine.optionProbabilities(prefix: "", suffix: String(repeating: " word", count: 5000), options: [" A", " B"]))
         let recovered = try engine.optionProbabilities(prefix: "", suffix: "Answer yes or no:", options: [" yes", " no"])
         XCTAssertEqual(recovered.reduce(0, +), 1, accuracy: 1e-12)
     }

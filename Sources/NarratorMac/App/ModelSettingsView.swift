@@ -92,7 +92,7 @@ struct APISettingsView: View {
         if !configuration.baseURL.isEmpty {
             if (try? configuration.validatedURL()) == nil {
                 Text(store.text("api.invalidURL")).foregroundStyle(.red)
-            } else if configuration.isCloud {
+            } else if configuration.isCloud && store.settings.liveliness != .quiet {
                 Label(store.text("api.privacy"), systemImage: "exclamationmark.shield")
                     .foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
             }

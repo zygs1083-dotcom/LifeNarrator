@@ -64,6 +64,10 @@ public final class ContextSensor {
     private var window: AXUIElement?
     private var windowFrame: CGRect?
     private var axLines: [AXTextLine] = []
+    private var textLines: [TextLine] = []
+    private var textSource: TextSource = .none
+    private var visualTask: Task<[TextLine], any Error>?
+    private var ocrLines: [TextLine] = []
     private var pending: Task<Void, Never>?
     private var generation = 0
     private var appChangePending = false
@@ -107,16 +111,102 @@ public final class ContextSensor {
         window = nil
         windowFrame = nil
         axLines = []
+        textLines = []
+        visualTask?.cancel()
+        visualTask = nil
+        ocrLines = []
     }
 
-    public func preciseRect(lineIndex: Int, range: Range<String.Index>) throws -> CGRect? {
-        guard !axLines.isEmpty else { return nil }
-        let line = axLines[lineIndex]
-        let nsRange = NSRange(range, in: line.line.text)
-        if let bounds = try AXAccess.bounds(line.element, range: CFRange(location: nsRange.location + line.utf16Offset,
-                                                                         length: nsRange.length)) { return bounds }
-        guard let frame = try AXAccess.frame(line.element) else { return nil }
-        return RuleMatcher.estimatedRect(for: TextLine(text: line.line.text, rect: frame, role: line.line.role), range: range)
+    public enum RectKind: String, Sendable { case bounds, estimated, ocr }
+
+    private var medianHeight: CGFloat {
+        let heights = textLines.map(\.rect.height).filter { (8...60).contains($0) }.sorted()
+        return heights.isEmpty ? 16 : (heights[(heights.count - 1) / 2] + heights[heights.count / 2]) / 2
+    }
+
+    /// Whether the first multiline element can provide a character range's bounds.
+    public func boundsProbe() throws -> Bool {
+        guard let line = axLines.first(where: { $0.line.rect.height > 1.5 * medianHeight }) else { return true }
+        return try AXAccess.bounds(line.element, range: CFRange(location: line.utf16Offset, length: 1)) != nil
+    }
+
+    public func visualLines() async throws -> [TextLine] {
+        guard ContextPermissions.isGranted(.screenCapture) else { return [] }
+        if visualTask == nil {
+            let application = application!, frame = windowFrame!
+            let title = try AXAccess.value(window!, kAXTitleAttribute) as? String
+            visualTask = Task {
+                let start = Date()
+                let lines = try await screenText.read(pid: application.processIdentifier, title: title, frame: frame)
+                if ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1" {
+                    FileHandle.standardError.write(Data("[sprite] ocr lines=\(lines.count) \(Int(Date().timeIntervalSince(start) * 1000))ms\n".utf8))
+                }
+                return lines
+            }
+        }
+        let task = visualTask!
+        let generation = generation
+        let lines = try await task.value
+        try Task.checkCancellation()
+        if generation == self.generation { ocrLines = lines }
+        return lines
+    }
+
+    public func textRect(lineIndex: Int, range: Range<String.Index>) async throws -> (rect: CGRect, kind: RectKind)? {
+        let line = textLines[lineIndex]
+        if textSource == .ax {
+            let axLine = axLines[lineIndex]
+            let nsRange = NSRange(range, in: line.text)
+            let location = nsRange.location + axLine.utf16Offset
+            if let bounds = try AXAccess.bounds(axLine.element, range: CFRange(location: location, length: nsRange.length)),
+               let first = try AXAccess.bounds(axLine.element, range: CFRange(location: location,
+                    length: String(line.text[range].first!).utf16.count)) {
+                if bounds.height <= 1.6 * first.height { return (bounds, .bounds) }
+                let characters = Array(line.text[range])
+                var low = 1, high = characters.count
+                var result = first
+                for _ in 0..<6 where low < high {
+                    let middle = (low + high + 1) / 2
+                    let length = String(characters.prefix(middle)).utf16.count
+                    if let prefix = try AXAccess.bounds(axLine.element, range: CFRange(location: location, length: length)),
+                       prefix.height <= 1.6 * first.height {
+                        low = middle
+                        result = prefix
+                    } else { high = middle - 1 }
+                }
+                return (result, .bounds)
+            }
+        }
+        if textSource == .ocr || line.rect.height <= 1.5 * medianHeight {
+            return (RuleMatcher.estimatedRect(for: line, range: range), .estimated)
+        }
+        let lines = (try await visualLines()).filter { $0.rect.intersects(line.rect) }
+        let quote = String(line.text[range])
+        var prefixes = [quote]
+        if quote.count > 6 { prefixes += stride(from: quote.count - 1, through: 6, by: -1).map { String(quote.prefix($0)) } }
+        for prefix in prefixes {
+            if let hit = SpriteLocator.locate(quote: prefix, lineHint: -1, in: lines) {
+                return (RuleMatcher.estimatedRect(for: lines[hit.lineIndex], range: hit.range), .ocr)
+            }
+        }
+        return nil
+    }
+
+    public func placementLine(lineIndex: Int, rect: CGRect?, kind: RectKind?) -> CGRect {
+        let line = textLines[lineIndex]
+        if kind == .ocr, let rect { return ocrLines.first { $0.rect.intersects(rect) }!.rect }
+        return line.rect
+    }
+
+    /// This estimate is used only to place the remark; it is never framed.
+    public func unframedRect(lineIndex: Int, range: Range<String.Index>) -> CGRect {
+        let line = textLines[lineIndex]
+        func weight(_ text: Substring) -> CGFloat {
+            CGFloat(text.reduce(0) { $0 + ($1.unicodeScalars.contains { (0x3400...0x9FFF).contains($0.value) || (0x20000...0x323AF).contains($0.value) || (0x3040...0x30FF).contains($0.value) || (0xAC00...0xD7AF).contains($0.value) || (0xFF01...0xFF60).contains($0.value) || (0xFFE0...0xFFE6).contains($0.value) } ? 2 : 1) })
+        }
+        let row = floor(weight(line.text[..<range.lowerBound]) / (line.rect.width / (0.55 * medianHeight)))
+        return CGRect(x: line.rect.minX, y: line.rect.minY + row * medianHeight,
+                      width: line.rect.width, height: medianHeight)
     }
 
     public func isSecureFocused() throws -> Bool {
@@ -149,6 +239,10 @@ public final class ContextSensor {
         window = nil
         windowFrame = nil
         axLines = []
+        textLines = []
+        visualTask?.cancel()
+        visualTask = nil
+        ocrLines = []
         valueChanges = [:]
         // Our own windows (settings, onboarding) are never narrated.
         guard app.bundleIdentifier != nil, app.processIdentifier != getpid() else {
@@ -193,6 +287,10 @@ public final class ContextSensor {
     private func bindWindow() throws {
         observations.removeWindow()
         axLines = []
+        textLines = []
+        visualTask?.cancel()
+        visualTask = nil
+        ocrLines = []
         window = try AXAccess.element(axApplication!, kAXFocusedWindowAttribute)
         windowFrame = nil
         windowChangePending = true
@@ -298,6 +396,13 @@ public final class ContextSensor {
             return host
         }
         let change = ContextChange(appChanged: appChangePending, windowChanged: windowChangePending, hostChanged: host != lastHost)
+        if textLines != lines || textSource != source {
+            visualTask?.cancel()
+            visualTask = nil
+            ocrLines = []
+        }
+        textLines = lines
+        textSource = source
         axLines = source == .ax ? reading.lines : []
         appChangePending = false
         windowChangePending = false

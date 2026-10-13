@@ -28,6 +28,26 @@ struct FixturesApp: App {
             .frame(minWidth: 600, minHeight: 400)
         }
         .defaultSize(width: 800, height: 600)
+        Window("Fixture Manual", id: "manual") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("日志采集说明").font(.title2)
+                Text("采集代理每 5 秒读取一次日志目录；单次读取超过 3 秒记为超时，超时后跳过本轮、下一轮继续，不会丢数据。超时本身不算错误，只有同一文件连续 10 次超时才会在控制台显示警告，提醒检查磁盘。采集期间 CPU 占用会短暂升高到 15% 左右，属于正常现象。")
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.vertical, 18)
+                Text("- 单文件最大 256MB，超过后自动轮转。")
+                Text("- 平均延迟 1.8 秒，最长一次 7.4 秒。")
+                Text("- 每天处理约 120 万条记录。")
+                Text("LOG AGENT STATUS 命令可以查看当前状态。")
+                Text("保留最近 14 天，之后自动清理。")
+                    .padding(.vertical, 18)
+                Spacer()
+            }
+            .font(.system(size: 16))
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+            .frame(minWidth: 360, minHeight: 400, alignment: .topLeading)
+        }
+        .defaultSize(width: 700, height: 500)
         Window("Fixture Document", id: "document") {
             VStack(alignment: .leading, spacing: 24) {
                 Text("工作安排").font(.title2)
@@ -49,6 +69,7 @@ private struct OpenFixtures: View {
         Color.clear.task {
             openWindow(id: "group")
             openWindow(id: "document")
+            openWindow(id: "manual")
             openWindow(id: "feed")
             openWindow(id: "player")
         }
