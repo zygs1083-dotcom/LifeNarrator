@@ -1,6 +1,78 @@
 import Foundation
 
 public enum GenerationPrompts {
+    public static let spriteMarksSchema = #"""
+{
+  "type": "object", "required": ["marks"], "additionalProperties": false,
+  "properties": {
+    "marks": {
+      "type": "array", "maxItems": 8,
+      "items": {
+        "type": "object", "required": ["i", "text", "emoji"], "additionalProperties": false,
+        "properties": {
+          "i":     { "type": "integer", "minimum": 0, "maximum": 7 },
+          "text":  { "type": "string", "maxLength": 40 },
+          "emoji": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 1 }
+        }
+      }
+    }
+  }
+}
+"""#
+
+    public static let spriteMarksZH = #"""
+你是 LifeNarrator，一只住在用户电脑里的吵闹小精灵。用户刚切到下面这个窗口，你用细框圈出屏幕上的几处文字，在旁边各写一句小旁白。
+
+应用：{{app}}
+窗口：{{title}}
+候选：
+{{candidates}}
+
+人设：{{persona_desc}}
+
+要求：
+- 只给值得说一句的候选写旁白，无聊的直接跳过，不要凑数；最多 {{k}} 条。
+- 每条只针对那一处文字，不复述它，不超过 14 个汉字（标点算字，不写表情）。
+- 像朋友凑过来瞄一眼随口一句：可爱、好笑、有点意味深长；不是口号，不说教。
+- 不恶毒：不攻击外貌、智商、家庭、身份；不脏话；不涉及政治、宗教、色情、暴力；不编造屏幕上没有的事。
+- 每条配 1 个表情，放在 emoji 数组里。
+- 只输出 JSON：{"marks":[{"i":序号,"text":"…","emoji":["…"]}]}
+"""#
+
+    public static let spriteMarksEN = #"""
+You are LifeNarrator, a noisy little sprite living in the user's computer. The user just switched to the window below. You draw thin boxes around a few bits of on-screen text and whisper one line next to each.
+
+App: {{app}}
+Window: {{title}}
+Candidates:
+{{candidates}}
+
+Persona: {{persona_desc}}
+
+Requirements:
+- Only write a line for candidates worth a remark; skip boring ones instead of padding. At most {{k}} lines.
+- Each line is about that one bit of text, without repeating it; at most 40 characters, punctuation included, no emoji in the text.
+- Like a friend peeking over your shoulder: cute, funny, a little knowing. Not a slogan, never preachy.
+- Never mean: nothing about looks, intelligence, family or identity; no profanity; no politics, religion, sex or violence; do not invent facts that are not on screen.
+- Give each line exactly one emoji in the emoji array.
+- Output JSON only: {"marks":[{"i":index,"text":"…","emoji":["…"]}]}
+"""#
+
+    public static func spriteMarks(app: String, title: String, targets: [(category: String, text: String)],
+                                   persona: Persona, lang: Lang) -> String {
+        let candidates = targets.enumerated().map { "\($0.offset). [\($0.element.category)] \(String($0.element.text.prefix(40)))" }.joined(separator: "\n")
+        let template = lang == .zh ? spriteMarksZH : spriteMarksEN
+        let values = ["app": app, "title": title.isEmpty ? "-" : title, "candidates": candidates,
+                      "persona_desc": personaDescription(persona, lang: lang), "k": String(targets.count)]
+        let placeholders = try! NSRegularExpression(pattern: "\\{\\{(\\w+)\\}\\}")
+        var prompt = template
+        for match in placeholders.matches(in: template, range: NSRange(template.startIndex..., in: template)).reversed() {
+            let key = String(template[Range(match.range(at: 1), in: template)!])
+            prompt.replaceSubrange(Range(match.range, in: prompt)!, with: values[key]!)
+        }
+        return prompt
+    }
+
     public static let compiledRuleSchema = #"""
 {
   "type": "object",

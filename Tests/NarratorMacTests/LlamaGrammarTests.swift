@@ -16,6 +16,7 @@ final class LlamaGrammarTests: XCTestCase {
 
     func testSchemasSelectTheirGrammar() throws {
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.quipsSchema), LlamaGrammar.quips)
+        XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.spriteMarksSchema), LlamaGrammar.spriteMarks)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.compiledRuleSchema), LlamaGrammar.compiledRule)
         XCTAssertThrowsError(try LlamaGrammar.grammar(for: "{}"))
     }
@@ -43,6 +44,18 @@ final class LlamaGrammarTests: XCTestCase {
         let three = QuipValidator.validate([GeneratedQuip(text: "a", emoji: ["🌷", "🐷", "✨"]), GeneratedQuip(text: "b", emoji: ["🌷"]), GeneratedQuip(text: "c", emoji: ["🌷"])], rule: rule, lang: .en, persona: .sharp)
         XCTAssertEqual(three.first?.emoji.count, 3)
         XCTAssertEqual(bound(grammar, rule: "root") + 1, 12)
+    }
+
+    func testSpriteGrammarSharesTextAndEmojiRulesAndLimitsMarks() {
+        let grammar = LlamaGrammar.spriteMarks
+        for name in ["text", "zh", "en", "emoji", "ebase", "ws"] {
+            let sprite = grammar.split(separator: "\n").first { $0.hasPrefix("\(name) ::=") }
+            let quips = LlamaGrammar.quips.split(separator: "\n").first { $0.hasPrefix("\(name) ::=") }
+            XCTAssertEqual(sprite, quips)
+        }
+        XCTAssertEqual(bound(grammar, rule: "root") + 1, 8)
+        XCTAssertTrue(grammar.contains("[0-7]"))
+        XCTAssertTrue(grammar.contains("\"[\" ws emoji ws \"]\""))
     }
 
     func testCompiledRuleGrammarCoversSchemaEnumsAndArrayLimits() {
