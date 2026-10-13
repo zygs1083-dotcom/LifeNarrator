@@ -13,7 +13,8 @@
       "sentiment": "neutral",
       "match": {
         "bundleIds": [
-          "com.alibaba.DingTalkMac"
+          "com.alibaba.DingTalkMac",
+          "5ZSL2CJU2T.com.dingtalk.mac"
         ],
         "appNames": [
           "钉钉",
