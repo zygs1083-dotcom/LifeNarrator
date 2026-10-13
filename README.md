@@ -12,11 +12,11 @@ LifeNarrator is a lightweight macOS menu bar app that watches what is on your sc
 
 ![A boxed name and a "Pig Boss" bubble on a test chat window](docs/images/boss-bubble.png)
 
-> **Status:** v0.3 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
+> **Status:** v0.4 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
 
 ## Features
 
-- **A noisy little sprite**: every time you switch windows it reads what is on screen, picks the bits worth a remark (names, prices, deadlines, errors, big buttons, headlines…), circles them with a thin, bright frame and whispers a line beside each, in a random clear color. No setup needed; one "liveliness" setting (quiet / lively / rowdy) controls how chatty it is.
+- **A noisy little sprite**: every time you switch windows it reads the text on screen, works out what you are looking at, picks the bits worth a remark, circles the exact words with a thin, bright frame and whispers a line about them beside it, in a random clear color. Without a model it only marks what it can be sure of (your rules, chat names, prices, buttons, deadlines). No setup needed; one "liveliness" setting (quiet / lively / rowdy) controls how chatty it is.
 - **Real-time, on the active window**: lines appear right next to the text they are talking about and follow the window when it moves. It stays quiet while you type, in password fields and over full-screen video.
 - **Your own rules**: a global input box (hotkey) where you describe what you love or hate in plain words, e.g. "I hate meetings", "Zhang San is my boss". LifeNarrator turns them into rules and reacts when they come up on screen.
 - **Fully customizable bubbles**: display time, fade and pop animations, how many bubbles at once, size, shape (bubble, cloud, speech balloon, sticker, sticky note), art text effects, color themes, emoji density, persona (snarky, sweet, chuunibyou).
@@ -30,7 +30,7 @@ LifeNarrator is a lightweight macOS menu bar app that watches what is on your sc
 - Reads text through the Accessibility API first. Screen capture and on-device OCR are used only when needed, and skipped when the window has not changed.
 - Quips are generated ahead of time and cached, so bubbles appear instantly without waiting for a model.
 - No bundled models or fonts. It uses the cute fonts that already ship with macOS.
-- Measured on an M1 Max: 22 MB of memory and 0% CPU when idle. The first line on each screen comes from a built-in template pack in under 300 ms; the built-in model (Qwen3.5-4B, a 2.7 GB download) writes the following ones in the background (at most 4 requests a minute, none in Low Power Mode) and is unloaded after 5 idle minutes.
+- Measured on an M1 Max: 22 MB of memory and 0% CPU when idle. With the built-in model (Qwen3.5-4B, a 2.7 GB download) the first mark appears about 4–6 seconds after a switch and the next ones follow as the model writes them; it makes at most 4 requests a minute, none in Low Power Mode, stops as soon as you switch away, and is unloaded after 10 idle minutes.
 
 ## Privacy
 
