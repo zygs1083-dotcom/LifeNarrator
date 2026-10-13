@@ -11,14 +11,9 @@ struct AnchorDecor {
     var group: ColorGroup
 }
 
-struct AnchorDecorView: View, Animatable {
+struct AnchorDecorView: View {
     let decor: AnchorDecor
     var progress: CGFloat = 1
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
 
     var body: some View {
         let d = decor

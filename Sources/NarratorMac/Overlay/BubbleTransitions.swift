@@ -8,7 +8,7 @@ enum BubbleTransitions {
                 insertion: .opacity.animation(.easeOut(duration: 0.18).delay(delay)),
                 removal: .opacity.animation(.easeIn(duration: 0.6)))
         }
-        switch animation {
+        return switch animation {
         case .fade:
             .asymmetric(
                 insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: anchor)).animation(.easeOut(duration: 0.18).delay(delay)),
