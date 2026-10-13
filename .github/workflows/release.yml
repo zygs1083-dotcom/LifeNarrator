@@ -14,7 +14,13 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
+      - run: scripts/ci-import-signing.sh
+        env:
+          MACOS_SIGNING_P12: ${{ secrets.MACOS_SIGNING_P12 }}
+          MACOS_SIGNING_PASSWORD: ${{ secrets.MACOS_SIGNING_PASSWORD }}
       - run: scripts/bundle.sh
+        env:
+          SIGN_IDENTITY: LifeNarrator Self-Signed
       - run: gh release create "$GITHUB_REF_NAME" dist/LifeNarrator.zip --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

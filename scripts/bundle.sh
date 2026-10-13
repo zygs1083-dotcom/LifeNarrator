@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build LifeNarrator.app (ad-hoc signed) and zip it into dist/.
 # Usage: scripts/bundle.sh [--debug]   (--debug uses bundle id dev.lifenarrator.debug)
+# SIGN_IDENTITY picks the signing certificate; CI sets it, local builds stay ad-hoc.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -47,6 +48,6 @@ cat > "$APP/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
-codesign --force --deep --sign - "$APP"
+codesign --force --deep --sign "${SIGN_IDENTITY:--}" "$APP"
 (cd dist && rm -f LifeNarrator.zip && ditto -c -k --keepParent LifeNarrator.app LifeNarrator.zip)
 echo "dist/LifeNarrator.app  dist/LifeNarrator.zip"

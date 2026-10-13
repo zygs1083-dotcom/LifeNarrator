@@ -44,13 +44,13 @@ Everything runs on your Mac by default. Screen text is never logged or saved to 
 ## Install and use
 
 1. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases), unzip it and move `LifeNarrator.app` to Applications.
-2. The app is not signed with an Apple Developer ID yet. On macOS 14, right-click it and choose **Open**. On macOS 15, open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**.
+2. The app is not signed with an Apple Developer ID. On macOS 14, right-click it and choose **Open**. On macOS 15, open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**.
 3. Pick a model option in the welcome window and grant Accessibility permission.
 4. Press **⌥⇧N** (or use the menu bar icon) and type something like "I hate Google" or "Zhang San is my boss". **⌥⇧P** pauses the narrator.
 
 LifeNarrator lives in the menu bar and has no Dock icon. When the menu bar is full, macOS hides icons that do not fit (especially on MacBooks with a notch). Open LifeNarrator again from Applications or Spotlight to bring up its settings, where the About tab also has a Quit button.
 
-Because each build has a new ad-hoc signature, macOS may forget the Accessibility permission after an update. If bubbles stop appearing, remove LifeNarrator from **Privacy & Security → Accessibility** and add it again.
+Releases are signed with the same self-signed certificate from v0.1.4 on, so macOS keeps the Accessibility permission across updates. When updating from an older version, grant it once more: if bubbles stop appearing, remove LifeNarrator from **Privacy & Security → Accessibility** and add it again.
 
 ## Building from source
 

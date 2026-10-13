@@ -30,7 +30,13 @@ jobs:
         with:
           name: bubble-snapshots
           path: .build/snapshots
+      - run: scripts/ci-import-signing.sh
+        env:
+          MACOS_SIGNING_P12: ${{ secrets.MACOS_SIGNING_P12 }}
+          MACOS_SIGNING_PASSWORD: ${{ secrets.MACOS_SIGNING_PASSWORD }}
       - run: scripts/bundle.sh
+        env:
+          SIGN_IDENTITY: LifeNarrator Self-Signed
       - uses: actions/upload-artifact@v4
         with:
           name: LifeNarrator-app
