@@ -230,7 +230,7 @@ private struct AppearanceSettingsView: View {
                     effect("gradient", .gradient)
                 } label: { CardHeading(title: store.text("appearance.color"), symbol: "paintpalette.fill", hue: hue) }
                 GroupBox {
-                    choice("animation", values: BubbleAnimation.allCases, selection: $store.settings.bubbleStyle.animation).pickerStyle(.menu)
+                    choice("animation", values: BubbleAnimation.allCases, selection: Binding(get: { store.settings.bubbleStyle.animation }, set: { store.settings.bubbleStyle.animation = $0 })).pickerStyle(.menu)
                     choice("emoji", values: EmojiDensity.allCases, selection: $store.settings.bubbleStyle.emojiDensity).pickerStyle(.segmented)
                 } label: { CardHeading(title: store.text("appearance.motion"), symbol: "wind", hue: hue) }
             }.frame(width: 380)

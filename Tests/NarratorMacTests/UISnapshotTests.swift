@@ -18,9 +18,11 @@ final class UISnapshotTests: XCTestCase {
             else { unsetenv("LIFENARRATOR_DATA_DIR") }
         }
         defer { try! FileManager.default.removeItem(at: dataDirectory) }
+        var settings = AppSettings()
+        settings.language = .zhHans
+        settings.provider = .builtin
+        try AppDataDirectory().saveSettings(settings)
         let store = try AppStore()
-        store.settings.language = .zhHans
-        store.settings.provider = .builtin
         for tab in SettingsTab.allCases {
             for dark in [false, true] {
                 let view = AppSettingsView(store: store, tab: tab)
