@@ -15,7 +15,7 @@ public struct SpriteQuips: Codable, Sendable {
     }
 
     public func rule(for category: String, text: String, app: String, title: String, lang: Lang) -> Rule {
-        let value = ["money", "stat", "deadline"].contains(category) && text.count <= 10
+        let value = ["money", "deadline"].contains(category) && text.count <= 10
             ? text : Self.truncate(text: text, lang: lang)
         return Rule(id: "sprite.\(category).\(stableHash(normalized(text)))", kind: .topic, source: .builtin,
                     label: Label(zh: text, en: text), sentiment: .neutral, match: Match(aliases: [category]),

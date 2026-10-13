@@ -46,16 +46,21 @@ final class LlamaGrammarTests: XCTestCase {
         XCTAssertEqual(bound(grammar, rule: "root") + 1, 12)
     }
 
-    func testSpriteGrammarSharesTextAndEmojiRulesAndLimitsMarks() {
+    func testSpriteGrammarQuoteAndMarkLimits() {
         let grammar = LlamaGrammar.spriteMarks
-        for name in ["text", "zh", "en", "emoji", "ebase", "ws"] {
+        for name in ["text", "emoji", "ebase", "ws"] {
             let sprite = grammar.split(separator: "\n").first { $0.hasPrefix("\(name) ::=") }
             let quips = LlamaGrammar.quips.split(separator: "\n").first { $0.hasPrefix("\(name) ::=") }
             XCTAssertEqual(sprite, quips)
         }
-        XCTAssertEqual(bound(grammar, rule: "root") + 1, 8)
-        XCTAssertTrue(grammar.contains("[0-7]"))
-        XCTAssertTrue(grammar.contains("\"[\" ws emoji ws \"]\""))
+        XCTAssertEqual(bound(grammar, rule: "root") + 1, 4)
+        XCTAssertEqual(bound(grammar, rule: "quote"), 32)
+        XCTAssertEqual(bound(grammar, rule: "zh"), 14)
+        XCTAssertEqual(bound(grammar, rule: "en"), 40)
+        XCTAssertTrue(grammar.contains("line ::= [0-9] | [1-9] [0-9]"))
+        XCTAssertTrue(grammar.contains("qchar{2,32}"))
+        XCTAssertTrue(grammar.contains("「」%.A-Za-z0-9 "))
+        XCTAssertTrue(grammar.contains("…()%-]"))
     }
 
     func testCompiledRuleGrammarCoversSchemaEnumsAndArrayLimits() {

@@ -26,14 +26,11 @@ public final class NarratorEngine {
     private var revisitAllowed = false
     private var lastWindowFrameChange = Date.distantPast
     private var burst: Task<Void, Never>?
-    private var idle: Task<Void, Never>?
     private var modelTask: Task<Void, Never>?
-    private var modelPending: ModelRequest?
-    private var modelBudget = SpriteModelBudget()
+    private var modelBudget = SpriteModelBudget(perMinute: 4)
     private let debug = ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1"
 
     private struct ModelRequest {
-        var targets: [SpriteTarget]
         var snapshot: ContextSnapshot
         var lang: Lang
         var persona: String
@@ -64,21 +61,13 @@ public final class NarratorEngine {
         scheduler.settings = .init(level: settings.liveliness)
         memory.level = settings.liveliness
         generation += 1
-        modelPending = nil
         burst?.cancel()
-        idle?.cancel()
         if levelChanged || settings.paused { overlay.dismissAll() }
         guard var snapshot else { return }
         snapshot.capturedAt = Date()
         candidates = matcher.candidates(in: snapshot, now: snapshot.capturedAt, appChanged: true, hostChanged: true)
         if levelChanged { screenCount = 0 }
         runTick(.snapshot, switching: false)
-    }
-
-    private var onScreen: [SpriteTarget] {
-        let visible = overlay.visibleIDs
-        shownTargets = shownTargets.filter { visible.contains($0.key) }
-        return Array(shownTargets.values)
     }
 
     private func handle(_ snapshot: ContextSnapshot, _ change: ContextChange) {
@@ -92,7 +81,7 @@ public final class NarratorEngine {
         candidates = matcher.candidates(in: snapshot, now: snapshot.capturedAt,
                                         appChanged: switching, hostChanged: switching || change.hostChanged)
         let all = SpriteScout.targets(in: snapshot, candidates: candidates, memory: SpriteMemory(),
-                                      onScreen: [], level: store.settings.liveliness)
+                                      level: store.settings.liveliness)
         let key = stableHash("\(id)\n" + all.map { normalized($0.text) }.joined(separator: "\n"))
         if key != screenKey {
             screenKey = key
@@ -105,8 +94,7 @@ public final class NarratorEngine {
         }
         if switching {
             burst?.cancel()
-            idle?.cancel()
-            let now = snapshot.capturedAt
+                let now = snapshot.capturedAt
             visits = visits.filter { now.timeIntervalSince($0.value) < 120 }
             revisits = revisits.filter { now.timeIntervalSince($0.value) < 30 }
             revisitAllowed = visits[id] != nil && revisits[id] == nil
@@ -118,9 +106,9 @@ public final class NarratorEngine {
                 _ = try await tick(.snapshot, switching: switching, generation: generation)
                 guard generation == self.generation else { return }
                 if switching {
-                    scheduleBurst()
+                    scheduleLocalMarks()
                     if try quietReason(snapshot, now: Date()) == nil {
-                        try enqueueModel(targets: Array(all.prefix(4)), snapshot: snapshot)
+                        try enqueueModel(snapshot: snapshot)
                     }
                 }
             } catch { report(error) }
@@ -151,26 +139,22 @@ public final class NarratorEngine {
         let now = Date()
         if let reason = try quietReason(snapshot, now: now) {
             log(snapshot, kind, targets: [], shown: false, reason: reason)
-            if reason == "typing" || reason == "moving" { scheduleIdle(delay: reason == "typing" ? 3 : 0.5) }
             return false
         }
         let level = store.settings.liveliness
-        if kind == .idle && snapshot.textSource != .ax { return false }
         if level != .quiet && screenCount >= SpriteTick.screenLimit(level: level) {
             log(snapshot, kind, targets: [], shown: false, reason: "screen-limit")
             return false
         }
-        let active = onScreen
-        let attempts = SpriteTick.attempts(in: snapshot, candidates: candidates, memory: memory, onScreen: active,
+        let attempts = SpriteTick.attempts(in: snapshot, candidates: candidates, memory: memory,
                                            level: level, switching: switching, scheduler: scheduler,
-                                           revisitAllowed: revisitAllowed, now: now)
-        let targets = attempts.map(\.target)
-        var rateLimited = false
+                                           revisitAllowed: revisitAllowed, screen: SpritePrompt.screen(in: snapshot),
+                                           screenKey: screenKey!, hasModel: false, requestAllowed: false, now: now)
+        let targets = attempts.compactMap(\.target)
         for attempt in attempts {
-            let target = attempt.target
+            let target = attempt.target!
             let ruleID = attempt.ignoresRuleCooldown ? nil : target.candidate?.rule.id
-            guard scheduler.canShow(ruleID: ruleID, now: now) else { rateLimited = true; continue }
-            if kind == .burst && SpriteScout.diverse(active + [target], in: snapshot, count: active.count + 1).count <= active.count { continue }
+            guard scheduler.canShow(ruleID: ruleID, now: now) else { continue }
             if let candidate = target.candidate, let configuration = store.settings.systemOne {
                 let plan = SystemOneDecision.plan(snapshot: snapshot, candidates: [candidate], freeComments: false,
                                                   needsGeneration: false, now: now,
@@ -188,16 +172,13 @@ public final class NarratorEngine {
             let showTime = Date()
             if let reason = try quietReason(snapshot, now: showTime) {
                 log(snapshot, kind, targets: targets, shown: false, reason: reason)
-                if reason == "typing" || reason == "moving" { scheduleIdle(delay: reason == "typing" ? 3 : 0.5) }
                 return false
             }
-            guard scheduler.canShow(ruleID: ruleID, now: showTime) else { rateLimited = true; continue }
+            guard scheduler.canShow(ruleID: ruleID, now: showTime) else { continue }
             var anchor: CGRect?
             if target.lineIndex >= 0 && snapshot.textSource != .none {
                 anchor = try sensor.preciseRect(lineIndex: target.lineIndex, range: target.range)
-                if kind == .idle {
-                    guard let rect = anchor, snapshot.contentFrame.contains(rect) else { continue }
-                } else if anchor == nil {
+                if anchor == nil {
                     anchor = RuleMatcher.estimatedRect(for: snapshot.textLines[target.lineIndex], range: target.range)
                 }
             }
@@ -210,8 +191,9 @@ public final class NarratorEngine {
             var nextPicker = picker
             var chosen: Quip?
             var source = target.category == .revisit ? "revisit" : target.category == .rule ? "rule" : "template"
-            if target.category != .revisit, let cached = status?.cachedQuip, cached.lang == lang, cached.persona.rawValue == persona,
-               attempt.reason != "least-recent" || cached.text != status?.lastQuip?.text {
+            if target.category != .revisit, let status, status.isCached, status.quip.lang == lang, status.quip.persona.rawValue == persona,
+               attempt.reason != "least-recent" {
+                let cached = status.quip
                 var modelRule = rule
                 modelRule.quips = [cached]
                 chosen = nextPicker.pick(for: modelRule, lang: lang, persona: .init(rawValue: persona)!, pack: .init(version: 1, rules: [], generic: [:]),
@@ -221,7 +203,7 @@ public final class NarratorEngine {
             if chosen == nil {
                 var templateRule = rule
                 if attempt.reason == "least-recent" {
-                    templateRule.quips.removeAll { QuipPicker.render($0.text, rule: rule, lang: lang) == status?.lastQuip?.text }
+                    templateRule.quips.removeAll { QuipPicker.render($0.text, rule: rule, lang: lang) == status?.quip.text }
                 }
                 chosen = nextPicker.pick(for: templateRule, lang: lang, persona: .init(rawValue: persona)!,
                     pack: target.category == .rule ? store.builtin : .init(version: 1, rules: [], generic: [:]),
@@ -236,7 +218,7 @@ public final class NarratorEngine {
             guard shown else { continue }
             picker = nextPicker
             pickerRules[key, default: []].insert(rule.id)
-            forget(memory.mark(key: key, quip: chosen, now: showTime))
+            forget(memory.mark(key: key, quip: chosen, lineHint: target.lineIndex, now: showTime))
             scheduler.recordShown(ruleID: target.candidate?.rule.id, now: showTime)
             screenCount += 1
             shownTargets[narrationID] = target
@@ -245,16 +227,14 @@ public final class NarratorEngine {
                 revisitAllowed = false
             }
             log(snapshot, kind, targets: targets, picked: target, source: source, shown: true, reason: attempt.reason)
-            scheduleIdle()
             return true
         }
         log(snapshot, kind, targets: targets, shown: false, reason: attempts.isEmpty ? "no-targets" : "unavailable")
-        if rateLimited { scheduleIdle() }
         return false
     }
 
-    private func scheduleBurst() {
-        let delays = SpriteTick.burstDelays(level: store.settings.liveliness)
+    private func scheduleLocalMarks() {
+        let delays = SpriteTick.localBurst(level: store.settings.liveliness)
         burst = Task {
             do {
                 var previous = 0.0
@@ -262,7 +242,7 @@ public final class NarratorEngine {
                     try await Task.sleep(for: .seconds(delay - previous))
                     try Task.checkCancellation()
                     previous = delay
-                    _ = try await tick(.burst, switching: false, generation: generation)
+                    _ = try await tick(.mark, switching: false, generation: generation)
                 }
             } catch is CancellationError {
                 return
@@ -270,68 +250,25 @@ public final class NarratorEngine {
         }
     }
 
-    private func scheduleIdle(delay: TimeInterval? = nil) {
-        idle?.cancel()
-        guard let snapshot, snapshot.textSource == .ax, store.settings.liveliness != .quiet,
-              screenCount < SpriteTick.screenLimit(level: store.settings.liveliness) else { return }
-        let delay = delay ?? SpriteTick.idleDelay(level: store.settings.liveliness, using: &random)!
-        idle = Task {
-            do {
-                try await Task.sleep(for: .seconds(delay))
-                try Task.checkCancellation()
-                _ = try await tick(.idle, switching: false, generation: generation)
-            } catch is CancellationError {
-                return
-            } catch { report(error) }
-        }
-    }
-
-    private func enqueueModel(targets: [SpriteTarget], snapshot: ContextSnapshot) throws {
+    private func enqueueModel(snapshot: ContextSnapshot) throws {
+        let screen = SpritePrompt.screen(in: snapshot)
         guard store.settings.liveliness != .quiet, !ProcessInfo.processInfo.isLowPowerModeEnabled,
-              !targets.isEmpty, !targets.allSatisfy({
-                  let cached = memory.status(key: .init(bundleId: snapshot.bundleId, text: $0.text), now: Date())?.cachedQuip
-                  return cached?.lang == store.settings.language.lang && cached?.persona.rawValue == store.settings.persona.rawValue
-              }), let generator = try store.textGenerator() else { return }
-        let request = ModelRequest(targets: targets, snapshot: snapshot, lang: store.settings.language.lang,
+              !screen.lines.isEmpty, modelTask == nil, let generator = try store.textGenerator(),
+              modelBudget.begin(now: Date()) else { return }
+        let request = ModelRequest(snapshot: snapshot, lang: store.settings.language.lang,
                                    persona: store.settings.persona.rawValue, generator: generator)
-        if modelTask != nil { modelPending = request; return }
-        startModel(request)
-    }
-
-    private func startModel(_ request: ModelRequest) {
-        guard !ProcessInfo.processInfo.isLowPowerModeEnabled, store.settings.liveliness != .quiet,
-              !request.targets.allSatisfy({
-                  let cached = memory.status(key: .init(bundleId: request.snapshot.bundleId, text: $0.text), now: Date())?.cachedQuip
-                  return cached?.lang == request.lang && cached?.persona.rawValue == request.persona
-              }), modelBudget.begin(now: Date()) else { return }
         modelTask = Task {
-            let start = Date()
             do {
-                let result = try await SpriteGenerator.generate(
-                    targets: request.targets.map { ($0.category.rawValue, $0.text) },
-                    app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "",
-                    persona: .init(rawValue: request.persona)!, lang: request.lang, generator: request.generator)
-                let now = Date()
-                for (index, quip) in result.quips {
-                    forget(memory.cache(key: .init(bundleId: request.snapshot.bundleId, text: request.targets[index].text), quip: quip, now: now))
+                let result = try await SpriteGenerator.generate(screen: screen, snapshot: request.snapshot,
+                    app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "", exclude: [],
+                    persona: .init(rawValue: request.persona)!, lang: request.lang,
+                    k: store.settings.liveliness == .rowdy ? 4 : 3, generator: request.generator, onMark: { _ in })
+                for mark in result {
+                    forget(memory.cache(key: .init(bundleId: request.snapshot.bundleId, text: mark.quote),
+                                        quip: mark.quip, lineHint: mark.lineIndex, now: Date()))
                 }
-                for index in result.declined where request.targets[index].category != .rule {
-                    forget(memory.decline(key: .init(bundleId: request.snapshot.bundleId, text: request.targets[index].text), now: now))
-                }
-                if debug {
-                    FileHandle.standardError.write(Data("[sprite] model request k=\(request.targets.count) \(Int(now.timeIntervalSince(start) * 1000))ms marks=\(result.quips.count) declined=\(result.declined.count)\n".utf8))
-                }
-            } catch {
-                store.error = String(describing: error)
-                if debug {
-                    FileHandle.standardError.write(Data("[sprite] model request k=\(request.targets.count) \(Int(Date().timeIntervalSince(start) * 1000))ms marks=0 declined=0 reason=error\n".utf8))
-                }
-            }
+            } catch { store.error = String(describing: error) }
             modelTask = nil
-            if let next = modelPending {
-                modelPending = nil
-                startModel(next)
-            }
         }
     }
 
@@ -366,14 +303,12 @@ public final class NarratorEngine {
     private func windowChanged() {
         generation += 1
         burst?.cancel()
-        idle?.cancel()
         overlay.dismissAll()
         shownTargets = [:]
         snapshot = nil
         screenKey = nil
         screenCount = 0
         windowID = nil
-        modelPending = nil
         lastWindowFrameChange = .distantPast
     }
 

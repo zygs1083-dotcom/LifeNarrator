@@ -5,7 +5,7 @@ import Testing
 @Test func spritePackContainsAllCombinationsAndValidQuips() throws {
     let pack = try SpriteQuips.loadBuiltin()
     #expect(pack.version == 1)
-    #expect(Set(pack.categories.keys) == ["money", "deadline", "alert", "stat", "name", "action", "question", "emphasis", "heading", "revisit"])
+    #expect(Set(pack.categories.keys) == ["money", "deadline", "name", "action", "revisit"])
     for (_, quips) in pack.categories {
         for lang in Lang.allCases {
             for persona in Persona.allCases {
@@ -32,7 +32,7 @@ import Testing
     #expect(SpriteQuips.truncate(text: "一二三四五六", lang: .zh) == "一二三四五六")
     #expect(SpriteQuips.truncate(text: "abcdefghijkl", lang: .en) == "abcdefghijkl")
     let pack = try SpriteQuips.loadBuiltin()
-    for (category, text) in [("money", "¥1,299.00"), ("stat", "1,234次"), ("deadline", "周五 18:00")] {
+    for (category, text) in [("money", "¥1,299.00"), ("deadline", "周五 18:00")] {
         #expect(pack.rule(for: category, text: text, app: "Fixture", title: "Feed", lang: .zh).variables?["text"] == text)
     }
     #expect(pack.rule(for: "deadline", text: "截止周五18:00提交", app: "Fixture", title: "Feed", lang: .zh).variables?["text"] == "截止周五18…")

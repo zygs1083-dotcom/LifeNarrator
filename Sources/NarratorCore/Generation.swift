@@ -140,33 +140,76 @@ public enum RuleCompiler {
     }
 }
 
-public enum SpriteGenerator {
-    public static let maxTokens = 320
+public struct SpriteMark: Sendable {
+    public var lineIndex: Int
+    public var range: Range<String.Index>
+    public var quote: String
+    public var quip: Quip
+}
 
-    public static func generate(targets: [(category: String, text: String)], app: String, title: String,
-                                persona: Persona, lang: Lang, generator: any TextGenerator) async throws
-        -> (quips: [Int: Quip], declined: Set<Int>) {
-        struct Mark: Decodable {
-            var i: Int
-            var text: String
-            var emoji: [String]
+public enum SpriteGenerator {
+    public static let maxTokens = 450
+
+    public static func generate(screen: SpriteScreen, snapshot: ContextSnapshot, app: String, title: String,
+                                exclude: [String], persona: Persona, lang: Lang, k: Int,
+                                generator: any TextGenerator,
+                                onMark: @escaping @Sendable (SpriteMark) -> Void) async throws -> [SpriteMark] {
+        final class State: @unchecked Sendable {
+            let lock = NSLock()
+            var stream = SpriteMarkStream()
+            var marks: [SpriteMark] = []
+            var error: (any Error)?
         }
-        struct Batch: Decodable { var marks: [Mark] }
-        let json = try await generator.generateJSON(system: nil,
-            prompt: GenerationPrompts.spriteMarks(app: app, title: title, targets: targets, persona: persona, lang: lang),
-            schema: GenerationPrompts.spriteMarksSchema, maxTokens: maxTokens)
-        let batch = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
-        var seen = Set<Int>()
-        var quips: [Int: Quip] = [:]
-        for mark in batch.marks {
-            guard targets.indices.contains(mark.i), (0...7).contains(mark.i), seen.insert(mark.i).inserted else { continue }
-            var text = mark.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
-            guard !text.isEmpty, text.count <= (lang == .zh ? 14 : 40), !text.contains(where: QuipValidator.isEmoji),
-                  mark.emoji.count == 1, mark.emoji[0].count == 1, QuipValidator.isEmoji(mark.emoji[0].first!),
-                  text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil else { continue }
-            quips[mark.i] = Quip(lang: lang, persona: persona, text: text, emoji: mark.emoji)
+        let state = State()
+        let lines = screen.lines.map { snapshot.textLines[$0.lineIndex] }
+        let prompt = GenerationPrompts.spriteMarks(app: app, title: title, screen: screen, exclude: exclude,
+                                                   persona: persona, lang: lang, k: k)
+        let receive: @Sendable (String) -> Bool = { partial in
+            let accepted = state.lock.withLock { () -> [SpriteMark] in
+                do {
+                    var accepted: [SpriteMark] = []
+                    for raw in try state.stream.feed(partial) {
+                        guard screen.lines.indices.contains(raw.l), (2...32).contains(raw.q.count) else { continue }
+                        var text = raw.t.trimmingCharacters(in: .whitespacesAndNewlines)
+                        while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
+                        guard !text.isEmpty, text.count <= (lang == .zh ? 14 : 40),
+                              !text.contains(where: QuipValidator.isEmoji), raw.e.count == 1,
+                              QuipValidator.isEmoji(raw.e.first!),
+                              text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil,
+                              let hit = SpriteLocator.locate(quote: raw.q, lineHint: raw.l, in: lines) else { continue }
+                        let lineIndex = screen.lines[hit.lineIndex].lineIndex
+                        let line = snapshot.textLines[lineIndex]
+                        let rect = RuleMatcher.estimatedRect(for: line, range: hit.range)
+                        guard !snapshot.sensitiveRects.contains(where: { $0.insetBy(dx: -60, dy: -60).intersects(rect) }),
+                              !SpritePrompt.privacyRanges(in: line.text).contains(where: { $0.overlaps(hit.range) }),
+                              !state.marks.contains(where: { $0.lineIndex == lineIndex && $0.range.overlaps(hit.range) }),
+                              state.marks.count < k else { continue }
+                        let mark = SpriteMark(lineIndex: lineIndex, range: hit.range, quote: String(line.text[hit.range]),
+                                              quip: Quip(lang: lang, persona: persona, text: text, emoji: [raw.e]))
+                        state.marks.append(mark)
+                        accepted.append(mark)
+                    }
+                    return accepted
+                } catch {
+                    state.error = error
+                    return []
+                }
+            }
+            for mark in accepted { onMark(mark) }
+            return state.lock.withLock { state.error == nil }
         }
-        return (quips, Set(targets.indices).subtracting(quips.keys))
+        let json: String
+        do {
+            json = try await generator.generateJSON(system: prompt.system, prompt: prompt.user,
+                schema: GenerationPrompts.spriteMarksSchema, maxTokens: maxTokens, partial: receive)
+        } catch {
+            if let decodingError = state.lock.withLock({ state.error }) { throw decodingError }
+            throw error
+        }
+        struct Batch: Decodable { var marks: [RawMark] }
+        _ = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
+        _ = receive(json)
+        if let error = state.lock.withLock({ state.error }) { throw error }
+        return state.lock.withLock { state.marks }
     }
 }

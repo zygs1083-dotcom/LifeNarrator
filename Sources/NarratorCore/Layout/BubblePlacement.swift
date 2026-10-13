@@ -21,7 +21,7 @@ public struct WindowGeometry: Sendable, Equatable {
 
 /// Which side of the highlight box an anchored bubble sits on.
 public enum AnchorSide: Sendable, Equatable {
-    case above, below, right, aboveRight, left
+    case above, below, right, left
 }
 
 public struct AnchoredPlacement: Sendable, Equatable {
@@ -32,6 +32,14 @@ public struct AnchoredPlacement: Sendable, Equatable {
         self.frame = frame
         self.side = side
     }
+}
+
+public struct SpritePlacement: Sendable, Equatable {
+    public let frame: CGRect
+    public let side: AnchorSide
+    public let connector: Bool
+    public let covered: Bool
+    public let narrow: Bool
 }
 
 public enum WindowCorner: Sendable, Equatable {
@@ -72,27 +80,56 @@ public enum BubblePlacement {
         textRect.insetBy(dx: -5, dy: -3)
     }
 
-    public static func anchoredSprite(size: CGSize, frame: CGRect, window: WindowGeometry,
-                                      visibleFrame: CGRect, occupied: [CGRect]) -> AnchoredPlacement? {
+    public static func anchoredSprite(size: CGSize, frame: CGRect, line: CGRect, window: WindowGeometry,
+                                      visibleFrame: CGRect, occupied: [CGRect], obstacles: [CGRect],
+                                      narrowSize: CGSize? = nil) -> SpritePlacement? {
         let bounds = window.contentArea.intersection(visibleFrame)
-        guard !bounds.isNull else { return nil }
+        guard !bounds.isNull, window.frame.width >= minimumWindowSize.width,
+              window.frame.height >= minimumWindowSize.height else { return nil }
         let inner = bounds.insetBy(dx: 8, dy: 4)
-        let origins: [(AnchorSide, CGPoint)] = [
-            (.right, CGPoint(x: frame.maxX + 8, y: frame.midY - size.height / 2)),
-            (.aboveRight, CGPoint(x: frame.maxX - 12, y: frame.minY - 4 - size.height)),
-            (.above, CGPoint(x: frame.midX - size.width / 2, y: frame.minY - 8 - size.height)),
-            (.below, CGPoint(x: frame.midX - size.width / 2, y: frame.maxY + 8)),
-            (.left, CGPoint(x: frame.minX - 8 - size.width, y: frame.midY - size.height / 2)),
-        ]
-        for (side, origin) in origins {
-            let x = min(max(origin.x, inner.minX), inner.maxX - size.width)
-            let bubble = CGRect(x: x, y: origin.y, width: size.width, height: size.height)
-            if inner.contains(bubble) && !bubble.intersects(frame)
-                && !occupied.contains(where: { $0.insetBy(dx: -4, dy: -4).intersects(bubble.insetBy(dx: -4, dy: -4)) }) {
-                return AnchoredPlacement(frame: bubble, side: side)
+        func candidates(_ size: CGSize, narrow: Bool) -> [SpritePlacement] {
+            let origins: [(AnchorSide, CGPoint, Bool)] = [
+                (.right, CGPoint(x: frame.maxX + 8, y: frame.midY - size.height / 2), false),
+                (.right, CGPoint(x: line.maxX + 8, y: line.midY - size.height / 2), false),
+                (.below, CGPoint(x: frame.midX - size.width / 2, y: line.maxY + 4), true),
+                (.above, CGPoint(x: frame.midX - size.width / 2, y: line.minY - 4 - size.height), true),
+                (.right, CGPoint(x: inner.maxX - size.width, y: frame.midY - size.height / 2), true),
+                (.left, CGPoint(x: inner.minX, y: frame.midY - size.height / 2), true),
+            ]
+            return origins.map { side, origin, connector in
+                let x = min(max(origin.x, inner.minX), inner.maxX - size.width)
+                let bubble = CGRect(x: x, y: origin.y, width: size.width, height: size.height)
+                return SpritePlacement(frame: bubble, side: side, connector: connector, covered: false, narrow: narrow)
             }
         }
-        return nil
+        func fits(_ placement: SpritePlacement) -> Bool {
+            inner.contains(placement.frame) && !placement.frame.intersects(frame)
+                && !occupied.contains { $0.insetBy(dx: -4, dy: -4).intersects(placement.frame) }
+                && (!placement.connector || BubbleConnector.length(bubble: placement.frame, highlight: frame, side: placement.side) <= 240)
+        }
+        func clear(_ placement: SpritePlacement) -> Bool {
+            fits(placement) && !obstacles.contains { $0.insetBy(dx: 1, dy: 1).intersects(placement.frame) }
+        }
+        var choices = candidates(size, narrow: false)
+        if let placement = choices.first(where: clear) { return placement }
+        // The caller measures the same text at the 160pt width before the retry.
+        if let narrowSize {
+            choices = candidates(narrowSize, narrow: true)
+            if let placement = choices.first(where: clear) { return placement }
+        }
+        func overlap(_ placement: SpritePlacement) -> CGFloat {
+            obstacles.reduce(0) { area, obstacle in
+                let shared = obstacle.insetBy(dx: 1, dy: 1).intersection(placement.frame)
+                return area + (shared.isNull ? 0 : shared.width * shared.height)
+            }
+        }
+        let fallback = [choices[2], choices[3], choices[1]].filter(fits)
+        guard let placement = fallback.enumerated().min(by: {
+            let a = overlap($0.element), b = overlap($1.element)
+            return a == b ? $0.offset < $1.offset : a < b
+        })?.element else { return nil }
+        return SpritePlacement(frame: placement.frame, side: placement.side, connector: placement.connector,
+                               covered: true, narrow: placement.narrow)
     }
 
     /// §8.1 app-level stack. `sizes` is ordered newest first; the newest takes the top slot.

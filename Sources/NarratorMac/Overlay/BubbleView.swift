@@ -81,7 +81,7 @@ struct BubbleAppearance {
         let tip = BubbleConnector.speechTailTip(bubble: frame, highlight: highlight, side: side)
         let root = BubbleConnector.speechTailRoot(bubble: frame, highlight: highlight, side: side, cornerRadius: size.speechCornerRadius, tailBase: size.speechTailBase)
         let (edge, localRoot): (SpeechTail.Edge, CGFloat) = switch side {
-        case .above, .aboveRight: (.bottom, root - frame.minX)
+        case .above: (.bottom, root - frame.minX)
         case .below: (.top, root - frame.minX)
         case .right: (.left, root - frame.minY)
         case .left: (.right, root - frame.minY)
@@ -102,7 +102,7 @@ struct BubbleAppearance {
             return UnitPoint(x: tail.tip.x / outerSize.width, y: tail.tip.y / outerSize.height)
         }
         return switch side {
-        case .above, .aboveRight: UnitPoint(x: 0.5, y: 1)
+        case .above: UnitPoint(x: 0.5, y: 1)
         case .below: UnitPoint(x: 0.5, y: 0)
         case .right: UnitPoint(x: 0, y: 0.5)
         case .left: UnitPoint(x: 1, y: 0.5)

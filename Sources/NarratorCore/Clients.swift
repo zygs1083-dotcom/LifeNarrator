@@ -33,10 +33,17 @@ public struct SystemOneClient: DecisionProvider {
 }
 
 public protocol TextGenerator: Sendable {
+    func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?,
+                      partial: @escaping @Sendable (String) -> Bool) async throws -> String
     func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String
 }
 
 public extension TextGenerator {
+    func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?,
+                      partial: @escaping @Sendable (String) -> Bool) async throws -> String {
+        try await generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: maxTokens)
+    }
+
     func generateJSON(system: String?, prompt: String, schema: String) async throws -> String {
         try await generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: nil)
     }

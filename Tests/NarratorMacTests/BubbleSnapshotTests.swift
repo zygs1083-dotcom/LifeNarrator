@@ -37,7 +37,7 @@ final class BubbleSnapshotTests: XCTestCase {
         let highlight = BubblePlacement.spriteFrame(around: CGRect(x: 150, y: 170, width: 48, height: 20))
         for shape in BubbleShape.allCases {
             var a = appearance(shape: shape, theme: .clear, size: .medium, text: "Pig Boss incoming", language: "en")
-            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: a.outerSize, frame: highlight, window: window, visibleFrame: canvas, occupied: []))
+            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: a.outerSize, frame: highlight, line: highlight, window: window, visibleFrame: canvas, occupied: [], obstacles: []))
             if shape == .speech {
                 a.setAnchoredTail(frame: placement.frame, highlight: highlight, side: placement.side)
             }
@@ -62,7 +62,7 @@ final class BubbleSnapshotTests: XCTestCase {
         let highlight = BubblePlacement.spriteFrame(around: target)
         for index in ColorTheme.clear.palette.indices {
             let a = appearance(shape: .text, theme: .clear, size: .small, text: "又在给钱包放血", language: "zh", groupIndex: index)
-            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: a.outerSize, frame: highlight, window: window, visibleFrame: canvas, occupied: []))
+            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: a.outerSize, frame: highlight, line: highlight, window: window, visibleFrame: canvas, occupied: [], obstacles: []))
             XCTAssertEqual(placement.side, .right)
             let decor = AnchorDecor(highlight: highlight, bubbleFrame: placement.frame, side: placement.side, shape: .text, size: .small, group: a.group)
             for dark in [false, true] {

@@ -123,46 +123,90 @@ final class LayoutPlacementTests: XCTestCase {
         XCTAssertEqual(BubblePlacement.spriteFrame(around: CGRect(x: 400, y: 400, width: 40, height: 18)), CGRect(x: 395, y: 397, width: 50, height: 24))
     }
 
-    func testSpriteTriesAllFivePositionsInOrder() throws {
-        let frame = CGRect(x: 450, y: 400, width: 100, height: 24)
-        // Tiny blockers identify each placement without covering the adjacent alternative.
-        let blockers = [CGRect(x: 660, y: 410, width: 2, height: 2),
-                        CGRect(x: 680, y: 360, width: 2, height: 2),
-                        CGRect(x: 430, y: 360, width: 2, height: 2),
-                        CGRect(x: 480, y: 440, width: 2, height: 2),
-                        CGRect(x: 300, y: 410, width: 2, height: 2)]
-        let sides: [AnchorSide] = [.right, .aboveRight, .above, .below, .left]
-        let origins = [CGPoint(x: 558, y: 390), CGPoint(x: 538, y: 352), CGPoint(x: 410, y: 348),
-                       CGPoint(x: 410, y: 432), CGPoint(x: 262, y: 390)]
-        for i in sides.indices {
-            let occupied = Array(blockers.prefix(i))
-            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: screen, occupied: occupied))
-            XCTAssertEqual(placement.side, sides[i])
-            XCTAssertEqual(placement.frame.origin, origins[i])
-            XCTAssertFalse(placement.frame.intersects(frame))
-            for other in occupied {
-                XCTAssertFalse(placement.frame.insetBy(dx: -4, dy: -4).intersects(other.insetBy(dx: -4, dy: -4)))
-            }
+    func testSpriteTriesSixPositionsInOrderWithoutCoveringTextOrMarks() throws {
+        let window = WindowGeometry(frame: CGRect(x: 0, y: 0, width: 640, height: 700), chromeHeight: 0)
+        let frame = CGRect(x: 270, y: 300, width: 60, height: 20)
+        let line = CGRect(x: 220, y: 300, width: 180, height: 20)
+        let size = CGSize(width: 80, height: 30)
+        let blockers = [CGRect(x: 370, y: 305, width: 2, height: 2),
+                        CGRect(x: 460, y: 305, width: 2, height: 2),
+                        CGRect(x: 290, y: 340, width: 2, height: 2),
+                        CGRect(x: 290, y: 275, width: 2, height: 2),
+                        CGRect(x: 600, y: 305, width: 2, height: 2)]
+        let origins = [CGPoint(x: 338, y: 295), CGPoint(x: 408, y: 295), CGPoint(x: 260, y: 324),
+                       CGPoint(x: 260, y: 266), CGPoint(x: 552, y: 295), CGPoint(x: 8, y: 295)]
+        for i in origins.indices {
+            let obstacles = Array(blockers.prefix(i)).map { $0.insetBy(dx: -2, dy: -2) }
+            let occupied = [CGRect(x: 150, y: 100, width: 100, height: 30)]
+            let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: line, window: window,
+                visibleFrame: screen, occupied: occupied, obstacles: obstacles))
+            XCTAssertEqual(p.frame.origin, origins[i])
+            XCTAssertEqual(p.connector, i >= 2)
+            XCTAssertFalse(p.narrow)
+            XCTAssertFalse(p.covered)
+            XCTAssertFalse(p.frame.intersects(frame))
+            for obstacle in obstacles { XCTAssertFalse(p.frame.intersects(obstacle)) }
+            for other in occupied { XCTAssertFalse(p.frame.intersects(other)) }
         }
-        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: screen, occupied: blockers))
     }
 
-    func testSpriteRightEdgeFallsBackAboveRightAndClampsX() throws {
-        let frame = CGRect(x: 880, y: 400, width: 100, height: 24)
-        let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: screen, occupied: []))
-        XCTAssertEqual(placement.side, .aboveRight)
-        XCTAssertEqual(placement.frame.maxX, window.contentArea.maxX - 8)
-        XCTAssertEqual(placement.frame.maxY, frame.minY - 4)
-        XCTAssertFalse(placement.frame.intersects(frame))
+    func testSpriteRejectsLongConnectorsAndUsesOtherMargin() throws {
+        let window = WindowGeometry(frame: CGRect(x: 0, y: 0, width: 1000, height: 700), chromeHeight: 0)
+        let frame = CGRect(x: 190, y: 300, width: 60, height: 20)
+        let line = CGRect(x: 100, y: 300, width: 750, height: 20)
+        let size = CGSize(width: 80, height: 30)
+        let obstacles = [CGRect(x: 100, y: 250, width: 750, height: 120)]
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: line, window: window,
+            visibleFrame: screen, occupied: [CGRect(x: 858, y: 295, width: 80, height: 30)], obstacles: obstacles))
+        XCTAssertEqual(p.side, .left)
+        XCTAssertLessThanOrEqual(BubbleConnector.length(bubble: p.frame, highlight: frame, side: p.side), 240)
+    }
+
+    func testSpriteNarrowRetryUsesMeasuredTwoLineSize() throws {
+        let frame = CGRect(x: 650, y: 400, width: 100, height: 20)
+        let line = CGRect(x: 210, y: 400, width: 540, height: 20)
+        let obstacles = [CGRect(x: 210, y: 200, width: 540, height: 400)]
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: CGSize(width: 260, height: 25), frame: frame, line: line,
+            window: window, visibleFrame: screen, occupied: [], obstacles: obstacles, narrowSize: CGSize(width: 160, height: 44)))
+        XCTAssertTrue(p.narrow)
+        XCTAssertFalse(p.covered)
+        XCTAssertEqual(p.frame.size, CGSize(width: 160, height: 44))
+        XCTAssertEqual(p.side, .right)
+        XCTAssertFalse(p.frame.intersects(obstacles[0]))
+    }
+
+    func testSpriteCoveredChoosesSmallestIntersectionAndNeverCoversFrameOrOccupied() throws {
+        let window = WindowGeometry(frame: CGRect(x: 0, y: 0, width: 700, height: 700), chromeHeight: 0)
+        let frame = CGRect(x: 270, y: 300, width: 60, height: 20)
+        let line = CGRect(x: 220, y: 300, width: 180, height: 20)
+        let size = CGSize(width: 80, height: 30)
+        let obstacles = [CGRect(x: 0, y: 294, width: 700, height: 32),
+                         CGRect(x: 250, y: 324, width: 100, height: 40),
+                         CGRect(x: 250, y: 266, width: 100, height: 10)]
+        let occupied = [CGRect(x: 0, y: 100, width: 50, height: 30)]
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: line, window: window,
+            visibleFrame: screen, occupied: occupied, obstacles: obstacles))
+        XCTAssertTrue(p.covered)
+        XCTAssertEqual(p.side, .above)
+        XCTAssertEqual(p.frame.origin, CGPoint(x: 260, y: 266))
+        XCTAssertFalse(p.frame.intersects(frame))
+        XCTAssertFalse(p.frame.intersects(occupied[0]))
     }
 
     func testSpriteUsesVisibleIntersectionAndRejectsNoSpace() throws {
         let visible = CGRect(x: 300, y: 300, width: 500, height: 300)
         let frame = CGRect(x: 680, y: 400, width: 100, height: 24)
-        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: visible, occupied: []))
+        let p = try XCTUnwrap(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame, window: window,
+            visibleFrame: visible, occupied: [], obstacles: []))
         XCTAssertTrue(window.contentArea.intersection(visible).insetBy(dx: 8, dy: 4).contains(p.frame))
-        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, window: window, visibleFrame: CGRect(x: 0, y: 0, width: 50, height: 50), occupied: []))
-        XCTAssertNil(BubblePlacement.anchoredSprite(size: CGSize(width: 1000, height: 900), frame: frame, window: window, visibleFrame: screen, occupied: []))
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame, window: window,
+            visibleFrame: CGRect(x: 0, y: 0, width: 50, height: 50), occupied: [], obstacles: []))
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: CGSize(width: 1000, height: 900), frame: frame, line: frame,
+            window: window, visibleFrame: screen, occupied: [], obstacles: []))
+        let small = WindowGeometry(frame: CGRect(x: 0, y: 0, width: 359, height: 500), chromeHeight: 0)
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame, window: small,
+            visibleFrame: screen, occupied: [], obstacles: []))
+        XCTAssertNil(BubblePlacement.anchoredSprite(size: size, frame: frame, line: frame, window: window,
+            visibleFrame: screen, occupied: [window.frame], obstacles: []))
     }
-
 }

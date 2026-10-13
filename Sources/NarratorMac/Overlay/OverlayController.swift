@@ -203,7 +203,7 @@ public final class OverlayController {
         if let anchor = n.anchor {
             let box = BubblePlacement.spriteFrame(around: overlay.local(anchor))
             let occupied = model.bubbles.flatMap { [$0.frame] + [$0.highlight].compactMap { $0 } }
-            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied) else { return false }
+            guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box, line: box, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: []) else { return false }
             frame = placement.frame
             side = placement.side
             highlight = box
@@ -287,7 +287,7 @@ public final class OverlayController {
         for i in model.bubbles.indices where model.bubbles[i].windowID == windowID {
             guard let highlight = model.bubbles[i].highlight else { continue }
             let occupied = model.bubbles.indices.filter { $0 != i }.flatMap { [model.bubbles[$0].frame] + [model.bubbles[$0].highlight].compactMap { $0 } }
-            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize, frame: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied) else {
+            guard let placement = BubblePlacement.anchoredSprite(size: model.bubbles[i].appearance.outerSize, frame: highlight, line: highlight, window: model.bubbles[i].window, visibleFrame: overlay.visibleFrame, occupied: occupied, obstacles: []) else {
                 dropped.append(model.bubbles[i].id)
                 continue
             }

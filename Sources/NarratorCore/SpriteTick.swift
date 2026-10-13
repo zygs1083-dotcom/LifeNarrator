@@ -1,10 +1,11 @@
 import Foundation
 
 public enum SpriteTick: String, Sendable {
-    case snapshot, burst, idle
+    case snapshot, mark, followup
 
     public struct Attempt: Sendable {
-        public var target: SpriteTarget
+        public var target: SpriteTarget?
+        public var mark: SpriteMark?
         public var reason: String
         public var ignoresRuleCooldown: Bool
     }
@@ -12,45 +13,59 @@ public enum SpriteTick: String, Sendable {
     public static func quietReason(in snapshot: ContextSnapshot, typing: Bool, moving: Bool) -> String? {
         if typing { return "typing" }
         if snapshot.secureFocused { return "secure" }
-        if isSmall(snapshot) { return "small" }
+        if snapshot.windowFrame.width < 360 || snapshot.windowFrame.height < 200 { return "small" }
         if moving { return "moving" }
         if SpriteScout.isMediaFullScreen(snapshot) { return "media" }
         return nil
     }
 
-    private static func isSmall(_ snapshot: ContextSnapshot) -> Bool {
-        snapshot.windowFrame.width < 360 || snapshot.windowFrame.height < 200
-    }
-
     public static func attempts(in snapshot: ContextSnapshot, candidates: [Candidate], memory: SpriteMemory,
-                                onScreen: [SpriteTarget], level: Liveliness, switching: Bool,
-                                scheduler: Scheduler, revisitAllowed: Bool, now: Date) -> [Attempt] {
+                                level: Liveliness, switching: Bool, scheduler: Scheduler, revisitAllowed: Bool,
+                                screen: SpriteScreen, screenKey: UInt64, hasModel: Bool, requestAllowed: Bool,
+                                now: Date) -> [Attempt] {
         let candidates = snapshot.textSource == .none
             ? candidates.filter { $0.rule.kind == .app || $0.rule.kind == .site } : candidates
         let all = SpriteScout.targets(in: snapshot, candidates: candidates, memory: SpriteMemory(level: level),
-                                      onScreen: onScreen, level: level)
-        let fresh = all.filter {
-            if snapshot.textSource == .none { return true }
-            let status = memory.status(key: .init(bundleId: snapshot.bundleId, text: $0.text), now: now)
-            return status?.isMarked != true && ($0.category == .rule || status?.declined != true)
+                                      level: level)
+        var attempts = all.filter {
+            $0.category == .rule && scheduler.canShow(ruleID: $0.candidate!.rule.id, now: now)
+        }.map { Attempt(target: $0, reason: "rule", ignoresRuleCooldown: false) }
+        guard level != .quiet else { return attempts }
+        if !hasModel {
+            attempts += all.filter {
+                $0.category != .rule && memory.status(key: .init(bundleId: snapshot.bundleId, text: $0.text), now: now)?.isMarked != true
+            }.map { Attempt(target: $0, reason: "local", ignoresRuleCooldown: false) }
+            if attempts.contains(where: { $0.reason == "local" }) { return attempts }
         }
-        var attempts = fresh.map { Attempt(target: $0, reason: "fresh", ignoresRuleCooldown: false) }
-        guard switching, level != .quiet else { return attempts }
-        let available = all.filter {
-            $0.category == .rule || memory.status(key: .init(bundleId: snapshot.bundleId, text: $0.text), now: now)?.declined != true
+        let lines = screen.lines.map { snapshot.textLines[$0.lineIndex] }
+        let located = memory.keys(bundleId: snapshot.bundleId).compactMap { key -> (key: SpriteMemory.Key, mark: SpriteMark, status: SpriteMemory.Status)? in
+            let status = memory.status(key: key, now: now)!
+            let hint = screen.lines.firstIndex { $0.lineIndex == status.lineHint } ?? -1
+            guard let hit = SpriteLocator.locate(quote: key.text, lineHint: hint, in: lines) else { return nil }
+            let index = screen.lines[hit.lineIndex].lineIndex
+            return (key, SpriteMark(lineIndex: index, range: hit.range,
+                                    quote: String(snapshot.textLines[index].text[hit.range]), quip: status.quip), status)
         }
-        if snapshot.textSource != .none && !available.isEmpty && available.allSatisfy({
-            memory.status(key: .init(bundleId: snapshot.bundleId, text: $0.text), now: now)?.isMarked == true
-                || ($0.candidate != nil && scheduler.canShow(ruleID: nil, now: now)
-                    && !scheduler.canShow(ruleID: $0.candidate!.rule.id, now: now))
-        }) {
-            var remaining = available
-            while let key = memory.leastRecent(among: remaining.map { .init(bundleId: snapshot.bundleId, text: $0.text) }, now: now) {
-                let index = remaining.firstIndex { normalized($0.text) == key.text }!
-                attempts.append(Attempt(target: remaining.remove(at: index), reason: "least-recent", ignoresRuleCooldown: true))
+        if hasModel {
+            let replay = located.filter { $0.status.isCached && !$0.status.isMarked }.map {
+                Attempt(mark: $0.mark, reason: "cache", ignoresRuleCooldown: true)
+            }
+            if !replay.isEmpty { return attempts + replay }
+            if !screen.lines.isEmpty && requestAllowed && (memory.screenStatus(key: screenKey)?.requests ?? 0) < requestsPerScreen(level: level) {
+                return attempts + [Attempt(reason: "request", ignoresRuleCooldown: false)]
             }
         }
-        if revisitAllowed {
+        guard switching else { return attempts }
+        let keys = hasModel ? located.map(\.key) : all.map { SpriteMemory.Key(bundleId: snapshot.bundleId, text: $0.text) }
+        if let key = memory.leastRecent(among: keys, now: now) {
+            if hasModel {
+                attempts.append(Attempt(mark: located.first { $0.key == key }!.mark,
+                                        reason: "least-recent", ignoresRuleCooldown: true))
+            } else {
+                attempts.append(Attempt(target: all.first { normalized($0.text) == key.text }!,
+                                        reason: "least-recent", ignoresRuleCooldown: true))
+            }
+        } else if revisitAllowed {
             let title = snapshot.windowTitle ?? snapshot.appName
             let index = snapshot.textLines.firstIndex { normalized($0.text) == normalized(title) }
             let text = index.map { snapshot.textLines[$0].text } ?? title
@@ -60,39 +75,40 @@ public enum SpriteTick: String, Sendable {
         return attempts
     }
 
-    public static func burstDelays(level: Liveliness) -> [TimeInterval] {
-        switch level {
-        case .quiet: []
-        case .lively: [1.5]
-        case .rowdy: [1, 2]
-        }
+    public static func releaseGap(level: Liveliness) -> TimeInterval {
+        switch level { case .quiet: 0; case .lively: 3; case .rowdy: 1.5 }
     }
 
-    public static func idleDelay<R: RandomNumberGenerator>(level: Liveliness, using random: inout R) -> TimeInterval? {
-        switch level {
-        case .quiet: nil
-        case .lively: Double.random(in: 5...11, using: &random)
-        case .rowdy: Double.random(in: 2.5...5.5, using: &random)
-        }
+    public static func followupDelay(level: Liveliness) -> TimeInterval {
+        switch level { case .quiet: 0; case .lively: 20; case .rowdy: 10 }
+    }
+
+    public static func requestsPerScreen(level: Liveliness) -> Int {
+        switch level { case .quiet: 0; case .lively: 2; case .rowdy: 3 }
+    }
+
+    public static func windowRequestInterval(level: Liveliness) -> TimeInterval {
+        switch level { case .quiet: 0; case .lively: 8; case .rowdy: 5 }
+    }
+
+    public static func localBurst(level: Liveliness) -> [TimeInterval] {
+        switch level { case .quiet: []; case .lively: [3]; case .rowdy: [1.5, 3] }
     }
 
     public static func screenLimit(level: Liveliness) -> Int {
-        switch level {
-        case .quiet: 0
-        case .lively: 6
-        case .rowdy: 12
-        }
+        switch level { case .quiet: 0; case .lively: 8; case .rowdy: 14 }
     }
 }
 
 public struct SpriteModelBudget: Sendable {
     private var requests: [Date] = []
-    public init() {}
+    private let perMinute: Int
+    public init(perMinute: Int) { self.perMinute = perMinute }
 
     @discardableResult
     public mutating func begin(now: Date) -> Bool {
         requests.removeAll { now.timeIntervalSince($0) >= 60 }
-        guard requests.count < 4 else { return false }
+        guard requests.count < perMinute else { return false }
         requests.append(now)
         return true
     }

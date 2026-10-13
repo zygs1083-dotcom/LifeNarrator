@@ -10,8 +10,8 @@ public struct Scheduler: Sendable {
             self.init()
             switch level {
             case .quiet: break
-            case .lively: ruleCooldown = 120; globalPerMinute = 10; minGap = 1.2
-            case .rowdy: ruleCooldown = 60; globalPerMinute = 20; minGap = 0.8
+            case .lively: ruleCooldown = 120; globalPerMinute = 10; minGap = 2
+            case .rowdy: ruleCooldown = 60; globalPerMinute = 20; minGap = 1.2
             }
         }
     }

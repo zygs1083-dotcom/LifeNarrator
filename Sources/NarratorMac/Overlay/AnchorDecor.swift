@@ -33,7 +33,7 @@ struct AnchorDecorView: View {
         case .large: 2.5
         }
         let gap: CGFloat = switch d.side {
-        case .above, .aboveRight: d.highlight.minY - d.bubbleFrame.maxY
+        case .above: d.highlight.minY - d.bubbleFrame.maxY
         case .below: d.bubbleFrame.minY - d.highlight.maxY
         case .right: d.bubbleFrame.minX - d.highlight.maxX
         case .left: d.highlight.minX - d.bubbleFrame.maxX

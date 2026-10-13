@@ -28,11 +28,14 @@ public enum LlamaGrammar {
     """#
 
     public static let spriteMarks = #"""
-    root ::= "{" ws "\"marks\"" ws ":" ws "[" ws (mark (ws "," ws mark){0,7})? ws "]" ws "}" ws
-    mark ::= "{" ws "\"i\"" ws ":" ws [0-7] ws "," ws "\"text\"" ws ":" ws text ws "," ws "\"emoji\"" ws ":" ws "[" ws emoji ws "]" ws "}"
+    root ::= "{" ws "\"marks\"" ws ":" ws "[" ws (mark (ws "," ws mark){0,3})? ws "]" ws "}" ws
+    mark ::= "{" ws "\"l\"" ws ":" ws line ws "," ws "\"q\"" ws ":" ws quote ws "," ws "\"t\"" ws ":" ws text ws "," ws "\"e\"" ws ":" ws emoji ws "}"
+    line ::= [0-9] | [1-9] [0-9]
+    quote ::= "\"" qchar{2,32} "\""
+    qchar ::= [^"\\\x7f\x00-\x1f] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
     text ::= "\"" (zh | en) "\""
-    zh ::= [一-鿿，。！？、：；～—…《》“”「」A-Za-z0-9 ]{1,14}
-    en ::= [A-Za-z0-9 ,.!?'’:;…()-]{1,40}
+    zh ::= [一-鿿，。！？、：；～—…《》“”「」%.A-Za-z0-9 ]{1,14}
+    en ::= [A-Za-z0-9 ,.!?'’:;…()%-]{1,40}
     emoji ::= "\"" ebase [️]? ([‍] ebase [️]?){0,3} "\""
     ebase ::= [\U0001f300-\U0001faff☀-➿] [\U0001f3fb-\U0001f3ff]?
     ws ::= [ \t\n\r]{0,4}

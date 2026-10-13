@@ -13,74 +13,41 @@ private func spriteSnapshot(_ lines: [TextLine], bundleId: String = "test", sens
                     fullScreen: fullScreen, capturedAt: now)
 }
 private func scout(_ lines: [TextLine], level: Liveliness = .lively) -> [SpriteTarget] {
-    SpriteScout.targets(in: spriteSnapshot(lines), candidates: [], memory: SpriteMemory(), onScreen: [], level: level)
+    SpriteScout.targets(in: spriteSnapshot(lines), candidates: [], memory: SpriteMemory(), level: level)
 }
 
 @Test func spriteCategoriesAndOriginalRanges() {
-    let examples: [(TargetCategory, TextLine, String)] = [
-        (.name, spriteLine("张三"), "张三"),
+    for (category, source, expected) in [
+        (TargetCategory.name, spriteLine("张三"), "张三"),
         (.name, spriteLine("Alice Smith"), "Alice Smith"),
-        (.alert, spriteLine("完成，构建失败，稍后再试"), "构建失败"),
-        (.deadline, spriteLine("安排：截止周五 18:00 前提交"), "安排：截止周五 18:00 前提交"),
+        (.deadline, spriteLine("安排：截止周五 18:00 前提交", y: 300), "安排：截止周五 18:00 前提交"),
         (.money, spriteLine("售价 ¥1,299.00 起"), "¥1,299.00"),
-        (.action, spriteLine("立即购买", y: 300, role: .button), "立即购买"),
-        (.question, spriteLine("今天吃什么？"), "今天吃什么？"),
-        (.stat, spriteLine("已有 12,345 次阅读"), "12,345 次"),
-        (.emphasis, spriteLine("马上开始！"), "马上开始！"),
-        (.heading, spriteLine("这里是新篇章", y: 300, height: 24), "这里是新篇章"),
-    ]
-    for (category, line, expected) in examples {
-        let lines = [line, spriteLine("普通的正文。", y: 400), spriteLine("其他正文。", y: 450)]
-        let targets = scout(lines)
-        let target = targets.first { $0.category == category }
+        (.action, spriteLine("立即购买", y: 300, role: .button), "立即购买")
+    ] {
+        let target = scout([source]).first { $0.category == category }
         #expect(target?.text == expected)
-        if let target { #expect(String(line.text[target.range]) == expected) }
+        if let target { #expect(String(source.text[target.range]) == expected) }
     }
-    let deadlineLine = spriteLine("截止周五 18:00 前提交")
-    #expect(scout([deadlineLine]).first?.text == deadlineLine.text)
-    let fullwidth = spriteLine("价格　＄１,２９９.００　起")
-    #expect(scout([fullwidth]).first { $0.category == .money }?.text == "＄１,２９９.００")
-    let folded = spriteLine("Pay   12 USD today")
-    #expect(scout([folded]).first { $0.category == .money }?.text == "12 USD")
+    #expect(scout([spriteLine("价格　＄１,２９９.００　起")]).first { $0.category == .money }?.text == "＄１,２９９.００")
+    #expect(scout([spriteLine("Pay   12 USD today")]).first { $0.category == .money }?.text == "12 USD")
 }
 
-@Test func spriteExclusions() {
-    let excluded = [
-        spriteLine("错误", y: 40), spriteLine("错误", role: .field), spriteLine("错误", height: 9),
-        spriteLine("alice@example.com 错误"), spriteLine("+86 138-1234-5678 错误"),
-        spriteLine("123456789012 错误"), spriteLine("https://example.com 错误"), spriteLine("www.example.com 错误"),
-        spriteLine(String(repeating: "正文内容", count: 16)), spriteLine(String(repeating: "ordinary prose ", count: 10)),
-        spriteLine("设置"), spriteLine("Ｓｅｔｔｉｎｇｓ"), spriteLine("sign in"), spriteLine("了解更多", y: 300, role: .link),
-        spriteLine("10:32"), spriteLine("let urgent = 100%;"), spriteLine("value = (100%);"),
-    ]
-    for line in excluded { #expect(scout([line]).isEmpty, "\(line.text)") }
-    let near = spriteSnapshot([spriteLine("错误", y: 160)], sensitive: [CGRect(x: 300, y: 200, width: 100, height: 20)])
-    #expect(SpriteScout.targets(in: near, candidates: [], memory: SpriteMemory(), onScreen: [], level: .lively).isEmpty)
-    let far = spriteSnapshot([spriteLine("错误", y: 100)], sensitive: near.sensitiveRects)
-    #expect(!SpriteScout.targets(in: far, candidates: [], memory: SpriteMemory(), onScreen: [], level: .lively).isEmpty)
-    #expect(scout([spriteLine("截止 18:00")]).contains { $0.category == .deadline })
-    #expect(!scout([spriteLine("截止日期尚未确定")]).contains { $0.category == .deadline })
-    #expect(!scout([spriteLine("goodbye tomorrow")]).contains { $0.category == .deadline })
-    #expect(!scout([spriteLine("errorless warningly")]).contains { $0.category == .alert })
-    #expect(!scout([spriteLine("buying", role: .link)]).contains { $0.category == .action })
-}
-
-@Test func spriteLongTextAndCodeKeepOnlyAllowedCategories() {
-    let long = String(repeating: "正文", count: 40)
-    for (suffix, category) in [("，失败请重试", TargetCategory.alert), ("，截止明天前提交", .deadline), ("，仅售 ¥99", .money), ("，已达 10%", .stat)] {
-        let targets = scout([spriteLine(long + suffix)])
-        #expect(targets.contains { $0.category == category })
-        #expect(!targets.contains { $0.category == .name || $0.category == .heading })
-        #expect(targets.allSatisfy { $0.text.count <= 30 })
+@Test func spriteExclusionsAndRemovedCategories() {
+    for text in ["超时保护", "ERROR 码表", "12,345 次播放", "今天要不要试试？", "重要事项！", "大标题", "周五之前", "10:32", "截止日期尚未确定", "goodbye tomorrow"] {
+        #expect(scout([spriteLine(text, y: 300, height: 24)]).isEmpty, "\(text)")
     }
-    let code = spriteLine("let result = failed(); 100%")
-    #expect(scout([code]).map(\.category) == [.alert])
-    let snapshot = spriteSnapshot([spriteLine("失败"), spriteLine("¥99", y: 300), spriteLine("张三", y: 130)], bundleId: "com.apple.dt.Xcode")
-    let person = rule("person", kind: .person, match: Match(aliases: ["张三"], region: .header))
-    let candidates = RuleMatcher(rules: [person]).candidates(in: snapshot, now: epoch, appChanged: true, hostChanged: false)
-    let targets = SpriteScout.targets(in: snapshot, candidates: candidates, memory: SpriteMemory(), onScreen: [], level: .lively)
-    #expect(Set(targets.map(\.category)) == [.rule, .alert])
-    #expect(targets.first?.candidate?.rule.id == person.id)
+    #expect(scout([spriteLine("截止周五 18:00", y: 300)]).first?.category == .deadline)
+    for source in [spriteLine("¥99", y: 40), spriteLine("¥99", role: .field), spriteLine("¥99", height: 9),
+                   spriteLine("alice@example.com ¥99"), spriteLine("+86 138-1234-5678 ¥99"),
+                   spriteLine("123456789012 ¥99"), spriteLine("https://example.com ¥99"), spriteLine("www.example.com ¥99"),
+                   spriteLine("了解更多", y: 300, role: .link), spriteLine("buying", y: 300, role: .link)] {
+        #expect(scout([source]).isEmpty)
+    }
+    let near = spriteSnapshot([spriteLine("¥99", y: 160)], sensitive: [CGRect(x: 300, y: 200, width: 100, height: 20)])
+    #expect(SpriteScout.targets(in: near, candidates: [], memory: SpriteMemory(), level: .lively).isEmpty)
+    #expect(scout([spriteLine(String(repeating: "正文", count: 40) + "，仅售 ¥99")]).contains { $0.category == .money })
+    let codeApp = spriteSnapshot([spriteLine("¥99")], bundleId: "com.apple.dt.Xcode")
+    #expect(SpriteScout.targets(in: codeApp, candidates: [], memory: SpriteMemory(), level: .lively).first?.category == .money)
 }
 
 @Test func spriteRulesBypassHeuristicExclusionsAndAnchorTitles() {
@@ -88,62 +55,37 @@ private func scout(_ lines: [TextLine], level: Liveliness = .lively) -> [SpriteT
     let topic = rule("topic", match: Match(aliases: ["错误"]))
     let snapshot = spriteSnapshot([line])
     let candidates = RuleMatcher(rules: [topic]).candidates(in: snapshot, now: epoch, appChanged: false, hostChanged: false)
-    #expect(SpriteScout.targets(in: snapshot, candidates: candidates, memory: SpriteMemory(), onScreen: [], level: .quiet).first?.category == .rule)
+    #expect(SpriteScout.targets(in: snapshot, candidates: candidates, memory: SpriteMemory(), level: .quiet).first?.category == .rule)
     var titled = spriteSnapshot([spriteLine("Test Title")])
     titled.windowTitle = "test title"
     let app = Candidate(rule: rule("app", kind: .app, match: Match(bundleIds: ["test"])))
-    let target = SpriteScout.targets(in: titled, candidates: [app], memory: SpriteMemory(), onScreen: [], level: .lively).first!
+    let target = SpriteScout.targets(in: titled, candidates: [app], memory: SpriteMemory(), level: .lively).first!
     #expect(target.lineIndex == 0)
     #expect(target.text == "Test Title")
     titled.textLines = []
-    #expect(SpriteScout.targets(in: titled, candidates: [app], memory: SpriteMemory(), onScreen: [], level: .quiet).first?.lineIndex == -1)
+    #expect(SpriteScout.targets(in: titled, candidates: [app], memory: SpriteMemory(), level: .quiet).first?.lineIndex == -1)
 }
 
-@Test func spriteScoringSortingThresholdsAndDeduplication() {
+@Test func spriteScoringSortingAndDeduplication() {
     #expect(scout([spriteLine("¥99")]).first?.score == 6)
     #expect(scout([spriteLine("¥99", x: 50)]).first?.score == 4)
     let snapshot = spriteSnapshot([spriteLine("¥99")])
-    let onScreen = scout(snapshot.textLines)
-    #expect(SpriteScout.targets(in: snapshot, candidates: [], memory: SpriteMemory(), onScreen: onScreen, level: .lively).first?.score == 4)
-    let weak = [spriteLine("12%", x: 50, height: 24), spriteLine("普通正文。", y: 400), spriteLine("其他正文。", y: 450)]
-    #expect(scout(weak).isEmpty)
-    #expect(scout(weak, level: .rowdy).first?.score == 3)
-    #expect(scout([spriteLine("构建失败")], level: .quiet).isEmpty)
-    let heading = [spriteLine("第一个章节", y: 300, height: 24), spriteLine("普通正文。", y: 400), spriteLine("其他正文。", y: 450)]
-    #expect(scout(heading).first { $0.category == .heading }?.score == 4)
-    #expect(!scout([spriteLine("第一个章节", y: 300)]).contains { $0.category == .heading })
-    let duplicates = scout([spriteLine("¥99", y: 300), spriteLine("￥99", y: 350)])
-    #expect(duplicates.count == 1)
-    let heights = scout([spriteLine("¥88", y: 350), spriteLine("¥99", y: 300, height: 20), spriteLine("¥77", y: 250, height: 20)])
-    #expect(heights.map(\.text) == ["¥77", "¥99", "¥88"])
-    let short = scout([spriteLine("Is this a question?")]).first!
-    let longer = scout([spriteLine("Is this a longer question?")]).first!
-    #expect(short.score == longer.score + 1)
+    #expect(SpriteScout.targets(in: snapshot, candidates: [], memory: SpriteMemory(), level: .lively).first?.score == 6)
+    #expect(scout([spriteLine("¥99"), spriteLine("￥99", y: 350)]).count == 1)
+    #expect(scout([spriteLine("¥88", y: 350), spriteLine("¥99", y: 300, height: 20), spriteLine("¥77", y: 250, height: 20)]).map(\.text) == ["¥77", "¥99", "¥88"])
 }
 
-@Test func spriteBatchDiversity() {
-    let snapshot = spriteSnapshot([spriteLine("错误", y: 300), spriteLine("¥99", y: 315), spriteLine("¥88", y: 340),
-                                   spriteLine("截止明天", y: 400), spriteLine("100%", y: 450)])
-    let targets = SpriteScout.targets(in: snapshot, candidates: [], memory: SpriteMemory(), onScreen: [], level: .lively)
-    let selected = SpriteScout.diverse(targets, in: snapshot, count: 2)
-    #expect(selected.count == 2)
-    #expect(selected.map(\.category) == [.alert, .money])
-    #expect(selected.map(\.text) == ["错误", "¥88"])
-    let rects = selected.map { RuleMatcher.estimatedRect(for: snapshot.textLines[$0.lineIndex], range: $0.range) }
-    #expect(abs(rects[0].minY - rects[1].minY) >= 24)
-    #expect(!rects[0].insetBy(dx: -8, dy: -8).intersects(rects[1].insetBy(dx: -8, dy: -8)))
-    #expect(SpriteScout.diverse(targets, in: snapshot, count: 0).isEmpty)
-    let closeFrames = spriteSnapshot([spriteLine("错误", y: 300), spriteLine("¥99", y: 335), spriteLine("¥88", y: 380)])
-    let closeTargets = SpriteScout.targets(in: closeFrames, candidates: [], memory: SpriteMemory(), onScreen: [], level: .lively)
-    #expect(SpriteScout.diverse(closeTargets, in: closeFrames, count: 2).map(\.text) == ["错误", "¥88"])
-}
-
-@Test func spriteMediaFullScreen() {
-    let lines = (0..<7).map { spriteLine("¥\($0 + 10)", y: 250 + CGFloat($0) * 40) }
-    #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(Array(lines.prefix(5)), fullScreen: true)))
+@Test func spriteMediaFullScreenCountsContentLinesInsteadOfTargets() {
+    let lines = (0..<13).map { spriteLine("ordinary prose \($0)", y: 250 + CGFloat($0) * 20) }
+    #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(Array(lines.prefix(12)), fullScreen: true)))
     #expect(!SpriteScout.isMediaFullScreen(spriteSnapshot(lines, fullScreen: true)))
     #expect(!SpriteScout.isMediaFullScreen(spriteSnapshot(lines)))
     #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(lines, fullScreen: true, source: .ocr)))
+    var ignored = lines
+    ignored[12].rect.size.height = 9
+    #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(ignored, fullScreen: true)))
+    ignored[12] = spriteLine("chrome", y: 40)
+    #expect(SpriteScout.isMediaFullScreen(spriteSnapshot(ignored, fullScreen: true)))
 }
 
 @Test func spriteTextRoleBackwardDecodingAndSnapshotFields() throws {
