@@ -1,9 +1,14 @@
 import SwiftUI
 
-/// Visual-spec §6 entrance/exit pairs. The decor (highlight box) uses the same timing with opacity only.
+/// Bubble entrance/exit pairs and the sprite's frame-first entrance.
 enum BubbleTransitions {
-    static func bubble(_ animation: BubbleAnimation, anchor: UnitPoint, slide: CGSize, delay: Double) -> AnyTransition {
-        switch animation {
+    static func bubble(_ animation: BubbleAnimation, anchor: UnitPoint, slide: CGSize, delay: Double, reduceMotion: Bool = false) -> AnyTransition {
+        if reduceMotion {
+            return .asymmetric(
+                insertion: .opacity.animation(.easeOut(duration: 0.18).delay(delay)),
+                removal: .opacity.animation(.easeIn(duration: 0.6)))
+        }
+        return switch animation {
         case .fade:
             .asymmetric(
                 insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: anchor)).animation(.easeOut(duration: 0.18).delay(delay)),
@@ -24,14 +29,8 @@ enum BubbleTransitions {
         }
     }
 
-    static func decor(_ animation: BubbleAnimation, delay: Double) -> AnyTransition {
-        let (entrance, exit): (Animation, Animation) = switch animation {
-        case .fade: (.easeOut(duration: 0.18), .easeIn(duration: 0.6))
-        case .bounce: (.easeOut(duration: 0.1), .easeIn(duration: 0.16))
-        case .slide: (.spring(response: 0.35, dampingFraction: 0.8), .easeIn(duration: 0.2))
-        case .pop: (.spring(response: 0.30, dampingFraction: 0.70), .easeIn(duration: 0.15))
-        }
-        return .asymmetric(insertion: .opacity.animation(entrance.delay(delay)), removal: .opacity.animation(exit))
+    static func decor() -> AnyTransition {
+        .asymmetric(insertion: .identity, removal: .opacity.animation(.easeIn(duration: 0.6)))
     }
 
     /// How long after the delay the entrance has settled; the dwell timer starts then.
@@ -42,5 +41,19 @@ enum BubbleTransitions {
         case .slide: 0.45
         case .pop: 0.4
         }
+    }
+}
+
+struct SpriteDecorEntrance: View {
+    let decor: AnchorDecor
+    let delay: Double
+    let reduceMotion: Bool
+    @State private var entered = false
+
+    var body: some View {
+        AnchorDecorView(decor: decor, progress: reduceMotion || entered ? 1 : 0)
+            .opacity(reduceMotion && !entered ? 0 : 1)
+            .animation(.easeOut(duration: reduceMotion ? 0.18 : 0.24).delay(delay), value: entered)
+            .onAppear { entered = true }
     }
 }

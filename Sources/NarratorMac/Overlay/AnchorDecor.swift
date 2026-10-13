@@ -1,7 +1,7 @@
 import NarratorCore
 import SwiftUI
 
-/// Highlight box plus its connection to the bubble (visual-spec §7), in the overlay's coordinates.
+/// Sprite frame plus its connection to the bubble, in the overlay's coordinates.
 struct AnchorDecor {
     var highlight: CGRect
     var bubbleFrame: CGRect
@@ -13,14 +13,41 @@ struct AnchorDecor {
 
 struct AnchorDecorView: View {
     let decor: AnchorDecor
+    var progress: CGFloat = 1
 
     var body: some View {
         let d = decor
         let stroke = Color(d.group.stroke)
-        let box = Path { $0.addRoundedRect(in: d.highlight, cornerSize: CGSize(width: 6, height: 6)) }
+        let box = Path { p in
+            let r = d.highlight
+            p.move(to: CGPoint(x: r.minX + 5, y: r.minY))
+            p.addArc(tangent1End: CGPoint(x: r.maxX, y: r.minY), tangent2End: CGPoint(x: r.maxX, y: r.maxY), radius: 5)
+            p.addArc(tangent1End: CGPoint(x: r.maxX, y: r.maxY), tangent2End: CGPoint(x: r.minX, y: r.maxY), radius: 5)
+            p.addArc(tangent1End: CGPoint(x: r.minX, y: r.maxY), tangent2End: CGPoint(x: r.minX, y: r.minY), radius: 5)
+            p.addArc(tangent1End: CGPoint(x: r.minX, y: r.minY), tangent2End: CGPoint(x: r.maxX, y: r.minY), radius: 5)
+            p.closeSubpath()
+        }
+        let lineWidth: CGFloat = switch d.size {
+        case .small: 1.5
+        case .medium: 2
+        case .large: 2.5
+        }
+        let gap: CGFloat = switch d.side {
+        case .above, .aboveRight: d.highlight.minY - d.bubbleFrame.maxY
+        case .below: d.bubbleFrame.minY - d.highlight.maxY
+        case .right: d.bubbleFrame.minX - d.highlight.maxX
+        case .left: d.highlight.minX - d.bubbleFrame.maxX
+        }
         ZStack(alignment: .topLeading) {
-            box.fill(stroke.opacity(0.12))
-            box.stroke(stroke, style: StrokeStyle(lineWidth: d.size.highlightStrokeWidth, lineCap: .round))
+            ZStack {
+                box.fill(stroke.opacity(0.08 * progress))
+                box.trim(from: 0, to: progress)
+                    .stroke(.white.opacity(0.7), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                box.trim(from: 0, to: progress)
+                    .stroke(stroke, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+            }
+            .compositingGroup()
+            .shadow(color: .black.opacity(0.3), radius: 1.5)
             switch d.shape {
             case .speech:
                 EmptyView()
@@ -33,7 +60,7 @@ struct AnchorDecorView: View {
                     circle.stroke(stroke, lineWidth: d.size.strokeWidth)
                 }
             case .text, .rounded, .sticker, .note:
-                if let line = BubbleConnector.line(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side) {
+                if gap > 12, let line = BubbleConnector.line(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side) {
                     Path { p in
                         p.move(to: line.from)
                         p.addLine(to: line.to)
