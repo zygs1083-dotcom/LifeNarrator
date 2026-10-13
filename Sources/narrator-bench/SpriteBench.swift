@@ -73,8 +73,8 @@ func runSprite(modelPath: String) async throws {
     try emitSprite([
         "type": "sprite-bench", "model": modelPath, "screens": spriteCases.count, "runs_per_screen": 3,
         "k": 3, "persona": "sharp",
-        "prefill_note": "LlamaGenerator does not expose prefill timing; prefill_ms is unavailable.",
-        "first_note": "Without partial callbacks, first_ms is batch availability, not streaming first-mark latency. The first request includes model loading.",
+        "prefill_note": "prefill_ms includes prefix snapshot save/restore and remaining prompt decoding; prefix_restore_ms measures restore only.",
+        "first_note": "first_ms measures streaming first-mark latency. The first request includes model loading.",
     ])
     var totalMarks = 0
     var totalLocated = 0
@@ -126,7 +126,10 @@ func runSprite(modelPath: String) async throws {
             try emitSprite([
                 "type": "sprite-run", "case": sample.id, "run": run, "cold": sample.id == spriteCases[0].id && run == 1,
                 "mode": measured.streaming ? "streaming" : "non-streaming",
-                "prompt_tokens": promptTokens, "prefill_ms": NSNull(),
+                "prompt_tokens": promptTokens, "prefill_ms": await generator.lastPrefillSeconds * 1000,
+                "prefix_cached": await generator.lastPrefixCached,
+                "prefix_restore_ms": await generator.lastPrefixRestoreSeconds * 1000,
+                "prefix_snapshot_bytes": await generator.prefixSnapshotBytes,
                 "first_ms": measured.first, "total_ms": measured.total,
                 "located": located, "marks": batch.marks.count, "items": marks, "raw_output": output,
             ])
