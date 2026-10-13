@@ -54,6 +54,16 @@ public struct AppStackLayout: Sendable, Equatable {
 }
 
 public enum BubblePlacement {
+    public static func follow(highlight: CGRect, frame: CGRect, line: CGRect?, obstacles: [CGRect],
+                              delta: CGPoint, window: WindowGeometry, visibleFrame: CGRect)
+        -> (highlight: CGRect, frame: CGRect, line: CGRect?, obstacles: [CGRect])? {
+        let highlight = highlight.offsetBy(dx: delta.x, dy: delta.y)
+        let frame = frame.offsetBy(dx: delta.x, dy: delta.y)
+        guard window.contentArea.contains(highlight), visibleFrame.contains(frame) else { return nil }
+        return (highlight, frame, line?.offsetBy(dx: delta.x, dy: delta.y),
+                obstacles.map { $0.offsetBy(dx: delta.x, dy: delta.y) })
+    }
+
     public static let edgeMargin: CGFloat = 8
     public static let anchorGap: CGFloat = 8
     /// Clouds need room for the three §2.2 thought dots, which the 8pt gap cannot hold; stays under the 40pt connector cap.

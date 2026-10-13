@@ -27,7 +27,9 @@ background.contentView!.addSubview(targetLabel)
 
 var style = BubbleStyle()
 style.dwell = .seconds(2)
-let controller = OverlayController(style: style)
+let controller = OverlayController(style: style, onError: { error in
+    FileHandle.standardError.write(Data("\(error)\n".utf8))
+})
 BubbleFonts.requestDownload(choice: .persona, persona: .sharp)
 BubbleFonts.requestDownload(choice: .persona, persona: .chuuni)
 

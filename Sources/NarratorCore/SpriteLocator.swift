@@ -3,18 +3,19 @@ import Foundation
 public enum SpriteLocator {
     public struct Position: Sendable {
         public let lineIndex: Int
-        public let rect: CGRect
+        public let rect: CGRect?
 
-        public init(lineIndex: Int, rect: CGRect) {
+        public init(lineIndex: Int, rect: CGRect?) {
             self.lineIndex = lineIndex
             self.rect = rect
         }
     }
 
     public static func conflicts(_ position: Position, with others: [Position]) -> Bool {
-        others.contains {
-            (position.lineIndex >= 0 && position.lineIndex == $0.lineIndex)
-                || abs(position.rect.midY - $0.rect.midY) < 24
+        others.contains { other in
+            if position.lineIndex >= 0 && position.lineIndex == other.lineIndex { return true }
+            guard let rect = position.rect, let otherRect = other.rect else { return false }
+            return abs(rect.midY - otherRect.midY) < 24
         }
     }
 

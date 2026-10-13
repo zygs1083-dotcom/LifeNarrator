@@ -14,6 +14,7 @@ public struct ContextChange: Codable, Sendable {
 private final class SensorObservations {
     let center: NotificationCenter
     var activation: (any NSObjectProtocol)?
+    var scrollMonitor: Any?
     var observer: AXObserver?
     var registrations: [(element: AXUIElement, name: String, window: Bool)] = []
 
@@ -42,6 +43,8 @@ private final class SensorObservations {
     func stop() {
         if let activation { center.removeObserver(activation) }
         activation = nil
+        if let scrollMonitor { NSEvent.removeMonitor(scrollMonitor) }
+        scrollMonitor = nil
         removeAX()
     }
 
@@ -56,6 +59,7 @@ public final class ContextSensor {
     /// Focus moved to another window or app, or the focused window closed.
     public var onWindowChanged: () -> Void
     public var onError: (any Error) -> Void
+    public var onScroll: (NSEvent) -> Void = { _ in }
 
     private let observations = SensorObservations(center: NSWorkspace.shared.notificationCenter)
     private let screenText = ScreenText()
@@ -69,6 +73,7 @@ public final class ContextSensor {
     private var visualTask: Task<[TextLine], any Error>?
     private var ocrLines: [TextLine] = []
     private var pending: Task<Void, Never>?
+    private var scrollSettle: Task<Void, Never>?
     private var generation = 0
     private var appChangePending = false
     private var windowChangePending = false
@@ -87,6 +92,20 @@ public final class ContextSensor {
 
     public func start() throws {
         stop()
+        observations.scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                // Chromium posts no AX notification for a scroll, so read the newly visible content once it settles
+                // (reading during the scroll would stall the marks following it).
+                self.scrollSettle?.cancel()
+                self.scrollSettle = Task { [weak self] in
+                    try? await Task.sleep(for: .seconds(0.8))
+                    guard let self, !Task.isCancelled, self.application != nil else { return }
+                    self.schedule()
+                }
+                self.onScroll(event)
+            }
+        }
         observations.activation = observations.center.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] notification in
@@ -118,6 +137,23 @@ public final class ContextSensor {
     }
 
     public enum RectKind: String, Sendable { case bounds, estimated, ocr }
+
+    public func markTrack(lineIndex: Int, kind: RectKind?) throws -> MarkTrack? {
+        guard textSource == .ax else { return nil }
+        let line = axLines[lineIndex]
+        var track = try MarkTrack(element: line.element, application: axApplication!, origin: line.origin)
+        if kind == .bounds {
+            guard let position = try AXAccess.position(line.element) else { return nil }
+            track.origin = position
+        }
+        var element = line.element
+        for _ in 0..<3 {
+            guard let parent = try AXAccess.element(element, kAXParentAttribute) else { break }
+            track.ancestors.append(parent)
+            element = parent
+        }
+        return track
+    }
 
     private var medianHeight: CGFloat {
         let heights = textLines.map(\.rect.height).filter { (8...60).contains($0) }.sorted()
@@ -421,7 +457,10 @@ public final class ContextSensor {
         }
         textLines = lines
         textSource = source
-        axLines = source == .ax ? reading.lines : []
+        axLines = source == .ax ? reading.lines.enumerated().map { index, line in
+            AXTextLine(line: lines[index], element: line.element, utf16Offset: line.utf16Offset,
+                       origin: CGPoint(x: line.origin.x + dx, y: line.origin.y + dy))
+        } : []
         appChangePending = false
         windowChangePending = false
         lastHost = host

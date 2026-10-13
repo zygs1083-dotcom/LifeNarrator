@@ -17,7 +17,7 @@ LifeNarrator is a small macOS menu bar app with a noisy little sprite living in 
 ## Features
 
 - **Reads before it speaks.** With a model, the sprite reads the visible text, works out what you are looking at, picks a few spots, and writes a line about each one. It circles the exact words it is talking about; if it cannot find them on screen, it says nothing.
-- **Right on the text.** Frames sit on the words, lines go into empty space nearby, and both follow the window when it moves. Each mark gets a random light, bright color.
+- **Right on the text.** Frames sit on the words, lines go into empty space nearby, and both stay on the words as you scroll or move the window; a mark disappears when its text scrolls out of view. Each mark gets a random light, bright color.
 - **Knows when to be quiet.** Nothing while you type, in password fields, over full-screen video, or in apps you exclude. The same spot is not marked twice within half an hour.
 - **Your own rules.** Press ⌥⇧N and describe what you love or hate in plain words, e.g. "I hate meetings" or "Zhang San is my boss". Rules always fire first.
 - **Easy to tune.** Liveliness (quiet / lively / rowdy) decides how much it says; sliders set the gap between marks, how long each one stays and how many share the screen. Shapes, colors, fonts, emoji and three personas (snarky, sweet, chuunibyou) are all adjustable.

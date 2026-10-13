@@ -74,7 +74,7 @@ private struct SpriteRequestGenerator: TextGenerator {
 @MainActor
 public final class NarratorEngine {
     private unowned let store: AppStore
-    private let overlay: OverlayController
+    private var overlay: OverlayController!
     private let quips: SpriteQuips
     private var sensor: ContextSensor!
     private var matcher = RuleMatcher(rules: [])
@@ -90,7 +90,7 @@ public final class NarratorEngine {
     private var candidates: [Candidate] = []
     private var screenKey: UInt64?
     private var screenCount = 0
-    private var shownPlaces: [(quote: String, rect: CGRect)] = []
+    private var shownPlaces: [(id: String, quote: String)] = []
     private var queuedPlaces: [UUID: (quote: String, rect: CGRect?)] = [:]
     private var visits: [CGWindowID: Date] = [:]
     private var revisits: [CGWindowID: Date] = [:]
@@ -123,11 +123,15 @@ public final class NarratorEngine {
     init(store: AppStore) throws {
         self.store = store
         quips = try SpriteQuips.loadBuiltin()
-        overlay = OverlayController(style: store.settings.bubbleStyle)
+        overlay = OverlayController(style: store.settings.bubbleStyle, onError: { [unowned self] in self.report($0) })
         sensor = ContextSensor(onSnapshot: { [unowned self] in self.handle($0, $1) },
                                onWindowFrame: { [unowned self] in self.windowFrameChanged($0) },
                                onWindowChanged: { [unowned self] in self.windowChanged() },
                                onError: { [unowned self] in self.report($0) })
+        sensor.onScroll = { [unowned self] event in
+            guard let snapshot = self.snapshot else { return }
+            self.overlay.scrolled(event, bundleID: snapshot.bundleId)
+        }
     }
 
     func start() throws {
@@ -175,7 +179,7 @@ public final class NarratorEngine {
     private func positions(excluding id: UUID, snapshot: ContextSnapshot) -> [SpriteLocator.Position] {
         let shown = shownPlaces.map { entry in
             SpriteLocator.Position(lineIndex: SpriteLocator.locate(quote: entry.quote, lineHint: -1, in: snapshot.textLines)?.lineIndex ?? -1,
-                rect: entry.rect.offsetBy(dx: snapshot.windowFrame.minX, dy: snapshot.windowFrame.minY))
+                rect: overlay.highlight(id: entry.id))
         }
         let queued = queuedPlaces.filter { $0.key != id }.values.compactMap { entry -> SpriteLocator.Position? in
             guard let rect = entry.rect else { return nil }
@@ -261,6 +265,8 @@ public final class NarratorEngine {
             overlay.dismissAll()
             screenCount = 0
             shownPlaces = []
+        } else {
+            overlay.follow()
         }
         if switching {
             let now = snapshot.capturedAt
@@ -460,6 +466,7 @@ public final class NarratorEngine {
         if lineIndex >= 0 && SpritePrompt.privacyRanges(in: snapshot.textLines[lineIndex].text).contains(where: { $0.overlaps(range) }) { return false }
         guard memory.status(key: .init(bundleId: snapshot.bundleId, text: quote), now: Date())?.isMarked != true else { return false }
         let rect = lineIndex >= 0 ? try await sensor.textRect(lineIndex: lineIndex, range: range) : nil
+        let track = lineIndex >= 0 ? try sensor.markTrack(lineIndex: lineIndex, kind: rect?.kind) : nil
         try await waitForTyping(generation: generation, source: source)
         let latest = self.snapshot!
         if snapshot.textLines != latest.textLines || snapshot.windowFrame != latest.windowFrame {
@@ -473,17 +480,19 @@ public final class NarratorEngine {
         if let anchor, SpriteLocator.conflicts(.init(lineIndex: lineIndex, rect: anchor),
             with: positions(excluding: id, snapshot: snapshot)) { return false }
         let obstacles = sensor.placementObstacles(in: snapshot.contentFrame) + snapshot.sensitiveRects
-        let shown = overlay.show(Narration(id: UUID().uuidString, quipID: quip.text, ruleID: ruleID,
+        let narrationID = UUID().uuidString
+        let shown = overlay.show(Narration(id: narrationID, quipID: quip.text, ruleID: ruleID,
             sequence: screenCount, text: quip.text, emoji: quip.emoji, language: quip.lang.rawValue,
             persona: .init(rawValue: quip.persona.rawValue)!, anchor: anchor, windowID: windowID,
             window: WindowGeometry(frame: snapshot.windowFrame, chromeHeight: chromeHeight),
-            framed: rect != nil, line: line, obstacles: obstacles))
+            framed: rect != nil, line: line, obstacles: obstacles), track: track)
         if shown {
+            overlay.follow()
             forget(memory.mark(key: .init(bundleId: snapshot.bundleId, text: quote), quip: quip, lineHint: lineIndex, now: Date()))
             scheduler.recordShown(ruleID: cooldownRuleID, now: Date())
             lastShownAt = Date()
             screenCount += 1
-            if let anchor { shownPlaces.append((quote, anchor.offsetBy(dx: -snapshot.windowFrame.minX, dy: -snapshot.windowFrame.minY))) }
+            if anchor != nil { shownPlaces.append((narrationID, quote)) }
         }
         log(snapshot, tick, pick: lineIndex, rect: rect?.kind.rawValue ?? "none", source: source,
             place: shown ? overlay.lastPlacement : "corner", shown: shown, reason: shown ? reason : "placement")
