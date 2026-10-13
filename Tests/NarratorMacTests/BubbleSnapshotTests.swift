@@ -56,7 +56,7 @@ final class BubbleSnapshotTests: XCTestCase {
 
     func testSpriteColorsOnLightAndDarkBackgrounds() throws {
         XCTAssertEqual(BubbleStyle().theme, .clear)
-        let canvas = CGRect(x: 0, y: 0, width: 520, height: 180)
+        let canvas = CGRect(x: 0, y: 0, width: 520, height: 220)
         let window = WindowGeometry(frame: canvas, chromeHeight: 0)
         let target = CGRect(x: 40, y: 72, width: 100, height: 20)
         let highlight = BubblePlacement.spriteFrame(around: target)
