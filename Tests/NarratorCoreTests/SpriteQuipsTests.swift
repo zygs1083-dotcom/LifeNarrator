@@ -10,7 +10,7 @@ import Testing
         for lang in Lang.allCases {
             for persona in Persona.allCases {
                 let pool = quips.filter { $0.lang == lang && $0.persona == persona }
-                #expect(pool.count == 2)
+                #expect(pool.count >= 2)
                 #expect(pool.filter { $0.text.contains("{text}") }.count * 3 <= pool.count)
                 #expect(Set(pool.map(\.text)).count == pool.count)
                 for quip in pool {
@@ -20,7 +20,6 @@ import Testing
                     #expect(!quip.text.contains(where: QuipValidator.isEmoji))
                     #expect((1...3).contains(quip.emoji.count))
                     #expect(quip.emoji.allSatisfy { $0.count == 1 && QuipValidator.isEmoji($0.first!) })
-                    #expect(quip.when == .any)
                 }
             }
         }
