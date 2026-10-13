@@ -29,20 +29,38 @@ final class UISnapshotTests: XCTestCase {
                 let png = try render(view, dark: dark)
                 let name = tab == .sprite ? "sprite" : tab.key
                 try png.write(to: directory.appendingPathComponent("ui-settings-\(name)-\(dark ? "dark" : "light").png"))
+                if [.sprite, .appearance, .general].contains(tab) {
+                    let scrolled = try render(view, dark: dark, scrollToBottom: true)
+                    try scrolled.write(to: directory.appendingPathComponent("ui-settings-\(name)-scrolled-\(dark ? "dark" : "light").png"))
+                }
             }
         }
     }
 
-    private func render<V: View>(_ view: V, dark: Bool) throws -> Data {
+    private func scrollView(in view: NSView) -> NSScrollView? {
+        if let scroll = view as? NSScrollView { return scroll }
+        return view.subviews.lazy.compactMap { scrollView(in: $0) }.first
+    }
+
+    private func render<V: View>(_ view: V, dark: Bool, scrollToBottom: Bool = false) throws -> Data {
         let bounds = NSRect(x: 0, y: 0, width: 780, height: 580)
-        let window = NSWindow(contentRect: bounds, styleMask: .borderless, backing: .buffered, defer: false)
+        let window = SnapshotWindow(contentRect: bounds, styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         let hosting = NSHostingView(rootView: view)
         hosting.frame = bounds
         window.contentView = hosting
         defer { window.close() }
+        window.makeKeyAndOrderFront(nil)
         hosting.layoutSubtreeIfNeeded()
+        if scrollToBottom {
+            let scroll = try XCTUnwrap(scrollView(in: hosting))
+            let document = try XCTUnwrap(scroll.documentView)
+            let y = document.isFlipped ? document.bounds.height - scroll.contentView.bounds.height : 0
+            scroll.contentView.scroll(to: NSPoint(x: 0, y: y))
+            scroll.reflectScrolledClipView(scroll.contentView)
+            hosting.layoutSubtreeIfNeeded()
+        }
         let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: bounds))
         hosting.cacheDisplay(in: bounds, to: bitmap)
         let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
@@ -59,4 +77,9 @@ final class UISnapshotTests: XCTestCase {
         XCTAssertTrue(hasDifferentColor, "UI snapshot must not be a single color")
         return png
     }
+}
+
+@MainActor
+private final class SnapshotWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
 }

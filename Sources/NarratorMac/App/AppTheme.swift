@@ -1,4 +1,5 @@
 import AppKit
+import NarratorCore
 import SwiftUI
 
 @MainActor
@@ -20,11 +21,13 @@ enum AppTheme {
     }
 
     static func hue(_ degrees: Double) -> Hue {
-        let h = degrees / 360
-        return Hue(
-            soft: dynamic { dark in NSColor(calibratedHue: h, saturation: dark ? 0.42 : 0.22, brightness: dark ? 0.34 : 1, alpha: 1) },
-            text: dynamic { dark in NSColor(calibratedHue: h, saturation: dark ? 0.30 : 0.78, brightness: dark ? 1 : 0.40, alpha: 1) },
-            stroke: dynamic { _ in NSColor(calibratedHue: h, saturation: 0.62, brightness: 0.96, alpha: 1) })
+        Hue(
+            soft: color(PaletteColor(hue: degrees, saturation: 0.22, brightness: 1),
+                        PaletteColor(hue: degrees, saturation: 0.42, brightness: 0.34)),
+            text: color(PaletteColor(hue: degrees, saturation: 0.78, brightness: 0.40),
+                        PaletteColor(hue: degrees, saturation: 0.30, brightness: 1)),
+            stroke: color(PaletteColor(hue: degrees, saturation: 0.62, brightness: 0.96),
+                          PaletteColor(hue: degrees, saturation: 0.62, brightness: 0.96)))
     }
 
     enum FontRole { case hero, pageTitle, cardTitle, body, caption, badge, input, emoji }
@@ -49,16 +52,13 @@ enum AppTheme {
     }
 
     private static func color(_ light: UInt32, _ dark: UInt32) -> Color {
-        dynamic { isDark in
-            let hex = isDark ? dark : light
-            return NSColor(calibratedRed: Double((hex >> 16) & 255) / 255,
-                           green: Double((hex >> 8) & 255) / 255, blue: Double(hex & 255) / 255, alpha: 1)
-        }
+        color(PaletteColor(hex: light), PaletteColor(hex: dark))
     }
 
-    private static func dynamic(_ resolve: @escaping @Sendable (Bool) -> NSColor) -> Color {
+    private static func color(_ light: PaletteColor, _ dark: PaletteColor) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
-            resolve(appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua)
+            let rgb = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1)
         })
     }
 

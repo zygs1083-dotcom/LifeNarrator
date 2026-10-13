@@ -127,9 +127,11 @@ private struct SpriteSettingsView: View {
             GroupBox {
                 SliderRow(title: store.text("pace.gap"), hint: store.text("pace.gap.hint"), value: $store.settings.markGap,
                           range: 1...30, format: seconds, hue: hue)
-                Toggle(store.text("dwell.persistent"), isOn: Binding(get: {
-                    store.settings.bubbleStyle.dwell == .untilDismissed
-                }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) })).frame(minHeight: 28)
+                LabeledContent(store.text("dwell.persistent")) {
+                    Toggle(store.text("dwell.persistent"), isOn: Binding(get: {
+                        store.settings.bubbleStyle.dwell == .untilDismissed
+                    }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) })).labelsHidden()
+                }.frame(minHeight: 28)
                 if case .seconds(let duration) = store.settings.bubbleStyle.dwell {
                     SliderRow(title: store.text("pace.dwell"), value: Binding(get: { duration }, set: {
                         store.settings.bubbleStyle.dwell = .seconds($0)
@@ -294,12 +296,14 @@ private struct AppearanceSettingsView: View {
     }
 
     private func effect(_ key: String, _ effect: TextEffects) -> some View {
-        Toggle(store.text("effects.\(key)"), isOn: Binding(get: {
-            store.settings.bubbleStyle.textEffects.contains(effect)
-        }, set: {
-            if $0 { store.settings.bubbleStyle.textEffects.insert(effect) }
-            else { store.settings.bubbleStyle.textEffects.remove(effect) }
-        })).frame(minHeight: 28)
+        LabeledContent(store.text("effects.\(key)")) {
+            Toggle(store.text("effects.\(key)"), isOn: Binding(get: {
+                store.settings.bubbleStyle.textEffects.contains(effect)
+            }, set: {
+                if $0 { store.settings.bubbleStyle.textEffects.insert(effect) }
+                else { store.settings.bubbleStyle.textEffects.remove(effect) }
+            })).labelsHidden()
+        }.frame(minHeight: 28)
     }
 }
 
@@ -324,12 +328,14 @@ private struct RulesSettingsView: View {
             } label: { CardHeading(title: store.text("rules.user"), symbol: "text.badge.checkmark", hue: hue) }
             GroupBox {
                 ForEach(store.builtin.rules, id: \.id) { rule in
-                    Toggle(rule.label[store.settings.language.lang], isOn: Binding(get: {
-                        !store.settings.disabledBuiltinIds.contains(rule.id)
-                    }, set: {
-                        if $0 { store.settings.disabledBuiltinIds.remove(rule.id) }
-                        else { store.settings.disabledBuiltinIds.insert(rule.id) }
-                    })).frame(minHeight: 28)
+                    LabeledContent(rule.label[store.settings.language.lang]) {
+                        Toggle(rule.label[store.settings.language.lang], isOn: Binding(get: {
+                            !store.settings.disabledBuiltinIds.contains(rule.id)
+                        }, set: {
+                            if $0 { store.settings.disabledBuiltinIds.remove(rule.id) }
+                            else { store.settings.disabledBuiltinIds.insert(rule.id) }
+                        })).labelsHidden()
+                    }.frame(minHeight: 28)
                 }
             } label: { CardHeading(title: store.text("rules.builtin"), symbol: "shippingbox.fill", hue: hue) }
         }

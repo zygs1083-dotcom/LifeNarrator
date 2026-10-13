@@ -9,9 +9,11 @@ struct ModelSettingsView: View {
                 ProviderSettingsView(store: store)
             } label: { CardHeading(title: store.text("provider"), symbol: "brain.head.profile", hue: hue) }
             GroupBox {
-                Toggle(store.text("systemOne.enable"), isOn: Binding(get: { store.settings.systemOne != nil }, set: {
-                    store.settings.systemOne = $0 ? APIConfiguration() : nil
-                })).frame(minHeight: 28)
+                LabeledContent(store.text("systemOne.enable")) {
+                    Toggle(store.text("systemOne.enable"), isOn: Binding(get: { store.settings.systemOne != nil }, set: {
+                        store.settings.systemOne = $0 ? APIConfiguration() : nil
+                    })).labelsHidden()
+                }.frame(minHeight: 28)
                 if store.settings.systemOne != nil {
                     APISettingsView(store: store, configuration: Binding(get: { store.settings.systemOne! }, set: {
                         store.settings.systemOne = $0
