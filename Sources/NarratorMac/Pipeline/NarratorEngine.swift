@@ -47,7 +47,7 @@ public final class NarratorEngine {
         sensor = ContextSensor(onSnapshot: { [unowned self] in self.handle($0, $1) },
                                onWindowFrame: { [unowned self] in self.windowFrameChanged($0) },
                                onWindowChanged: { [unowned self] in self.windowChanged() },
-                               onError: { [unowned self] in self.store.error = String(describing: $0) })
+                               onError: { [unowned self] in self.report($0) })
     }
 
     func start() throws {
@@ -123,7 +123,7 @@ public final class NarratorEngine {
                         try enqueueModel(targets: Array(all.prefix(4)), snapshot: snapshot)
                     }
                 }
-            } catch { store.error = String(describing: error) }
+            } catch { report(error) }
         }
     }
 
@@ -131,7 +131,7 @@ public final class NarratorEngine {
         let generation = generation
         Task {
             do { _ = try await tick(kind, switching: switching, generation: generation) }
-            catch { store.error = String(describing: error) }
+            catch { report(error) }
         }
     }
 
@@ -266,7 +266,7 @@ public final class NarratorEngine {
                 }
             } catch is CancellationError {
                 return
-            } catch { store.error = String(describing: error) }
+            } catch { report(error) }
         }
     }
 
@@ -282,7 +282,7 @@ public final class NarratorEngine {
                 _ = try await tick(.idle, switching: false, generation: generation)
             } catch is CancellationError {
                 return
-            } catch { store.error = String(describing: error) }
+            } catch { report(error) }
         }
     }
 
@@ -332,6 +332,15 @@ public final class NarratorEngine {
                 modelPending = nil
                 startModel(next)
             }
+        }
+    }
+
+    /// Other apps' accessibility trees fail in app-specific ways; that read is dropped and the next change reads again.
+    private func report(_ error: any Error) {
+        if let failure = error as? AXFailure, failure.code != .apiDisabled {
+            FileHandle.standardError.write(Data("[sprite] skipped read: \(error)\n".utf8))
+        } else {
+            store.error = String(describing: error)
         }
     }
 

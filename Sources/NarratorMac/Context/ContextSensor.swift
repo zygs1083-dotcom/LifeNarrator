@@ -184,8 +184,9 @@ public final class ContextSensor {
                                               Unmanaged.passUnretained(self).toOpaque())
         switch result {
         case .success: observations.registrations.append((element, name, window))
-        case .notificationUnsupported, .notImplemented, .invalidUIElement, .failure: break
-        default: throw AXFailure(operation: name, code: result)
+        case .apiDisabled: throw AXFailure(operation: name, code: result)
+        // Apps refuse individual notifications in their own ways; the window is still read without it.
+        default: break
         }
     }
 
