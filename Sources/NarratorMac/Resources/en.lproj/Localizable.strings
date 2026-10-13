@@ -124,6 +124,7 @@
 "pace.gap" = "Gap between remarks";
 "pace.gap.hint" = "At least this long between two remarks";
 "pace.dwell" = "Stay on screen";
+"pace.dwell.hint" = "With more than 3 marks on screen, each stays at least %g seconds so they can appear together.";
 "pace.maxOnScreen" = "At most on screen";
 "format.seconds" = "%d s";
 "format.count" = "%d";

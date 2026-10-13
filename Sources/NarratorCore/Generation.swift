@@ -148,7 +148,7 @@ public struct SpriteMark: Sendable {
 }
 
 public enum SpriteGenerator {
-    public static let maxTokens = 450
+    public static let maxTokens = 900
     /// The grammar allows a little more (20 / 56) so the model finishes its sentence; longer lines are dropped, never cut.
     public static let spriteLimit = (zh: 18, en: 48)
 

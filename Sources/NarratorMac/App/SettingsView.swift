@@ -136,6 +136,10 @@ private struct SpriteSettingsView: View {
                     SliderRow(title: store.text("pace.dwell"), value: Binding(get: { duration }, set: {
                         store.settings.bubbleStyle.dwell = .seconds($0)
                     }), range: 1...30, format: seconds, hue: hue)
+                    if store.settings.bubbleStyle.maxOnScreen > 3 {
+                        Text(String(format: store.text("pace.dwell.hint"), 2.5 * Double(store.settings.bubbleStyle.maxOnScreen)))
+                            .font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
                 SliderRow(title: store.text("pace.maxOnScreen"), value: Binding(get: {
                     Double(store.settings.bubbleStyle.maxOnScreen)

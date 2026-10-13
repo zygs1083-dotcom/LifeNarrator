@@ -341,7 +341,7 @@ public final class NarratorEngine {
             return false
         }
         let level = store.settings.liveliness
-        if level != .quiet && screenCount >= SpriteTick.screenLimit(level: level) {
+        if level != .quiet && screenCount >= SpriteTick.screenLimit(level: level, maxOnScreen: store.settings.bubbleStyle.maxOnScreen) {
             log(snapshot, .mark, shown: false, reason: "screen-limit")
             return false
         }
@@ -355,15 +355,21 @@ public final class NarratorEngine {
         let ruleID = attempt.ignoresRuleCooldown ? nil : target.candidate?.rule.id
         guard try canShow(snapshot, ruleID: ruleID, now: Date()) else { return false }
         if let candidate = target.candidate, let configuration = store.settings.systemOne {
-            let plan = SystemOneDecision.plan(snapshot: snapshot, candidates: [candidate], freeComments: false,
-                needsGeneration: false, now: Date(), model: configuration.model.isEmpty ? "jev-latest" : configuration.model)
-            var response: DecisionResponse?
-            if !plan.request.questions.isEmpty {
-                let client = try SystemOneClient(baseURL: configuration.validatedURL(), key: KeychainStore.read(account: "systemOne"))
-                response = try await client.decide(plan.request)
-                guard generation == self.generation else { return false }
+            do {
+                let plan = SystemOneDecision.plan(snapshot: snapshot, candidates: [candidate], freeComments: false,
+                    needsGeneration: false, now: Date(), model: configuration.model.isEmpty ? "jev-latest" : configuration.model)
+                var response: DecisionResponse?
+                if !plan.request.questions.isEmpty {
+                    let client = try SystemOneClient(baseURL: configuration.validatedURL(), key: KeychainStore.read(account: "systemOne"))
+                    response = try await client.decide(plan.request)
+                    guard generation == self.generation else { return false }
+                }
+                if try !SystemOneDecision.evaluate(response, plan: plan, snapshot: snapshot).shouldShow { return false }
+            } catch is CancellationError { throw CancellationError() }
+            catch {
+                report(error)
+                return false
             }
-            if try !SystemOneDecision.evaluate(response, plan: plan, snapshot: snapshot).shouldShow { return false }
         }
         let lang = store.settings.language.lang
         let rule = target.candidate?.rule ?? quips.rule(for: target.category.rawValue, text: target.text,
@@ -545,7 +551,7 @@ public final class NarratorEngine {
             ready.finish()
             return ids
         }
-        let k = request.level == .rowdy ? 4 : 3
+        let k = SpriteTick.requestCount(level: request.level, maxOnScreen: store.settings.bubbleStyle.maxOnScreen)
         let timeout = Task {
             do { try await Task.sleep(for: .seconds(20)); try Task.checkCancellation() }
             catch { return }
@@ -664,9 +670,11 @@ public final class NarratorEngine {
 
     private func report(_ error: any Error) {
         if Task.isCancelled { return }
-        if let failure = error as? AXFailure, failure.code != .apiDisabled {
-            FileHandle.standardError.write(Data("[sprite] skipped read: \(error)\n".utf8))
-        } else { store.error = String(describing: error) }
+        if let failure = error as? AXFailure, failure.code == .apiDisabled {
+            store.error = String(describing: error)
+        } else {
+            FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
+        }
     }
 
     private func forget(_ key: SpriteMemory.Key?) {

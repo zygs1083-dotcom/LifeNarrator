@@ -28,7 +28,7 @@ public enum LlamaGrammar {
     """#
 
     public static let spriteMarks = #"""
-    root ::= "{" ws "\"marks\"" ws ":" ws "[" ws (mark (ws "," ws mark){0,3})? ws "]" ws "}" ws
+    root ::= "{" ws "\"marks\"" ws ":" ws "[" ws (mark (ws "," ws mark){0,7})? ws "]" ws "}" ws
     mark ::= "{" ws "\"l\"" ws ":" ws line ws "," ws "\"q\"" ws ":" ws quote ws "," ws "\"t\"" ws ":" ws text ws "," ws "\"e\"" ws ":" ws emoji ws "}"
     line ::= [0-9] | [1-9] [0-9]
     quote ::= "\"" qchar{2,32} "\""
