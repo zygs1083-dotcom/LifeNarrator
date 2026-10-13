@@ -44,3 +44,16 @@ import Testing
     #expect(SpriteLocator.conflicts(.init(lineIndex: -1, rect: CGRect(x: 0, y: 110, width: 50, height: 16)), with: [first]))
     #expect(!SpriteLocator.conflicts(first, with: []))
 }
+
+@Test func spritePositionsWithoutRectsOnlyConflictOnKnownRows() {
+    let withRect = SpriteLocator.Position(lineIndex: 0, rect: CGRect(x: 0, y: 100, width: 50, height: 16))
+    let withoutRect = SpriteLocator.Position(lineIndex: 0, rect: nil)
+    #expect(SpriteLocator.conflicts(withoutRect, with: [withRect]))
+    #expect(SpriteLocator.conflicts(withRect, with: [withoutRect]))
+    #expect(SpriteLocator.conflicts(withoutRect, with: [withoutRect]))
+    let otherRow = SpriteLocator.Position(lineIndex: 1, rect: nil)
+    #expect(!SpriteLocator.conflicts(otherRow, with: [withRect]))
+    #expect(!SpriteLocator.conflicts(withRect, with: [otherRow]))
+    #expect(!SpriteLocator.conflicts(otherRow, with: [withoutRect]))
+    #expect(!SpriteLocator.conflicts(.init(lineIndex: -1, rect: nil), with: [.init(lineIndex: -1, rect: nil)]))
+}

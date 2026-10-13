@@ -1,6 +1,20 @@
 import AppKit
+import ApplicationServices
 import NarratorCore
+import QuartzCore
 import SwiftUI
+
+public struct MarkTrack {
+    let element: AXUIElement
+    var origin: CGPoint
+
+    init(element: AXUIElement, origin: CGPoint) throws {
+        let result = AXUIElementSetMessagingTimeout(element, 0.1)
+        guard result == .success else { throw AXFailure(operation: "AXUIElementSetMessagingTimeout", code: result) }
+        self.element = element
+        self.origin = origin
+    }
+}
 
 /// A bubble on one screen's panel; all rects are in that panel's top-left-origin coordinates.
 struct PlacedBubble: Identifiable {
@@ -17,6 +31,8 @@ struct PlacedBubble: Identifiable {
     var outside: Bool
     var appearance: BubbleAppearance
     var frame: CGRect
+    var track: MarkTrack?
+    var leaving = false
     var side: AnchorSide?
     let groupIndex: Int?
     let transition: AnyTransition
@@ -44,11 +60,11 @@ struct OverlayRootView: View {
             ForEach(model.bubbles) { bubble in
                 if let decor = bubble.decor {
                     SpriteDecorEntrance(decor: decor, delay: bubble.decorDelay, reduceMotion: bubble.reduceMotion)
-                        .transition(BubbleTransitions.decor())
+                        .transition(bubble.leaving ? .identity : BubbleTransitions.decor())
                 }
                 BubbleBodyView(appearance: bubble.appearance)
                     .position(x: bubble.frame.midX, y: bubble.frame.midY)
-                    .transition(bubble.transition)
+                    .transition(bubble.leaving ? .identity : bubble.transition)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -89,7 +105,7 @@ final class ScreenOverlay {
 }
 
 @MainActor
-public final class OverlayController {
+public final class OverlayController: NSObject {
     public var style: BubbleStyle
     public var liveliness: Liveliness = .lively
 
@@ -100,9 +116,20 @@ public final class OverlayController {
     private var recentGroups: [(theme: ColorTheme, index: Int)] = []
     private var order = 0
     private var dismissMonitors: [Any] = []
+    private let onError: (any Error) -> Void
+    private var displayLink: CADisplayLink?
+    private var lastScroll = Date.distantPast
+    private var followFrames = 0
+    private var followIndex = 0
+    private var followMoved = 0
+    private var followRemoved = 0
+    private var followTime: TimeInterval = 0
+    private let debug = ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1"
 
-    public init(style: BubbleStyle) {
+    public init(style: BubbleStyle, onError: @escaping (any Error) -> Void) {
         self.style = style
+        self.onError = onError
+        super.init()
     }
 
     private func inkInset(_ appearance: BubbleAppearance) -> CGSize {
@@ -113,19 +140,121 @@ public final class OverlayController {
         maxOnScreen > 3 ? max(seconds, 2.5 * Double(maxOnScreen)) : seconds
     }
 
-    var visibleIDs: Set<String> { Set(screens.values.flatMap { $0.model.bubbles.map(\.id) }) }
+    var visibleIDs: Set<String> { Set(screens.values.flatMap { $0.model.bubbles.filter { !$0.leaving }.map(\.id) }) }
     private(set) var lastShownColor: Int?
     private(set) var lastPlacement = "corner"
 
     @discardableResult
-    public func show(_ narration: Narration) -> Bool {
-        show(narration, delay: 0)
+    public func show(_ narration: Narration, track: MarkTrack? = nil) -> Bool {
+        show(narration, track: track, delay: 0)
     }
 
     /// Narrations shown together get the §6 stagger of 60ms × k.
     public func show(_ narrations: [Narration]) {
         for (k, narration) in narrations.enumerated() {
-            show(narration, delay: 0.06 * Double(k))
+            show(narration, track: nil, delay: 0.06 * Double(k))
+        }
+    }
+
+    public func highlight(id: String) -> CGRect? {
+        for overlay in screens.values {
+            if let bubble = overlay.model.bubbles.first(where: { $0.id == id && !$0.leaving }) {
+                return bubble.highlight?.offsetBy(dx: overlay.origin.x, dy: overlay.origin.y)
+            }
+        }
+        return nil
+    }
+
+    public func scrolled(_ type: NSEvent.EventType) {
+        lastScroll = Date()
+        if displayLink == nil {
+            followFrames = 0
+            followMoved = 0
+            followRemoved = 0
+            followTime = 0
+        }
+        if type == .scrollWheel {
+            for overlay in screens.values {
+                for bubble in overlay.model.bubbles where bubble.track == nil && bubble.highlight != nil && !bubble.leaving {
+                    removeImmediately(bubble.id, from: overlay)
+                    followRemoved += 1
+                }
+            }
+        }
+        guard displayLink == nil,
+              let overlay = screens.values.first(where: { $0.model.bubbles.contains { $0.track != nil && !$0.leaving } }) else { return }
+        let link = overlay.panel.contentView!.displayLink(target: self, selector: #selector(followFrame))
+        displayLink = link
+        link.add(to: .main, forMode: .common)
+    }
+
+    @objc private func followFrame(_ link: CADisplayLink) {
+        guard Date().timeIntervalSince(lastScroll) < 0.5 else {
+            stopFollowing()
+            return
+        }
+        follow()
+    }
+
+    public func follow() {
+        let start = Date()
+        let looping = displayLink != nil
+        if looping { followFrames += 1 }
+        let tracked = screens.values.flatMap { overlay in
+            overlay.model.bubbles.indices
+                .filter { overlay.model.bubbles[$0].track != nil && !overlay.model.bubbles[$0].leaving }
+                .map { (overlay, $0) }
+        }
+        guard !tracked.isEmpty else {
+            stopFollowing()
+            return
+        }
+        let count = min(8, tracked.count)
+        for offset in 0..<count {
+            let (overlay, i) = tracked[(followIndex + offset) % tracked.count]
+            let model = overlay.model
+            let bubble = model.bubbles[i]
+            let track = bubble.track!
+            do {
+                guard let position = try AXAccess.position(track.element) else {
+                    removeImmediately(bubble.id, from: overlay)
+                    if looping { followRemoved += 1 }
+                    continue
+                }
+                let delta = CGPoint(x: position.x - track.origin.x, y: position.y - track.origin.y)
+                guard hypot(delta.x, delta.y) >= 0.5 else { continue }
+                guard let moved = BubblePlacement.follow(highlight: bubble.highlight!, frame: bubble.frame,
+                    line: bubble.line, obstacles: bubble.obstacles, delta: delta,
+                    window: bubble.window, visibleFrame: overlay.visibleFrame) else {
+                    removeImmediately(bubble.id, from: overlay)
+                    if looping { followRemoved += 1 }
+                    continue
+                }
+                model.bubbles[i].highlight = moved.highlight
+                model.bubbles[i].frame = moved.frame
+                model.bubbles[i].line = moved.line
+                model.bubbles[i].obstacles = moved.obstacles
+                model.bubbles[i].track!.origin = position
+                if looping { followMoved += 1 }
+            } catch {
+                if let failure = error as? AXFailure, failure.code == .cannotComplete { continue }
+                onError(error)
+            }
+        }
+        followIndex = (followIndex + count) % tracked.count
+        if looping { followTime += Date().timeIntervalSince(start) }
+        if screens.values.allSatisfy({ $0.model.bubbles.allSatisfy { $0.track == nil || $0.leaving } }) {
+            stopFollowing()
+        }
+    }
+
+    private func stopFollowing() {
+        guard let displayLink else { return }
+        displayLink.invalidate()
+        self.displayLink = nil
+        if debug {
+            let average = followFrames == 0 ? 0 : followTime * 1000 / Double(followFrames)
+            FileHandle.standardError.write(Data("[sprite] follow frames=\(followFrames) moved=\(followMoved) removed=\(followRemoved) avgMs=\(String(format: "%.2f", average))\n".utf8))
         }
     }
 
@@ -142,6 +271,9 @@ public final class OverlayController {
                 model.bubbles[i].highlight = model.bubbles[i].highlight?.offsetBy(dx: dx, dy: dy)
                 model.bubbles[i].line = model.bubbles[i].line?.offsetBy(dx: dx, dy: dy)
                 model.bubbles[i].obstacles = model.bubbles[i].obstacles.map { $0.offsetBy(dx: dx, dy: dy) }
+                if let origin = model.bubbles[i].track?.origin {
+                    model.bubbles[i].track!.origin = CGPoint(x: origin.x + dx, y: origin.y + dy)
+                }
             }
             if hypot(dx, dy) <= 40 {
                 restack(windowID, on: overlay)
@@ -172,7 +304,7 @@ public final class OverlayController {
     }
 
     @discardableResult
-    private func show(_ n: Narration, delay: Double) -> Bool {
+    private func show(_ n: Narration, track: MarkTrack?, delay: Double) -> Bool {
         guard let size = BubblePlacement.sizeTier(requested: style.size, window: n.window) else { return false }
         guard let overlay = overlay(for: n.window.frame) else { return false }
         let model = overlay.model
@@ -269,7 +401,7 @@ public final class OverlayController {
             id: n.id, windowID: n.windowID, order: order, window: window, highlight: highlight,
             framed: n.framed, line: n.line.map(overlay.local), obstacles: n.obstacles.map(overlay.local),
             connector: connector, outside: outside, appearance: appearance,
-            frame: frame, side: side, groupIndex: groupIndex,
+            frame: frame, track: track, side: side, groupIndex: groupIndex,
             transition: BubbleTransitions.bubble(animation, anchor: appearance.scaleAnchor(side: side, corner: corner), slide: slideOffset(frame: frame, window: window.frame), delay: textDelay, reduceMotion: reduceMotion),
             decorDelay: delay, reduceMotion: reduceMotion)
         order += 1
@@ -371,6 +503,14 @@ public final class OverlayController {
         }
     }
 
+    private func removeImmediately(_ id: String, from overlay: ScreenOverlay) {
+        let index = overlay.model.bubbles.firstIndex { $0.id == id }!
+        overlay.model.bubbles[index].leaving = true
+        DispatchQueue.main.async { [self] in
+            remove(id, from: overlay)
+        }
+    }
+
     private func remove(_ id: String, from overlay: ScreenOverlay) {
         // The dwell timer may fire after an explicit dismiss already removed the bubble.
         guard let bubble = overlay.model.bubbles.first(where: { $0.id == id }) else { return }
@@ -382,6 +522,9 @@ public final class OverlayController {
         }
         if screens.values.allSatisfy({ $0.model.bubbles.isEmpty }) {
             removeDismissMonitors()
+        }
+        if screens.values.allSatisfy({ $0.model.bubbles.allSatisfy { $0.track == nil || $0.leaving } }) {
+            stopFollowing()
         }
     }
 

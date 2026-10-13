@@ -33,6 +33,20 @@ enum AXAccess {
         return (value as! AXUIElement)
     }
 
+    static func position(_ element: AXUIElement) throws -> CGPoint? {
+        var value: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &value)
+        switch result {
+        case .success: break
+        case .attributeUnsupported, .noValue, .notImplemented, .invalidUIElement: return nil
+        default: throw AXFailure(operation: kAXPositionAttribute, code: result)
+        }
+        guard let value,
+              CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+        var point = CGPoint.zero
+        return AXValueGetValue(value as! AXValue, .cgPoint, &point) ? point : nil
+    }
+
     static func frame(_ element: AXUIElement) throws -> CGRect? {
         guard let position = try value(element, kAXPositionAttribute),
               let size = try value(element, kAXSizeAttribute),
@@ -65,6 +79,7 @@ struct AXTextLine {
     let line: TextLine
     let element: AXUIElement
     let utf16Offset: Int
+    let origin: CGPoint
 }
 
 struct AXReading {
@@ -167,7 +182,8 @@ enum AXTextReader {
                         let textRole: TextRole = role == kAXButtonRole ? .button : role == "AXLink" ? .link
                             : [kAXTextFieldRole, kAXTextAreaRole].contains(role) ? .field : .text
                         lines.append(AXTextLine(line: TextLine(text: trimmed.text, rect: textFrame, role: textRole),
-                                                element: element, utf16Offset: offset + trimmed.utf16Offset))
+                                                element: element, utf16Offset: offset + trimmed.utf16Offset,
+                                                origin: frame!.origin))
                     }
                 }
             }
