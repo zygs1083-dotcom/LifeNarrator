@@ -78,7 +78,11 @@ emoji ::= "\"" [\U0001f300-\U0001faff\u2600-\u27bf] [\U0001f300-\U0001faff\u2600
 ws ::= [ \t\n\r]{0,4}
 """#
 
-func run() throws {
+func run() async throws {
+    if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "sprite" {
+        try await runSprite(modelPath: CommandLine.arguments[2])
+        return
+    }
     if CommandLine.arguments.count == 3 && CommandLine.arguments[2] == "--quality" {
         try runQuality(modelPath: CommandLine.arguments[1])
         return
@@ -117,7 +121,7 @@ func run() throws {
 }
 
 do {
-    try run()
+    try await run()
 } catch {
     fputs("narrator-bench failed: \(error)\n", stderr)
     exit(1)
