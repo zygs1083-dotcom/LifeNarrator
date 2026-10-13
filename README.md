@@ -12,7 +12,7 @@ LifeNarrator is a lightweight macOS menu bar app that watches what is on your sc
 
 ![A boxed name and a "Pig Boss" bubble on a test chat window](docs/images/boss-bubble.png)
 
-> **Status:** v0.4 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
+> **Status:** v0.5 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
 
 ## Features
 

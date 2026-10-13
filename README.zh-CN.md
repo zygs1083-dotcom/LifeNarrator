@@ -12,7 +12,7 @@
 
 ![测试聊天窗口上框住的名字和"猪领导"旁白](docs/images/boss-bubble.png)
 
-> **当前状态：** v0.4 预览版，可以在 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator.zip`。
+> **当前状态：** v0.5 预览版，可以在 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator.zip`。
 
 ## 功能
 
