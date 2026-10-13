@@ -130,7 +130,7 @@ private struct SpriteSettingsView: View {
                 LabeledContent(store.text("dwell.persistent")) {
                     Toggle(store.text("dwell.persistent"), isOn: Binding(get: {
                         store.settings.bubbleStyle.dwell == .untilDismissed
-                    }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) })).labelsHidden()
+                    }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) })).labelsHidden().frame(maxWidth: .infinity, alignment: .trailing)
                 }.frame(minHeight: 28)
                 if case .seconds(let duration) = store.settings.bubbleStyle.dwell {
                     SliderRow(title: store.text("pace.dwell"), value: Binding(get: { duration }, set: {
@@ -168,9 +168,11 @@ struct GeneralSettingsView: View {
             GroupBox {
                 LabeledContent(store.text("shortcut.pause")) {
                     KeyboardShortcuts.Recorder("", shortcut: $store.settings.pauseShortcut)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }.frame(minHeight: 28)
                 LabeledContent(store.text("shortcut.input")) {
                     KeyboardShortcuts.Recorder("", shortcut: $store.settings.inputShortcut)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }.frame(minHeight: 28)
             } label: { CardHeading(title: store.text("shortcuts"), symbol: "keyboard", hue: hue) }
             GroupBox {
@@ -302,7 +304,7 @@ private struct AppearanceSettingsView: View {
             }, set: {
                 if $0 { store.settings.bubbleStyle.textEffects.insert(effect) }
                 else { store.settings.bubbleStyle.textEffects.remove(effect) }
-            })).labelsHidden()
+            })).labelsHidden().frame(maxWidth: .infinity, alignment: .trailing)
         }.frame(minHeight: 28)
     }
 }
@@ -334,7 +336,7 @@ private struct RulesSettingsView: View {
                         }, set: {
                             if $0 { store.settings.disabledBuiltinIds.remove(rule.id) }
                             else { store.settings.disabledBuiltinIds.insert(rule.id) }
-                        })).labelsHidden()
+                        })).labelsHidden().frame(maxWidth: .infinity, alignment: .trailing)
                     }.frame(minHeight: 28)
                 }
             } label: { CardHeading(title: store.text("rules.builtin"), symbol: "shippingbox.fill", hue: hue) }

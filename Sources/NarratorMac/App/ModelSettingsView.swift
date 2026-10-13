@@ -12,7 +12,7 @@ struct ModelSettingsView: View {
                 LabeledContent(store.text("systemOne.enable")) {
                     Toggle(store.text("systemOne.enable"), isOn: Binding(get: { store.settings.systemOne != nil }, set: {
                         store.settings.systemOne = $0 ? APIConfiguration() : nil
-                    })).labelsHidden()
+                    })).labelsHidden().frame(maxWidth: .infinity, alignment: .trailing)
                 }.frame(minHeight: 28)
                 if store.settings.systemOne != nil {
                     APISettingsView(store: store, configuration: Binding(get: { store.settings.systemOne! }, set: {

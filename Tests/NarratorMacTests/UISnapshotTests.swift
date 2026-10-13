@@ -7,7 +7,10 @@ import XCTest
 @MainActor
 final class UISnapshotTests: XCTestCase {
     func testSettingsPagesInLightAndDark() throws {
-        _ = NSApplication.shared
+        let application = NSApplication.shared
+        application.setActivationPolicy(.regular)
+        application.finishLaunching()
+        application.activate(ignoringOtherApps: true)
         let directory = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SNAPSHOT_DIR"] ?? ".build/snapshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let dataDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -52,6 +55,7 @@ final class UISnapshotTests: XCTestCase {
         window.contentView = hosting
         defer { window.close() }
         window.makeKeyAndOrderFront(nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
         hosting.layoutSubtreeIfNeeded()
         if scrollToBottom {
             let scroll = try XCTUnwrap(scrollView(in: hosting))
