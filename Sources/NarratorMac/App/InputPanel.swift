@@ -57,9 +57,14 @@ struct RuleInputView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             CardHeading(title: store.text("input.title"), symbol: "text.bubble.fill", hue: AppTheme.hue(320))
-            TextField("", text: $input,
-                      prompt: Text(store.text("input.placeholder")).foregroundColor(AppTheme.textSecondary))
+            TextField("", text: $input)
                 .textFieldStyle(.plain).font(AppTheme.font(.input))
+                .overlay(alignment: .leading) {
+                    if input.isEmpty {
+                        Text(store.text("input.placeholder")).foregroundStyle(AppTheme.textSecondary)
+                            .allowsHitTesting(false).accessibilityHidden(true)
+                    }
+                }
                 .focused($focused).disabled(compiling)
                 .onSubmit(compile)
                 .accessibilityLabel(store.text("input.title"))

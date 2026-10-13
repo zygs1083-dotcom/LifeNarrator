@@ -18,7 +18,7 @@ public struct OnboardingView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 16) {
                 Image(systemName: "text.bubble.fill").font(.system(size: 28))
                     .foregroundStyle(AppTheme.accent).frame(width: 56, height: 56)

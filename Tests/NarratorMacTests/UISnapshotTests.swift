@@ -55,7 +55,7 @@ final class UISnapshotTests: XCTestCase {
                 let view = ScrollView { RulesSettingsView(store: rulesStore, expanded: filled).padding(20) }
                     .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
                     .groupBoxStyle(.card).toggleStyle(.switch).tint(AppTheme.accent)
-                    .background(AppTheme.windowBackground)
+                    .frame(width: 780, height: 580).background(AppTheme.windowBackground)
                 let name = "ui-rules-\(filled ? "filled" : "empty")-\(dark ? "dark" : "light")"
                 try render(view, dark: dark).write(to: directory.appendingPathComponent("\(name).png"))
                 if filled {
@@ -111,6 +111,7 @@ final class UISnapshotTests: XCTestCase {
             scroll.reflectScrolledClipView(scroll.contentView)
             hosting.layoutSubtreeIfNeeded()
         }
+        hosting.displayIfNeeded()
         let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: bounds))
         hosting.cacheDisplay(in: bounds, to: bitmap)
         let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
