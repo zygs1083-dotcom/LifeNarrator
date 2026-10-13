@@ -128,7 +128,10 @@ public final class NarratorEngine {
                                onWindowFrame: { [unowned self] in self.windowFrameChanged($0) },
                                onWindowChanged: { [unowned self] in self.windowChanged() },
                                onError: { [unowned self] in self.report($0) })
-        sensor.onScroll = { [unowned self] in self.overlay.scrolled($0) }
+        sensor.onScroll = { [unowned self] event in
+            guard let snapshot = self.snapshot else { return }
+            self.overlay.scrolled(event, bundleID: snapshot.bundleId)
+        }
     }
 
     func start() throws {

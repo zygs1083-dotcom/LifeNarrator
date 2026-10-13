@@ -59,7 +59,7 @@ public final class ContextSensor {
     /// Focus moved to another window or app, or the focused window closed.
     public var onWindowChanged: () -> Void
     public var onError: (any Error) -> Void
-    public var onScroll: (NSEvent.EventType) -> Void = { _ in }
+    public var onScroll: (NSEvent) -> Void = { _ in }
 
     private let observations = SensorObservations(center: NSWorkspace.shared.notificationCenter)
     private let screenText = ScreenText()
@@ -92,7 +92,7 @@ public final class ContextSensor {
     public func start() throws {
         stop()
         observations.scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [weak self] event in
-            MainActor.assumeIsolated { self?.onScroll(event.type) }
+            MainActor.assumeIsolated { self?.onScroll(event) }
         }
         observations.activation = observations.center.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
@@ -129,10 +129,16 @@ public final class ContextSensor {
     public func markTrack(lineIndex: Int, kind: RectKind?) throws -> MarkTrack? {
         guard textSource == .ax else { return nil }
         let line = axLines[lineIndex]
-        var track = try MarkTrack(element: line.element, origin: line.origin)
+        var track = try MarkTrack(element: line.element, application: axApplication!, origin: line.origin)
         if kind == .bounds {
             guard let position = try AXAccess.position(line.element) else { return nil }
             track.origin = position
+        }
+        var element = line.element
+        for _ in 0..<3 {
+            guard let parent = try AXAccess.element(element, kAXParentAttribute) else { break }
+            track.ancestors.append(parent)
+            element = parent
         }
         return track
     }

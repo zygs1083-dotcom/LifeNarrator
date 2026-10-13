@@ -6,12 +6,18 @@ import SwiftUI
 
 public struct MarkTrack {
     let element: AXUIElement
+    let application: AXUIElement
+    var ancestors: [AXUIElement] = []
     var origin: CGPoint
+    var lastHitTest = Date.distantPast
 
-    init(element: AXUIElement, origin: CGPoint) throws {
-        let result = AXUIElementSetMessagingTimeout(element, 0.1)
-        guard result == .success else { throw AXFailure(operation: "AXUIElementSetMessagingTimeout", code: result) }
+    init(element: AXUIElement, application: AXUIElement, origin: CGPoint) throws {
+        for target in [element, application] {
+            let result = AXUIElementSetMessagingTimeout(target, 0.1)
+            guard result == .success else { throw AXFailure(operation: "AXUIElementSetMessagingTimeout", code: result) }
+        }
         self.element = element
+        self.application = application
         self.origin = origin
     }
 }
@@ -122,7 +128,11 @@ public final class OverlayController: NSObject {
     private var followFrames = 0
     private var followMoved = 0
     private var followRemoved = 0
+    private var followHitRemoved = 0
     private var followTime: TimeInterval = 0
+    private var scrollLead: ScrollLead?
+    private var scrollBundleID: String?
+    private var scrollModes: [String: ScrollLead.Mode] = [:]
     private let debug = ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1"
 
     public init(style: BubbleStyle, onError: @escaping (any Error) -> Void) {
@@ -164,15 +174,17 @@ public final class OverlayController: NSObject {
         return nil
     }
 
-    public func scrolled(_ type: NSEvent.EventType) {
+    public func scrolled(_ event: NSEvent, bundleID: String) {
+        if scrollBundleID != nil && scrollBundleID != bundleID { stopFollowing() }
         lastScroll = Date()
         if displayLink == nil {
             followFrames = 0
             followMoved = 0
             followRemoved = 0
+            followHitRemoved = 0
             followTime = 0
         }
-        if type == .scrollWheel {
+        if event.type == .scrollWheel {
             for overlay in screens.values {
                 for bubble in overlay.model.bubbles where bubble.track == nil && bubble.highlight != nil && !bubble.leaving {
                     removeImmediately(bubble.id, from: overlay)
@@ -180,15 +192,35 @@ public final class OverlayController: NSObject {
                 }
             }
         }
-        guard displayLink == nil,
-              let overlay = screens.values.first(where: { $0.model.bubbles.contains { $0.track != nil && !$0.leaving } }) else { return }
-        let link = overlay.panel.contentView!.displayLink(target: self, selector: #selector(followFrame))
-        displayLink = link
-        link.add(to: .main, forMode: .common)
+        if displayLink == nil {
+            guard let overlay = screens.values.first(where: { $0.model.bubbles.contains { $0.track != nil && !$0.leaving } }) else { return }
+            var lead = ScrollLead(mode: scrollModes[bundleID] ?? .throttled, time: lastScroll.timeIntervalSinceReferenceDate)
+            for screen in screens.values {
+                for bubble in screen.model.bubbles where bubble.track != nil && !bubble.leaving {
+                    lead.add(bubble.id, windowID: bubble.windowID)
+                }
+            }
+            scrollLead = lead
+            scrollBundleID = bundleID
+            let link = overlay.panel.contentView!.displayLink(target: self, selector: #selector(followFrame))
+            displayLink = link
+            link.add(to: .main, forMode: .common)
+        }
+        if event.type == .scrollWheel && event.hasPreciseScrollingDeltas {
+            let point = CGPoint(x: event.locationInWindow.x, y: NSScreen.screens[0].frame.maxY - event.locationInWindow.y)
+            let windows = Set(screens.values.flatMap { overlay in
+                overlay.model.bubbles.filter {
+                    $0.track != nil && !$0.leaving && $0.window.frame.contains(CGPoint(x: point.x - overlay.origin.x, y: point.y - overlay.origin.y))
+                }.map(\.windowID)
+            })
+            let translations = scrollLead!.event(delta: CGPoint(x: event.scrollingDeltaX, y: event.scrollingDeltaY),
+                windows: windows, time: lastScroll.timeIntervalSinceReferenceDate)
+            applyTranslations(translations)
+        }
     }
 
     @objc private func followFrame(_ link: CADisplayLink) {
-        guard Date().timeIntervalSince(lastScroll) < 0.5 else {
+        guard Date().timeIntervalSince(lastScroll) < 0.8 else {
             stopFollowing()
             return
         }
@@ -208,6 +240,8 @@ public final class OverlayController: NSObject {
             stopFollowing()
             return
         }
+        var positions: [String: CGPoint] = [:]
+        var deltas: [String: CGPoint] = [:]
         for (overlay, i) in tracked {
             let model = overlay.model
             let bubble = model.bubbles[i]
@@ -218,24 +252,32 @@ public final class OverlayController: NSObject {
                     if looping { followRemoved += 1 }
                     continue
                 }
-                let delta = CGPoint(x: position.x - track.origin.x, y: position.y - track.origin.y)
-                guard hypot(delta.x, delta.y) >= 0.5 else { continue }
-                guard let moved = BubblePlacement.follow(highlight: bubble.highlight!, frame: bubble.frame,
-                    line: bubble.line, obstacles: bubble.obstacles, delta: delta,
-                    window: bubble.window, visibleFrame: overlay.visibleFrame) else {
-                    removeImmediately(bubble.id, from: overlay)
-                    if looping { followRemoved += 1 }
-                    continue
-                }
-                model.bubbles[i].highlight = moved.highlight
-                model.bubbles[i].frame = moved.frame
-                model.bubbles[i].line = moved.line
-                model.bubbles[i].obstacles = moved.obstacles
-                model.bubbles[i].track!.origin = position
-                if looping { followMoved += 1 }
+                positions[bubble.id] = position
+                deltas[bubble.id] = CGPoint(x: position.x - track.origin.x, y: position.y - track.origin.y)
             } catch {
                 if let failure = error as? AXFailure, failure.code == .cannotComplete { continue }
                 onError(error)
+            }
+        }
+        let translations = scrollLead?.follow(deltas: deltas, time: start.timeIntervalSinceReferenceDate)
+            ?? deltas.filter { hypot($0.value.x, $0.value.y) >= 0.5 }
+        applyTranslations(translations)
+        for (overlay, i) in tracked {
+            let bubble = overlay.model.bubbles[i]
+            guard !bubble.leaving, let delta = deltas[bubble.id], hypot(delta.x, delta.y) >= 0.5 else { continue }
+            overlay.model.bubbles[i].track!.origin = positions[bubble.id]!
+            guard start.timeIntervalSince(bubble.track!.lastHitTest) >= 0.1 else { continue }
+            overlay.model.bubbles[i].track!.lastHitTest = start
+            let lead = scrollLead?.marks[bubble.id]?.lead ?? .zero
+            let highlight = bubble.highlight!
+            let point = CGPoint(x: highlight.midX + overlay.origin.x - lead.x,
+                                y: highlight.midY + overlay.origin.y - lead.y)
+            if occluded(bubble.track!, at: point) {
+                removeImmediately(bubble.id, from: overlay)
+                if looping {
+                    followRemoved += 1
+                    followHitRemoved += 1
+                }
             }
         }
         if looping { followTime += Date().timeIntervalSince(start) }
@@ -248,10 +290,55 @@ public final class OverlayController: NSObject {
         guard let displayLink else { return }
         displayLink.invalidate()
         self.displayLink = nil
+        var lead = scrollLead!
+        let mode = lead.classifiedMode ?? lead.mode
+        if let classified = lead.classifiedMode { scrollModes[scrollBundleID!] = classified }
+        scrollLead = nil
+        scrollBundleID = nil
+        applyTranslations(lead.end())
         if debug {
             let average = followFrames == 0 ? 0 : followTime * 1000 / Double(followFrames)
-            FileHandle.standardError.write(Data("[sprite] follow frames=\(followFrames) moved=\(followMoved) removed=\(followRemoved) avgMs=\(String(format: "%.2f", average))\n".utf8))
+            FileHandle.standardError.write(Data("[sprite] follow frames=\(followFrames) moved=\(followMoved) removed=\(followRemoved) hitRemoved=\(followHitRemoved) events=\(lead.events) samples=\(lead.samples) mode=\(mode.rawValue) avgMs=\(String(format: "%.2f", average))\n".utf8))
         }
+    }
+
+    private func applyTranslations(_ translations: [String: CGPoint]) {
+        for overlay in screens.values {
+            let model = overlay.model
+            for i in model.bubbles.indices {
+                let bubble = model.bubbles[i]
+                guard !bubble.leaving, let delta = translations[bubble.id], delta != .zero else { continue }
+                guard let moved = BubblePlacement.follow(highlight: bubble.highlight!, frame: bubble.frame,
+                    line: bubble.line, obstacles: bubble.obstacles, delta: delta,
+                    window: bubble.window, visibleFrame: overlay.visibleFrame) else {
+                    removeImmediately(bubble.id, from: overlay)
+                    followRemoved += 1
+                    continue
+                }
+                model.bubbles[i].highlight = moved.highlight
+                model.bubbles[i].frame = moved.frame
+                model.bubbles[i].line = moved.line
+                model.bubbles[i].obstacles = moved.obstacles
+                followMoved += 1
+            }
+        }
+    }
+
+    private func occluded(_ track: MarkTrack, at point: CGPoint) -> Bool {
+        var hit: AXUIElement?
+        guard AXUIElementCopyElementAtPosition(track.application, Float(point.x), Float(point.y), &hit) == .success,
+              var element = hit else { return false }
+        if CFEqual(element, track.element) || track.ancestors.contains(where: { CFEqual($0, element) }) { return false }
+        do {
+            for _ in 0..<3 {
+                guard let parent = try AXAccess.element(element, kAXParentAttribute) else { break }
+                if CFEqual(parent, track.element) { return false }
+                element = parent
+            }
+        } catch {
+            return false
+        }
+        return true
     }
 
     /// Moves the window's bubbles with it (§6 position follow). Bubbles that no longer fit are dismissed.
@@ -410,6 +497,7 @@ public final class OverlayController: NSObject {
                 restack(n.windowID, on: overlay)
             }
         }
+        if track != nil { scrollLead?.add(n.id, windowID: n.windowID) }
 
         switch style.dwell {
         case .seconds(let seconds):
@@ -502,6 +590,7 @@ public final class OverlayController: NSObject {
     private func removeImmediately(_ id: String, from overlay: ScreenOverlay) {
         let index = overlay.model.bubbles.firstIndex { $0.id == id }!
         overlay.model.bubbles[index].leaving = true
+        scrollLead?.remove(id)
         DispatchQueue.main.async { [self] in
             remove(id, from: overlay)
         }
@@ -510,6 +599,7 @@ public final class OverlayController: NSObject {
     private func remove(_ id: String, from overlay: ScreenOverlay) {
         // The dwell timer may fire after an explicit dismiss already removed the bubble.
         guard let bubble = overlay.model.bubbles.first(where: { $0.id == id }) else { return }
+        scrollLead?.remove(id)
         withAnimation(.easeInOut(duration: 0.2)) {
             overlay.model.bubbles.removeAll { $0.id == id }
             if bubble.highlight == nil {
