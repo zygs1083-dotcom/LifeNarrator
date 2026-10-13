@@ -123,6 +123,7 @@ public final class AppStore: ObservableObject {
         var updated = rules
         updated[updated.firstIndex { $0.id == id }!].enabled = enabled
         try saveRules(updated)
+        if enabled { pregenerator.schedule() }
     }
 
     public func deleteRule(id: String) throws { try saveRules(rules.filter { $0.id != id }) }

@@ -118,9 +118,10 @@ enum AXTextReader {
                 if webURL == nil { webURL = candidate }
                 if let focusedWebArea, CFEqual(element, focusedWebArea) { focusedURL = candidate }
             }
+            // Chromium names the omnibox "Address and search bar" / "地址和搜索栏"; its role description is just "text field".
             if isBrowser, role == kAXTextFieldRole, visible,
-               let description = try AXAccess.value(element, kAXRoleDescriptionAttribute) as? String,
-               description.localizedCaseInsensitiveContains("address") {
+               let description = try AXAccess.value(element, kAXDescriptionAttribute) as? String,
+               description.localizedCaseInsensitiveContains("address") || description.contains("地址") {
                 addressURL = try AXAccess.value(element, kAXValueAttribute) as? String
             }
             if let role, visible, textRoles.contains(role) || ["AXWebArea", "AXCheckBox", kAXScrollAreaRole].contains(role) {
