@@ -88,7 +88,7 @@ public final class ContextSensor {
             guard let pid = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.processIdentifier else { return }
             MainActor.assumeIsolated {
                 guard let self, let app = NSRunningApplication(processIdentifier: pid) else { return }
-                do { try self.activate(app) } catch { self.onError(error) }
+                do { try self.activate(app) } catch { self.report(error) }
             }
         }
         application = nil
@@ -125,6 +125,12 @@ public final class ContextSensor {
         return try AXAccess.value(focused, "AXEditable") as? Bool == true
     }
 
+    /// A busy app times out (`cannotComplete`); the next notification reads it again.
+    private func report(_ error: any Error) {
+        if let failure = error as? AXFailure, failure.code == .cannotComplete { return }
+        onError(error)
+    }
+
     private func activate(_ app: NSRunningApplication) throws {
         if application?.processIdentifier == app.processIdentifier { return }
         pending?.cancel()
@@ -136,14 +142,18 @@ public final class ContextSensor {
         windowFrame = nil
         axLines = []
         valueChanges = [:]
-        guard app.bundleIdentifier != nil else { return }
+        // Our own windows (settings, onboarding) are never narrated.
+        guard app.bundleIdentifier != nil, app.processIdentifier != getpid() else {
+            onWindowChanged()
+            return
+        }
         application = app
         axApplication = AXUIElementCreateApplication(app.processIdentifier)
         var observer: AXObserver?
         let result = AXObserverCreate(app.processIdentifier, { _, element, notification, context in
             MainActor.assumeIsolated {
                 let sensor = Unmanaged<ContextSensor>.fromOpaque(context!).takeUnretainedValue()
-                do { try sensor.receive(notification as String, element: element) } catch { sensor.onError(error) }
+                do { try sensor.receive(notification as String, element: element) } catch { sensor.report(error) }
             }
         }, &observer)
         guard result == .success else { throw AXFailure(operation: "AXObserverCreate", code: result) }
@@ -163,7 +173,7 @@ public final class ContextSensor {
                                               Unmanaged.passUnretained(self).toOpaque())
         switch result {
         case .success: observations.registrations.append((element, name, window))
-        case .notificationUnsupported, .notImplemented: break
+        case .notificationUnsupported, .notImplemented, .invalidUIElement: break
         default: throw AXFailure(operation: name, code: result)
         }
     }
@@ -224,7 +234,7 @@ public final class ContextSensor {
             } catch is CancellationError {
                 return
             } catch {
-                self?.onError(error)
+                self?.report(error)
             }
         }
     }

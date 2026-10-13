@@ -2,9 +2,10 @@ import AppKit
 import ApplicationServices
 import NarratorCore
 
-struct AXFailure: Error {
+struct AXFailure: Error, CustomStringConvertible {
     let operation: String
     let code: AXError
+    var description: String { "AXFailure(operation: \(operation), code: \(code.rawValue))" }
 }
 
 enum AXAccess {
@@ -13,7 +14,8 @@ enum AXAccess {
         let result = AXUIElementCopyAttributeValue(element, name as CFString, &value)
         switch result {
         case .success: return value
-        case .attributeUnsupported, .noValue, .notImplemented: return nil
+        // invalidUIElement: the element was destroyed while the window was being read.
+        case .attributeUnsupported, .noValue, .notImplemented, .invalidUIElement: return nil
         default: throw AXFailure(operation: name, code: result)
         }
     }
@@ -44,7 +46,7 @@ enum AXAccess {
         let error = AXUIElementCopyParameterizedAttributeValue(
             element, kAXBoundsForRangeParameterizedAttribute as CFString, parameter, &result)
         switch error {
-        case .parameterizedAttributeUnsupported, .attributeUnsupported, .noValue, .notImplemented, .illegalArgument: return nil
+        case .parameterizedAttributeUnsupported, .attributeUnsupported, .noValue, .notImplemented, .illegalArgument, .invalidUIElement: return nil
         case .success: break
         default: throw AXFailure(operation: kAXBoundsForRangeParameterizedAttribute, code: error)
         }
