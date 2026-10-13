@@ -50,3 +50,15 @@ func semanticsSnapshot(_ texts: [String]) -> ContextSnapshot {
     #expect(SpritePrompt.estimatedTokens("你好") == 1.5)
     #expect(abs(SpritePrompt.estimatedTokens("hello") - 1.5) < 0.001)
 }
+
+@Test func spritePromptAsksToFillOnlyForLargeCounts() {
+    let snapshot = ContextSnapshot(bundleId: "test", appName: "Test", pid: 1, windowFrame: CGRect(x: 0, y: 0, width: 800, height: 600),
+                                   contentFrame: CGRect(x: 0, y: 50, width: 800, height: 550),
+                                   textLines: [TextLine(text: "第一行内容", rect: CGRect(x: 10, y: 100, width: 200, height: 16))],
+                                   textSource: .ax, capturedAt: Date(timeIntervalSince1970: 0))
+    let screen = SpritePrompt.screen(in: snapshot)
+    let few = GenerationPrompts.spriteMarks(app: "A", title: "T", screen: screen, exclude: [], persona: .sharp, lang: .zh, k: 4)
+    let many = GenerationPrompts.spriteMarks(app: "A", title: "T", screen: screen, exclude: [], persona: .sharp, lang: .zh, k: 8)
+    #expect(!few.user.contains("尽量挑满"))
+    #expect(many.user.contains("尽量挑满 8 处"))
+}

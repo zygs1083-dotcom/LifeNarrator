@@ -159,6 +159,13 @@ Output:
         }
         let system = fill(lang == .zh ? spriteMarksZH : spriteMarksEN)
         var user = fill(lang == .zh ? spriteMarksUserZH : spriteMarksUserEN)
+        // The system prompt says "quality over quantity"; with a high on-screen limit the model needs a nudge to fill it.
+        // It goes in the user part so the cached system prefix stays the same.
+        if k > 4 {
+            user += lang == .zh
+                ? "\n\n这次用户想看热闹：屏幕上值得说的地方多，就尽量挑满 \(k) 处，每处都要说到具体内容。"
+                : "\n\nThe user wants a busy screen this time: if there is enough worth remarking on, pick close to \(k) spots, each with a specific point."
+        }
         if !exclude.isEmpty {
             user += lang == .zh
                 ? "\n\n已经说过的地方（这次别再挑）：" + exclude.map { "「\($0)」" }.joined()
