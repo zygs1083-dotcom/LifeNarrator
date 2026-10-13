@@ -80,7 +80,7 @@ How to pick:
 
 How to write:
 - q: the text to box. Copy it verbatim from one line on screen, a contiguous span, ideally 2 to 12 characters and at most 32; keep the punctuation, never cross a line, never the whole line. l is that line's number.
-- t: the remark, at most 40 characters including punctuation, no emoji. Make one specific point about that spot so the reader instantly sees which line you mean and why it is interesting. Do not repeat q, do not gush ("impressive", "lots of numbers" do not count).
+- t: the remark, under 8 words, no emoji. Make one specific point about that spot so the reader instantly sees which line you mean and why it is interesting. Do not repeat q, do not gush ("impressive", "lots of numbers" do not count).
 - Like a friend peeking over your shoulder: cute, funny, a little knowing. Not a slogan, never preachy.
 - Never mean: nothing about looks, intelligence, family or identity; no profanity; no politics, religion, sex or violence; do not invent facts that are not on screen.
 - e: exactly one emoji.

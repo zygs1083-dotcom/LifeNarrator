@@ -75,7 +75,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     let raw: [[String: Any]] = [
         ["l":99,"q":"first phrase","t":"越界","e":"🌷"],
         ["l":0,"q":"missing phrase","t":"找不到","e":"🌷"],
-        ["l":0,"q":"first phrase","t":String(repeating:"字",count:15),"e":"🌷"],
+        ["l":0,"q":"first phrase","t":String(repeating:"字",count:SpriteGenerator.spriteLimit.zh + 1),"e":"🌷"],
         ["l":0,"q":"first phrase","t":"两个表情","e":"🌷🌷"],
         ["l":0,"q":"first phrase","t":"第一句，、；：","e":"👨‍👩‍👧‍👦"],
         ["l":0,"q":"phrase","t":"重叠","e":"🌷"],
@@ -90,7 +90,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
 
 @Test func spriteGenerationRejectsTextAndQuoteLimitsAndPrivacy() async throws {
     for lang in Lang.allCases {
-        let limit = lang == .zh ? 14 : 40
+        let limit = lang == .zh ? SpriteGenerator.spriteLimit.zh : SpriteGenerator.spriteLimit.en
         for (text, emoji, quote) in [("", "🌷", "first phrase"), ("文字🌷", "🌷", "first phrase"), ("{text}", "🌷", "first phrase"),
                                     (String(repeating: "x", count: limit + 1), "🌷", "first phrase"),
                                     ("台词", "1", "first phrase"), ("台词", "🌷", "f"), ("台词", "🌷", String(repeating: "x", count: 33))] {
@@ -131,7 +131,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
 
 @Test func spriteGenerationAcceptsExactLanguageLimitsAndEmptyBatches() async throws {
     for lang in Lang.allCases {
-        let text = String(repeating: lang == .zh ? "字" : "x", count: lang == .zh ? 14 : 40)
+        let text = String(repeating: lang == .zh ? "字" : "x", count: lang == .zh ? SpriteGenerator.spriteLimit.zh : SpriteGenerator.spriteLimit.en)
         let json = String(decoding: try JSONSerialization.data(withJSONObject: ["marks": [["l":0,"q":"first phrase","t":text,"e":"🌷"]]]), as: UTF8.self)
         #expect(try await generateSprite(json, lang: lang).first?.quip.text == text)
     }

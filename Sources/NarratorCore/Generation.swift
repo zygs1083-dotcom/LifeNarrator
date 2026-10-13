@@ -149,6 +149,8 @@ public struct SpriteMark: Sendable {
 
 public enum SpriteGenerator {
     public static let maxTokens = 450
+    /// The grammar allows a little more (20 / 56) so the model finishes its sentence; longer lines are dropped, never cut.
+    public static let spriteLimit = (zh: 18, en: 48)
 
     public static func generate(screen: SpriteScreen, snapshot: ContextSnapshot, app: String, title: String,
                                 exclude: [String], persona: Persona, lang: Lang, k: Int,
@@ -172,7 +174,7 @@ public enum SpriteGenerator {
                         guard screen.lines.indices.contains(raw.l), (2...32).contains(raw.q.count) else { continue }
                         var text = raw.t.trimmingCharacters(in: .whitespacesAndNewlines)
                         while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
-                        guard !text.isEmpty, text.count <= (lang == .zh ? 14 : 40),
+                        guard !text.isEmpty, text.count <= (lang == .zh ? spriteLimit.zh : spriteLimit.en),
                               !text.contains(where: QuipValidator.isEmoji), raw.e.count == 1,
                               QuipValidator.isEmoji(raw.e.first!),
                               text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil,

@@ -55,8 +55,8 @@ final class LlamaGrammarTests: XCTestCase {
         }
         XCTAssertEqual(bound(grammar, rule: "root") + 1, 4)
         XCTAssertEqual(bound(grammar, rule: "quote"), 32)
-        XCTAssertEqual(bound(grammar, rule: "zh"), 14)
-        XCTAssertEqual(bound(grammar, rule: "en"), 40)
+        XCTAssertEqual(bound(grammar, rule: "zh"), 20)
+        XCTAssertEqual(bound(grammar, rule: "en"), 56)
         XCTAssertTrue(grammar.contains("line ::= [0-9] | [1-9] [0-9]"))
         XCTAssertTrue(grammar.contains("qchar{2,32}"))
         XCTAssertTrue(grammar.contains("「」%.A-Za-z0-9 "))
