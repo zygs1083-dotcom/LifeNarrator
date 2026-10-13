@@ -126,6 +126,14 @@ import Testing
     }
 }
 
+@Test func scrollLeadCountsMarksChangingInOneFrameAsOneSample() {
+    var lead = ScrollLead(mode: .throttled, time: 0)
+    lead.add("a", windowID: 1)
+    lead.add("b", windowID: 1)
+    _ = lead.follow(deltas: ["a": CGPoint(x: 0, y: -10), "b": CGPoint(x: 0, y: -10)], time: 0.5)
+    #expect(lead.samples == 1)
+}
+
 @Test func scrollLeadHistoryAndPredictionStayWithinEventWindow() {
     var lead = ScrollLead(mode: .throttled, time: 0)
     lead.add("first", windowID: 1)

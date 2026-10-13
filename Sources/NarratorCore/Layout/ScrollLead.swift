@@ -57,7 +57,7 @@ public struct ScrollLead {
     /// Only successful AX reads participate; a busy app's marks are skipped for this frame.
     public mutating func follow(deltas: [String: CGPoint], time: TimeInterval) -> [String: CGPoint] {
         let changed = deltas.filter { hypot($0.value.x, $0.value.y) >= 0.5 }
-        samples += changed.count
+        if !changed.isEmpty { samples += 1 }
         let changedWindows = Set(changed.keys.map { marks[$0]!.windowID })
         var translations: [String: CGPoint] = [:]
         for (id, delta) in deltas {
