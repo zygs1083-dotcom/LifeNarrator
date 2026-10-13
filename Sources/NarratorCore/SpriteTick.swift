@@ -79,10 +79,6 @@ public enum SpriteTick: String, Sendable {
         return attempts
     }
 
-    public static func releaseGap(level: Liveliness) -> TimeInterval {
-        switch level { case .quiet: 0; case .lively: 3; case .rowdy: 1.5 }
-    }
-
     public static func followupDelay(level: Liveliness) -> TimeInterval {
         switch level { case .quiet: 0; case .lively: 20; case .rowdy: 10 }
     }

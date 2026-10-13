@@ -2,29 +2,96 @@ import KeyboardShortcuts
 import NarratorCore
 import SwiftUI
 
+public enum SettingsTab: CaseIterable {
+    case sprite, appearance, rules, models, general
+    var key: String {
+        switch self {
+        case .sprite: "tab.sprite"
+        case .appearance: "appearance"
+        case .rules: "rules"
+        case .models: "models"
+        case .general: "general"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .sprite: "sparkles"
+        case .appearance: "paintpalette.fill"
+        case .rules: "text.badge.checkmark"
+        case .models: "brain.head.profile"
+        case .general: "gearshape.fill"
+        }
+    }
+    @MainActor var hue: AppTheme.Hue {
+        switch self {
+        case .sprite: AppTheme.hue(320)
+        case .appearance: AppTheme.hue(255)
+        case .rules: AppTheme.hue(150)
+        case .models: AppTheme.hue(200)
+        case .general: AppTheme.hue(42)
+        }
+    }
+}
+
 public struct AppSettingsView: View {
     @ObservedObject var store: AppStore
-    public init(store: AppStore) { self.store = store }
+    @State private var tab: SettingsTab
+    @Namespace private var namespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    public init(store: AppStore, tab: SettingsTab = .sprite) {
+        self.store = store
+        _tab = State(initialValue: tab)
+    }
 
     public var body: some View {
-        TabView {
-            GeneralSettingsView(store: store)
-                .tabItem { Label(store.text("general"), systemImage: "gearshape") }
-            AppearanceSettingsView(store: store)
-                .tabItem { Label(store.text("appearance"), systemImage: "paintpalette") }
-            RulesSettingsView(store: store)
-                .tabItem { Label(store.text("rules"), systemImage: "list.bullet") }
-            ModelSettingsView(store: store)
-                .tabItem { Label(store.text("models"), systemImage: "cpu") }
-            VStack(spacing: 16) {
-                Text(verbatim: "LifeNarrator").font(.title)
-                Text("\(store.text("version")) \(NarratorMac.version)")
-                Link(store.text("github"), destination: URL(string: "https://github.com/zygs1083-dotcom/LifeNarrator")!)
-                Button(store.text("quit")) { NSApplication.shared.terminate(nil) }
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                ForEach(SettingsTab.allCases, id: \.self) { item in
+                    Button {
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { tab = item }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: item.symbol).accessibilityHidden(true)
+                            Text(store.text(item.key))
+                        }
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(tab == item ? item.hue.text : AppTheme.textSecondary)
+                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .background {
+                            if tab == item {
+                                Capsule().fill(item.hue.soft)
+                                    .overlay(Capsule().stroke(item.hue.stroke, lineWidth: 1))
+                                    .matchedGeometryEffect(id: "tab", in: namespace)
+                            }
+                        }
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(tab == item ? .isSelected : [])
+                }
             }
-            .tabItem { Label(store.text("about"), systemImage: "info.circle") }
+            .padding(.horizontal, 78).frame(maxWidth: .infinity).frame(height: 52)
+            ScrollView {
+                Group {
+                    switch tab {
+                    case .sprite: SpriteSettingsView(store: store)
+                    case .appearance: AppearanceSettingsView(store: store)
+                    case .rules: RulesSettingsView(store: store)
+                    case .models: ModelSettingsView(store: store)
+                    case .general: GeneralSettingsView(store: store)
+                    }
+                }
+                .id(tab).transition(.opacity)
+                .padding(20)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: tab)
+            }
         }
-        .padding(16).frame(width: 780, height: 580)
+        .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+        .groupBoxStyle(.card).toggleStyle(.switch).tint(AppTheme.accent)
+        .frame(width: 780, height: 580).background(AppTheme.windowBackground)
+        .ignoresSafeArea()
+        .transaction { if reduceMotion { $0.disablesAnimations = true } }
         .environment(\.locale, Locale(identifier: store.settings.language.lang == .zh ? "zh-Hans" : "en"))
         .alert(store.text("error"), isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) {
             Button(store.text("ok")) { store.error = nil }
@@ -32,95 +99,180 @@ public struct AppSettingsView: View {
     }
 }
 
+private struct SpriteSettingsView: View {
+    @ObservedObject var store: AppStore
+    private let hue = AppTheme.hue(320)
+    var body: some View {
+        VStack(spacing: 14) {
+            GroupBox {
+                Text(store.text("sprite.onDuty.hint")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+            } label: {
+                HStack {
+                    CardHeading(title: store.text("sprite.onDuty"), symbol: "sparkles", hue: hue)
+                    Spacer()
+                    if let shortcut = store.settings.pauseShortcut { Badge(text: shortcut.description, hue: hue) }
+                    Toggle(store.text("sprite.onDuty"), isOn: Binding(get: { !store.settings.paused }, set: { store.settings.paused = !$0 }))
+                        .labelsHidden()
+                }
+            }
+            GroupBox {
+                ChoiceCards(options: zip([Liveliness.quiet, .lively, .rowdy], ["🤫", "🎉", "🔊"]).map {
+                    (value: $0.0, emoji: $0.1, title: store.text("liveliness.\($0.0.rawValue)"), caption: store.text("liveliness.\($0.0.rawValue).hint"))
+                }, selection: $store.settings.liveliness, hue: hue)
+                Text(store.text("liveliness.hint")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+                if store.settings.provider == .openAICompatible && store.settings.generationAPI.isCloud && store.settings.liveliness != .quiet {
+                    Badge(text: store.text("api.privacy"), hue: AppTheme.hue(42))
+                }
+            } label: { CardHeading(title: store.text("liveliness"), symbol: "speaker.wave.2.fill", hue: hue) }
+            GroupBox {
+                SliderRow(title: store.text("pace.gap"), hint: store.text("pace.gap.hint"), value: $store.settings.markGap,
+                          range: 1...30, format: seconds, hue: hue)
+                Toggle(store.text("dwell.persistent"), isOn: Binding(get: {
+                    store.settings.bubbleStyle.dwell == .untilDismissed
+                }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) })).frame(minHeight: 28)
+                if case .seconds(let duration) = store.settings.bubbleStyle.dwell {
+                    SliderRow(title: store.text("pace.dwell"), value: Binding(get: { duration }, set: {
+                        store.settings.bubbleStyle.dwell = .seconds($0)
+                    }), range: 1...30, format: seconds, hue: hue)
+                }
+                SliderRow(title: store.text("pace.maxOnScreen"), value: Binding(get: {
+                    Double(store.settings.bubbleStyle.maxOnScreen)
+                }, set: { store.settings.bubbleStyle.maxOnScreen = Int($0) }), range: 1...10,
+                          format: { String(format: store.text("format.count"), $0) }, hue: hue)
+            } label: { CardHeading(title: store.text("pace"), symbol: "metronome", hue: hue, caption: store.text("pace.hint")) }
+            GroupBox {
+                ChoiceCards(options: zip(Persona.allCases, ["😈", "🌸", "⚡"]).map {
+                    (value: $0.0, emoji: $0.1, title: store.text("persona.\($0.0.rawValue)"), caption: store.text("persona.\($0.0.rawValue).hint"))
+                }, selection: $store.settings.persona, hue: hue)
+            } label: { CardHeading(title: store.text("persona"), symbol: "person.fill", hue: hue, caption: store.text("persona.hint")) }
+        }
+    }
+    private func seconds(_ value: Int) -> String { String(format: store.text("format.seconds"), value) }
+}
+
 struct GeneralSettingsView: View {
     @ObservedObject var store: AppStore
     @State private var blacklistText = ""
+    private let hue = AppTheme.hue(42)
     var body: some View {
-        Form {
-            Picker(store.text("language"), selection: $store.settings.language) {
-                ForEach(InterfaceLanguage.allCases, id: \.self) { value in
-                    Text(store.text("language.\(value.rawValue)")).tag(value)
-                }
-            }
-            Picker(store.text("persona"), selection: $store.settings.persona) {
-                ForEach(Persona.allCases, id: \.self) { value in
-                    Text(store.text("persona.\(value.rawValue)")).tag(value)
-                }
-            }
-            KeyboardShortcuts.Recorder(store.text("shortcut.pause"), shortcut: $store.settings.pauseShortcut)
-            KeyboardShortcuts.Recorder(store.text("shortcut.input"), shortcut: $store.settings.inputShortcut)
-            Toggle(store.text("paused"), isOn: $store.settings.paused)
-            Section(store.text("liveliness")) {
-                Picker(store.text("liveliness"), selection: $store.settings.liveliness) {
-                    ForEach([Liveliness.quiet, .lively, .rowdy], id: \.self) { value in
-                        Text(store.text("liveliness.\(value.rawValue)")).tag(value)
+        VStack(spacing: 14) {
+            GroupBox {
+                Picker(store.text("language"), selection: $store.settings.language) {
+                    ForEach(InterfaceLanguage.allCases, id: \.self) { value in
+                        Text(store.text("language.\(value.rawValue)")).tag(value)
                     }
-                }
-                Text(store.text("liveliness.hint")).font(.caption).foregroundStyle(.secondary)
-                if store.settings.provider == .openAICompatible && store.settings.generationAPI.isCloud
-                    && store.settings.liveliness != .quiet {
-                    Text(store.text("api.privacy")).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Section(store.text("blacklist")) {
-                Text(store.text("blacklist.hint")).font(.caption).foregroundStyle(.secondary)
+                }.pickerStyle(.menu).frame(minHeight: 28)
+            } label: { CardHeading(title: store.text("language"), symbol: "globe", hue: hue) }
+            GroupBox {
+                LabeledContent(store.text("shortcut.pause")) {
+                    KeyboardShortcuts.Recorder("", shortcut: $store.settings.pauseShortcut)
+                }.frame(minHeight: 28)
+                LabeledContent(store.text("shortcut.input")) {
+                    KeyboardShortcuts.Recorder("", shortcut: $store.settings.inputShortcut)
+                }.frame(minHeight: 28)
+            } label: { CardHeading(title: store.text("shortcuts"), symbol: "keyboard", hue: hue) }
+            GroupBox {
                 TextEditor(text: $blacklistText)
-                .onAppear { blacklistText = store.settings.blacklist.joined(separator: "\n") }
-                .onChange(of: blacklistText) { _, value in
-                    store.settings.blacklist = value.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                    .onAppear { blacklistText = store.settings.blacklist.joined(separator: "\n") }
+                    .onChange(of: blacklistText) { _, value in
+                        store.settings.blacklist = value.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                    }
+                    .font(.system(size: 12, design: .monospaced)).frame(height: 90)
+                    .scrollContentBackground(.hidden).padding(4)
+                    .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppTheme.cardStroke, lineWidth: 1))
+                    .accessibilityLabel(store.text("blacklist"))
+            } label: { CardHeading(title: store.text("blacklist"), symbol: "hand.raised.fill", hue: hue, caption: store.text("blacklist.hint")) }
+            GroupBox {
+                HStack(spacing: 12) {
+                    Image(systemName: "text.bubble.fill").font(.system(size: 44)).foregroundStyle(AppTheme.accentText)
+                        .frame(width: 56, height: 56).background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityHidden(true)
+                    Text(verbatim: "LifeNarrator").font(.system(size: 15, weight: .semibold, design: .rounded))
+                    Badge(text: "\(store.text("version")) \(NarratorMac.version)", hue: hue)
                 }
-                .font(.system(.body, design: .monospaced)).frame(height: 90)
-                .accessibilityLabel(store.text("blacklist"))
-            }
+                HStack {
+                    Link(store.text("github"), destination: URL(string: "https://github.com/zygs1083-dotcom/LifeNarrator")!)
+                        .foregroundStyle(AppTheme.accentDeep)
+                    Spacer()
+                    Button(store.text("quit")) { NSApplication.shared.terminate(nil) }
+                        .buttonStyle(AppTheme.CapsuleButton(filled: false))
+                }
+            } label: { CardHeading(title: store.text("about"), symbol: "info.circle", hue: hue) }
         }
-        .formStyle(.grouped)
     }
 }
 
 private struct AppearanceSettingsView: View {
     @ObservedObject var store: AppStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let hue = AppTheme.hue(255)
     var body: some View {
-        HStack(spacing: 16) {
-            Form {
-                choice("shape", values: BubbleShape.allCases, selection: $store.settings.bubbleStyle.shape)
-                choice("size", values: BubbleSize.allCases, selection: $store.settings.bubbleStyle.size)
-                choice("theme", values: ColorTheme.allCases, selection: $store.settings.bubbleStyle.theme)
-                Section(store.text("effects")) {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 14) {
+                GroupBox {
+                    choice("shape", values: BubbleShape.allCases, selection: $store.settings.bubbleStyle.shape).pickerStyle(.menu)
+                    choice("size", values: BubbleSize.allCases, selection: $store.settings.bubbleStyle.size).pickerStyle(.segmented)
+                    Picker(store.text("font"), selection: Binding(get: {
+                        switch store.settings.bubbleStyle.font {
+                        case .persona: "persona"
+                        case .fixed(let font): font.rawValue
+                        }
+                    }, set: { store.settings.bubbleStyle.font = $0 == "persona" ? .persona : .fixed(NarratorFont(rawValue: $0)!) })) {
+                        Text(store.text("font.persona")).tag("persona")
+                        ForEach(NarratorFont.allCases, id: \.self) { Text(verbatim: $0.family).tag($0.rawValue) }
+                    }.pickerStyle(.menu).frame(minHeight: 28)
+                } label: { CardHeading(title: store.text("appearance.look"), symbol: "bubble.left.fill", hue: hue) }
+                GroupBox {
+                    choice("theme", values: ColorTheme.allCases, selection: $store.settings.bubbleStyle.theme).pickerStyle(.menu)
                     effect("outline", .outline)
                     effect("shadow", .shadow)
                     effect("gradient", .gradient)
-                }
-                choice("animation", values: BubbleAnimation.allCases, selection: Binding(get: { store.settings.bubbleStyle.animation }, set: { store.settings.bubbleStyle.animation = $0 }))
-                choice("emoji", values: EmojiDensity.allCases, selection: $store.settings.bubbleStyle.emojiDensity)
-                Picker(store.text("font"), selection: Binding(get: {
-                    switch store.settings.bubbleStyle.font {
-                    case .persona: "persona"
-                    case .fixed(let font): font.rawValue
-                    }
-                }, set: {
-                    store.settings.bubbleStyle.font = $0 == "persona" ? .persona : .fixed(NarratorFont(rawValue: $0)!)
-                })) {
-                    Text(store.text("font.persona")).tag("persona")
-                    ForEach(NarratorFont.allCases, id: \.self) { Text(verbatim: $0.family).tag($0.rawValue) }
-                }
-                Toggle(store.text("dwell.persistent"), isOn: Binding(get: {
-                    store.settings.bubbleStyle.dwell == .untilDismissed
-                }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) }))
-                if case .seconds(let seconds) = store.settings.bubbleStyle.dwell {
-                    Stepper("\(store.text("dwell.seconds")): \(Int(seconds))", value: Binding(get: { seconds }, set: {
-                        store.settings.bubbleStyle.dwell = .seconds($0)
-                    }), in: 1...60)
-                }
-                Stepper("\(store.text("maxOnScreen")): \(store.settings.bubbleStyle.maxOnScreen)", value: $store.settings.bubbleStyle.maxOnScreen, in: 1...10)
-            }
-            .formStyle(.grouped).frame(width: 350)
-            VStack(spacing: 24) {
-                Text(store.text("preview")).font(.headline)
-                preview
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+                } label: { CardHeading(title: store.text("appearance.color"), symbol: "paintpalette.fill", hue: hue) }
+                GroupBox {
+                    choice("animation", values: BubbleAnimation.allCases, selection: $store.settings.bubbleStyle.animation).pickerStyle(.menu)
+                    choice("emoji", values: EmojiDensity.allCases, selection: $store.settings.bubbleStyle.emojiDensity).pickerStyle(.segmented)
+                } label: { CardHeading(title: store.text("appearance.motion"), symbol: "wind", hue: hue) }
+            }.frame(width: 380)
+            GroupBox {
+                fakeWindow
+            } label: { CardHeading(title: store.text("preview"), symbol: "eye.fill", hue: hue, caption: store.text("preview.hint")) }
         }
+    }
+
+    private var previewID: String {
+        let style = store.settings.bubbleStyle
+        return "\(style.shape)-\(style.size)-\(style.theme)-\(style.textEffects.rawValue)-\(style.animation)-\(style.emojiDensity)-\(style.font)-\(store.settings.persona)-\(store.settings.language)"
+    }
+
+    private var fakeWindow: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 5) {
+                    ForEach([0xFF5F57, 0xFEBC2E, 0x28C840], id: \.self) { hex in
+                        Circle().fill(Color(red: Double((hex >> 16) & 255) / 255, green: Double((hex >> 8) & 255) / 255, blue: Double(hex & 255) / 255))
+                            .frame(width: 8, height: 8)
+                    }
+                    Spacer()
+                }.padding(.horizontal, 10).frame(height: 22)
+                Rectangle().fill(AppTheme.cardStroke).frame(height: 1)
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach([0.60, 0.80, 0.45], id: \.self) { fraction in
+                        Capsule().fill(AppTheme.textSecondary.opacity(0.25)).frame(width: 320 * fraction, height: 8)
+                    }
+                }.padding(16)
+                Spacer()
+            }
+            preview.id(previewID)
+                .transition(BubbleTransitions.bubble(store.settings.bubbleStyle.animation, anchor: .topTrailing,
+                                                     slide: CGSize(width: 18, height: 0), delay: 0, reduceMotion: reduceMotion))
+                .padding(.top, 34).padding(.trailing, 16)
+        }
+        .frame(width: 320, height: 200)
+        .background(AppTheme.windowBackground, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.cardStroke, lineWidth: 1))
+        .animation(.default, value: previewID)
+        .accessibilityElement(children: .ignore).accessibilityLabel(store.text("preview"))
     }
 
     private var preview: some View {
@@ -132,13 +284,13 @@ private struct AppearanceSettingsView: View {
             effects: style.textEffects, font: font, text: store.text("preview.text"),
             emoji: style.emojiDensity == .none ? [] : style.emojiDensity == .many ? ["✨", "🐱", "💬"] : ["✨"], quipID: "preview")
         if style.shape == .speech { appearance.setAppLevelTail(corner: .topRight) }
-        return BubbleBodyView(appearance: appearance).padding(20)
+        return BubbleBodyView(appearance: appearance)
     }
 
     private func choice<T: RawRepresentable & Hashable>(_ key: String, values: [T], selection: Binding<T>) -> some View where T.RawValue == String {
         Picker(store.text(key), selection: selection) {
             ForEach(values, id: \.self) { value in Text(store.text("\(key).\(value.rawValue)")).tag(value) }
-        }
+        }.frame(minHeight: 28)
     }
 
     private func effect(_ key: String, _ effect: TextEffects) -> some View {
@@ -147,37 +299,39 @@ private struct AppearanceSettingsView: View {
         }, set: {
             if $0 { store.settings.bubbleStyle.textEffects.insert(effect) }
             else { store.settings.bubbleStyle.textEffects.remove(effect) }
-        }))
+        })).frame(minHeight: 28)
     }
 }
 
 private struct RulesSettingsView: View {
     @ObservedObject var store: AppStore
+    private let hue = AppTheme.hue(150)
     var body: some View {
-        List {
-            Section(store.text("rules.user")) {
-                if store.rules.isEmpty { Text(store.text("rules.empty")).foregroundStyle(.secondary) }
+        VStack(spacing: 14) {
+            GroupBox {
+                if store.rules.isEmpty { Text(store.text("rules.empty")).foregroundStyle(AppTheme.textSecondary) }
                 ForEach(store.rules, id: \.id) { rule in
                     HStack {
                         Toggle(rule.label[store.settings.language.lang], isOn: Binding(get: { rule.enabled }, set: { enabled in
                             store.perform { try store.setEnabled(enabled, id: rule.id) }
                         }))
                         Spacer()
-                        Text(store.text("kind.\(rule.kind.rawValue)")).foregroundStyle(.secondary)
+                        Text(store.text("kind.\(rule.kind.rawValue)")).foregroundStyle(AppTheme.textSecondary)
                         Button(store.text("delete"), role: .destructive) { store.perform { try store.deleteRule(id: rule.id) } }
-                    }
+                            .buttonStyle(AppTheme.CapsuleButton(hue: AppTheme.hue(350)))
+                    }.frame(minHeight: 28)
                 }
-            }
-            Section(store.text("rules.builtin")) {
+            } label: { CardHeading(title: store.text("rules.user"), symbol: "text.badge.checkmark", hue: hue) }
+            GroupBox {
                 ForEach(store.builtin.rules, id: \.id) { rule in
                     Toggle(rule.label[store.settings.language.lang], isOn: Binding(get: {
                         !store.settings.disabledBuiltinIds.contains(rule.id)
                     }, set: {
                         if $0 { store.settings.disabledBuiltinIds.remove(rule.id) }
                         else { store.settings.disabledBuiltinIds.insert(rule.id) }
-                    }))
+                    })).frame(minHeight: 28)
                 }
-            }
+            } label: { CardHeading(title: store.text("rules.builtin"), symbol: "shippingbox.fill", hue: hue) }
         }
     }
 }

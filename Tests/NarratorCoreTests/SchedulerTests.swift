@@ -6,8 +6,8 @@ import Testing
     var scheduler = Scheduler()
     #expect(scheduler.canShow(ruleID: "a", now: epoch))
     scheduler.recordShown(ruleID: "a", now: epoch)
-    #expect(!scheduler.canShow(ruleID: "b", now: epoch.addingTimeInterval(4.999)))
-    #expect(scheduler.canShow(ruleID: "b", now: epoch.addingTimeInterval(5)))
+    #expect(!scheduler.canShow(ruleID: "b", now: epoch.addingTimeInterval(1.999)))
+    #expect(scheduler.canShow(ruleID: "b", now: epoch.addingTimeInterval(2)))
     #expect(!scheduler.canShow(ruleID: "a", now: epoch.addingTimeInterval(599)))
     #expect(scheduler.canShow(ruleID: "a", now: epoch.addingTimeInterval(600)))
 }
@@ -31,12 +31,12 @@ import Testing
 @Test func schedulerFreeCommentsUseOnlyGapAndMinuteBudget() {
     var scheduler = Scheduler()
     scheduler.recordShown(ruleID: nil, now: epoch)
-    #expect(!scheduler.canShow(ruleID: nil, now: epoch.addingTimeInterval(4.999)))
-    #expect(scheduler.canShow(ruleID: nil, now: epoch.addingTimeInterval(5)))
+    #expect(!scheduler.canShow(ruleID: nil, now: epoch.addingTimeInterval(1.999)))
+    #expect(scheduler.canShow(ruleID: nil, now: epoch.addingTimeInterval(2)))
 }
 
 @Test func schedulerLivelinessPresets() {
-    for (level, gap, limit, cooldown) in [(Liveliness.quiet, 5.0, 3, 600.0), (.lively, 2, 10, 120.0), (.rowdy, 1.2, 20, 60.0)] {
+    for (level, gap, limit, cooldown) in [(Liveliness.quiet, 2.0, 3, 600.0), (.lively, 2, 10, 120.0), (.rowdy, 2, 20, 60.0)] {
         let settings = Scheduler.Settings(level: level)
         #expect(settings.minGap == gap)
         #expect(settings.globalPerMinute == limit)

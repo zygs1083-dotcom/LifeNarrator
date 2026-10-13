@@ -58,8 +58,10 @@ public final class AppStore: ObservableObject {
         downloadFonts()
         if !settings.onboardingCompleted {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 500),
-                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+                                  styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
             window.title = text("app.name")
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: OnboardingView(store: self))
             window.center()
@@ -104,9 +106,11 @@ public final class AppStore: ObservableObject {
     // launched again, the only way in when macOS hides the menu bar icon (a full menu bar on a notched Mac).
     public func showSettings() {
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable],
+            let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
             window.title = text("app.name")
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: AppSettingsView(store: self))
             window.center()

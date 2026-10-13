@@ -4,14 +4,14 @@ public struct Scheduler: Sendable {
     public struct Settings: Sendable {
         public var ruleCooldown: TimeInterval = 600
         public var globalPerMinute: Int = 3
-        public var minGap: TimeInterval = 5
+        public var minGap: TimeInterval = 2
         public init() {}
         public init(level: Liveliness) {
             self.init()
             switch level {
             case .quiet: break
-            case .lively: ruleCooldown = 120; globalPerMinute = 10; minGap = 2
-            case .rowdy: ruleCooldown = 60; globalPerMinute = 20; minGap = 1.2
+            case .lively: ruleCooldown = 120; globalPerMinute = 10
+            case .rowdy: ruleCooldown = 60; globalPerMinute = 20
             }
         }
     }
