@@ -117,6 +117,7 @@ public final class NarratorEngine {
 
     private func windowChanged() {
         overlay.dismissAll()
+        scheduler.clearPresence()
         windowID = nil
     }
 

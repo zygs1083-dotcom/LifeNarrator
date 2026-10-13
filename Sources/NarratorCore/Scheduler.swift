@@ -23,6 +23,9 @@ public struct Scheduler: Sendable {
         return triggers
     }
 
+    /// Focus left the window, so whatever is on it counts as new when the user comes back.
+    public mutating func clearPresence() { present = [] }
+
     public func canShow(ruleID: String?, now: Date) -> Bool {
         if let last = recent.last, now.timeIntervalSince(last) < settings.minGap { return false }
         if recent.filter({ now.timeIntervalSince($0) < 60 }).count >= settings.globalPerMinute { return false }

@@ -35,6 +35,8 @@ import Testing
     #expect(scheduler.triggers(from: candidates).map { $0.rule.id } == ["app"])
     #expect(scheduler.triggers(from: []).isEmpty)
     #expect(scheduler.triggers(from: candidates).count == 3)
+    scheduler.clearPresence()
+    #expect(scheduler.triggers(from: candidates).count == 3)
 }
 @Test func schedulerFreeCommentsCooldown() {
     var scheduler = Scheduler()

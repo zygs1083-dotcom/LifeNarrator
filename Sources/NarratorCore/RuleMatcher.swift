@@ -119,7 +119,12 @@ public struct RuleMatcher: Sendable {
                 }
             }
         }
-        for (index, line) in lines.enumerated() {
+        // In a tall window the header band can reach the first messages; the topmost hit is the conversation title.
+        let order = rule.match.region == .header
+            ? lines.indices.sorted { snapshot.textLines[$0].rect.minY < snapshot.textLines[$1].rect.minY }
+            : Array(lines.indices)
+        for index in order {
+            let line = lines[index]
             if rule.match.region == .header && !Self.isHeader(snapshot.textLines[index].rect, in: snapshot.contentFrame) { continue }
             for alias in prepared.aliases {
                 if let range = line.range(of: alias, cjk: alias.unicodeScalars.contains(where: isCJK)) {

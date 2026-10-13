@@ -163,7 +163,9 @@ enum AXTextReader {
             let remaining = max(0, 4000 - visited.count - stack.count)
             stack.append(contentsOf: children.prefix(remaining).reversed().map { ($0, depth + 1, childClip) })
         }
-        let top = min(windowFrame.maxY, toolbarBottom ?? windowFrame.minY + 52)
+        // A full-screen window hides its title bar, so without a toolbar the content starts at the top.
+        let titleBar: CGFloat = try AXAccess.value(window, "AXFullScreen") as? Bool == true ? 0 : 52
+        let top = min(windowFrame.maxY, toolbarBottom ?? windowFrame.minY + titleBar)
         let contentFrame = CGRect(x: windowFrame.minX, y: top, width: windowFrame.width, height: windowFrame.maxY - top)
         let indices = TextGeometry.sortedIndices(lines.map(\.line))
         return AXReading(lines: indices.map { lines[$0] }, contentFrame: contentFrame,

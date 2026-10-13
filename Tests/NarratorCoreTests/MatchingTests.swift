@@ -80,6 +80,11 @@ func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
     #expect(matches([person], snapshot(lines: [line("张三", x: 300, y: 208, height: 12)])).count == 1)
     #expect(matches([person], snapshot(lines: [line("张三", y: 99)])).isEmpty)
 }
+@Test func headerPrefersTopmostHit() {
+    let person = rule(kind: .person, match: Match(aliases: ["张三"], region: .header), highlight: true)
+    let snap = snapshot(lines: [line("张三：今天下班前把周报发我", x: 400, y: 200), line("张三", x: 400, y: 130)])
+    #expect(matches([person], snap).first?.lineIndex == 1)
+}
 @Test func headerBandClampsTo80And160() {
     #expect(RuleMatcher.isHeader(line("name", y: 180).rect, in: CGRect(x: 100, y: 100, width: 800, height: 100)))
     #expect(!RuleMatcher.isHeader(line("name", y: 181).rect, in: CGRect(x: 100, y: 100, width: 800, height: 100)))
