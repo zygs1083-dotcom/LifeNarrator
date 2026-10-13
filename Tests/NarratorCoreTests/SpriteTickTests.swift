@@ -49,6 +49,14 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["售�
     #expect(tickAttempts(filtered, memory: memory).map(\.reason) == ["request"])
 }
 
+@Test func tickCacheDoesNotReplayQuotesInsideRedactedOrTruncatedText() {
+    let snapshot = semanticsSnapshot(["Visit https://example.test/path today", String(repeating: "字", count: 100) + "hidden phrase"])
+    var memory = SpriteMemory()
+    memory.cache(key: .init(bundleId: snapshot.bundleId, text: "example.test"), quip: quip("隐私"), lineHint: 0, now: epoch)
+    memory.cache(key: .init(bundleId: snapshot.bundleId, text: "hidden phrase"), quip: quip("截断"), lineHint: 1, now: epoch)
+    #expect(tickAttempts(snapshot, memory: memory).map(\.reason) == ["request"])
+}
+
 @Test func tickRequestCountsRespectBothScreenLimits() {
     for (level, limit) in [(Liveliness.lively, 2), (.rowdy, 3)] {
         var memory = SpriteMemory(level: level)

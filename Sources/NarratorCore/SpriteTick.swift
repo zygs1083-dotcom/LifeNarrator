@@ -43,6 +43,8 @@ public enum SpriteTick: String, Sendable {
             let hint = screen.lines.firstIndex { $0.lineIndex == status.lineHint } ?? -1
             guard let hit = SpriteLocator.locate(quote: key.text, lineHint: hint, in: lines) else { return nil }
             let index = screen.lines[hit.lineIndex].lineIndex
+            guard FoldedLine(screen.lines[hit.lineIndex].text).text.range(of: key.text) != nil,
+                  !SpritePrompt.privacyRanges(in: snapshot.textLines[index].text).contains(where: { $0.overlaps(hit.range) }) else { return nil }
             return (key, SpriteMark(lineIndex: index, range: hit.range,
                                     quote: String(snapshot.textLines[index].text[hit.range]), quip: status.quip), status)
         }
