@@ -92,7 +92,12 @@ public final class ContextSensor {
     public func start() throws {
         stop()
         observations.scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [weak self] event in
-            MainActor.assumeIsolated { self?.onScroll(event) }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                // Chromium posts no AX notification for a scroll, so read the newly visible content ourselves.
+                if self.application != nil { self.schedule() }
+                self.onScroll(event)
+            }
         }
         observations.activation = observations.center.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
