@@ -91,7 +91,7 @@ public struct ScrollLead {
     }
 
     public var classifiedMode: Mode? {
-        events >= 10 ? (samples * 3 >= events ? .fresh : .throttled) : nil
+        events >= 10 ? (samples * 2 >= events ? .fresh : .throttled) : nil
     }
 
     public mutating func end() -> [String: CGPoint] {

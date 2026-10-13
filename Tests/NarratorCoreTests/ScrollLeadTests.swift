@@ -112,8 +112,8 @@ import Testing
 }
 
 @Test func scrollLeadClassifiesOnlyAfterTenPreciseEvents() {
-    for (events, changes, expected) in [(9, 9, nil), (10, 3, ScrollLead.Mode.throttled),
-                                        (10, 4, .fresh), (12, 3, .throttled), (12, 4, .fresh)] {
+    for (events, changes, expected) in [(9, 9, nil), (10, 4, ScrollLead.Mode.throttled),
+                                        (10, 5, .fresh), (12, 5, .throttled), (12, 6, .fresh)] {
         var lead = ScrollLead(mode: .fresh, time: 0)
         lead.add("mark", windowID: 1)
         for index in 0..<events {
