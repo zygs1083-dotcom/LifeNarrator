@@ -41,7 +41,7 @@ final class UISnapshotTests: XCTestCase {
         let fixtures: [(RuleKind, String)] = [(.person, "张三是我领导"), (.site, "我讨厌谷歌"), (.topic, "我讨厌开会")]
         let rules = fixtures.enumerated().map { index, fixture in
             Rule(id: "snapshot.\(index)", kind: fixture.0, source: .user, input: fixture.1,
-                 label: NarratorCore.Label(zh: fixture.1, en: fixture.1), sentiment: .dislike,
+                 label: .init(zh: fixture.1, en: fixture.1), sentiment: .dislike,
                  match: Match(aliases: [fixture.1]), highlight: true)
         }
         for filled in [false, true] {
@@ -92,7 +92,7 @@ final class UISnapshotTests: XCTestCase {
         let window = SnapshotWindow(contentRect: bounds, styleMask: .borderless, backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-        let hosting = NSHostingView(rootView: view.environment(\.accessibilityReduceMotion, true))
+        let hosting = NSHostingView(rootView: view)
         hosting.frame = bounds
         window.contentView = hosting
         defer { window.close() }

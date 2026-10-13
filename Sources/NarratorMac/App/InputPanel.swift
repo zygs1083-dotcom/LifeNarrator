@@ -123,7 +123,7 @@ struct InputStatusRow: View {
                     savedIcon
                 } else {
                     savedIcon.symbolEffect(.bounce, value: savedAppeared)
-                        .onAppear { savedAppeared = true }
+                        .onAppear { savedAppeared.toggle() }
                 }
                 Badge(text: text("input.saved"), hue: AppTheme.hue(150))
                 Text(verbatim: "\(label) · \(kind)")
