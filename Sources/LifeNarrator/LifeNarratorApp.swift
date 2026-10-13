@@ -24,26 +24,13 @@ struct LifeNarratorApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuContent(store: store)
+            MenuBarView(store: store)
         } label: {
             Image(systemName: "text.bubble")
                 .renderingMode(store.settings.paused ? .original : .template)
                 .foregroundStyle(store.settings.paused ? .gray : .primary)
                 .accessibilityLabel(store.text(store.settings.paused ? "paused" : "app.name"))
-        }
-    }
-}
-
-private struct MenuContent: View {
-    @ObservedObject var store: AppStore
-
-    var body: some View {
-        Button(store.text(store.settings.paused ? "resume" : "pause")) { store.settings.paused.toggle() }
-        Button(store.text("input.open")) { store.showInput() }
-        Divider()
-        Button(store.text("settings")) { store.showSettings() }
-        Button(store.text("quit")) { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
-
+        }.menuBarExtraStyle(.window)
     }
 }
 

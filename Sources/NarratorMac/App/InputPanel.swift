@@ -10,11 +10,12 @@ final class InputPanelController: NSObject, NSWindowDelegate {
 
     init(store: AppStore) {
         self.store = store
-        panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 210),
-                        styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel = RuleInputPanel(contentRect: NSRect(x: 0, y: 0, width: 600, height: 200),
+                        styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         super.init()
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = true
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -36,7 +37,11 @@ final class InputPanelController: NSObject, NSWindowDelegate {
     }
 }
 
-private struct RuleInputView: View {
+private final class RuleInputPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+}
+
+struct RuleInputView: View {
     @ObservedObject var store: AppStore
     let onCompiling: (Bool) -> Void
     @State private var input = ""
@@ -46,29 +51,39 @@ private struct RuleInputView: View {
     @State private var result: Rule?
     @State private var error: String?
     @FocusState private var focused: Bool
+    @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label(store.text("input.title"), systemImage: "text.bubble")
-                .font(.headline)
-            TextField(store.text("input.placeholder"), text: $input)
-                .textFieldStyle(.plain).font(.title2)
+            CardHeading(title: store.text("input.title"), symbol: "text.bubble.fill", hue: AppTheme.hue(320))
+            TextField("", text: $input,
+                      prompt: Text(store.text("input.placeholder")).foregroundColor(AppTheme.textSecondary))
+                .textFieldStyle(.plain).font(AppTheme.font(.input))
                 .focused($focused).disabled(compiling)
                 .onSubmit(compile)
                 .accessibilityLabel(store.text("input.title"))
-            Divider()
-            if compiling {
-                HStack { ProgressView().controlSize(.small); Text(store.text("input.compiling")) }
-            } else if let result {
-                Label("\(result.label[store.settings.language.lang]) · \(store.text("kind.\(result.kind.rawValue)"))", systemImage: "checkmark.circle.fill")
-            } else if let error {
-                Text(verbatim: error).foregroundStyle(.red).textSelection(.enabled)
-            } else {
-                Text(store.text("input.hint")).foregroundStyle(.secondary)
-            }
+            Rectangle().fill(AppTheme.cardStroke).frame(height: 1)
+            InputStatusRow(state: status, language: store.settings.language)
         }
-        .padding(24)
-        .onAppear { focused = true }
+        .padding(20).frame(width: 600, height: 200, alignment: .topLeading)
+        .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(AppTheme.cardStroke, lineWidth: 1))
+        .scaleEffect(reduceMotion || appeared ? 1 : 0.96).opacity(appeared ? 1 : 0)
+        .onAppear {
+            focused = true
+            withAnimation(.easeOut(duration: reduceMotion ? 0.12 : 0.18)) { appeared = true }
+        }
+    }
+
+    private var status: InputStatusRow.Status {
+        if compiling { return .compiling }
+        if let result {
+            return .saved(label: result.label[store.settings.language.lang], kind: store.text("kind.\(result.kind.rawValue)"))
+        }
+        if let error { return .error(error) }
+        return .idle
     }
 
     private func compile() {
@@ -83,4 +98,48 @@ private struct RuleInputView: View {
             focused = true
         }
     }
+}
+
+struct InputStatusRow: View {
+    enum Status: Equatable {
+        case idle, compiling, saved(label: String, kind: String), error(String)
+    }
+    let state: Status
+    let language: InterfaceLanguage
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var savedAppeared = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            switch state {
+            case .idle:
+                Spacer()
+                Text(text("input.hint")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+            case .compiling:
+                ProgressView().controlSize(.small).tint(AppTheme.accent)
+                Text(text("input.compiling")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+            case .saved(let label, let kind):
+                if reduceMotion {
+                    savedIcon
+                } else {
+                    savedIcon.symbolEffect(.bounce, value: savedAppeared)
+                        .onAppear { savedAppeared = true }
+                }
+                Badge(text: text("input.saved"), hue: AppTheme.hue(150))
+                Text(verbatim: "\(label) · \(kind)")
+            case .error(let error):
+                Image(systemName: "exclamationmark.bubble.fill").foregroundStyle(AppTheme.hue(350).text)
+                    .accessibilityHidden(true)
+                Text(verbatim: error).foregroundStyle(AppTheme.hue(350).text).textSelection(.enabled)
+            }
+        }
+        .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+        .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
+    }
+
+    private var savedIcon: some View {
+        Image(systemName: "checkmark.seal.fill").font(.system(size: 15)).foregroundStyle(AppTheme.hue(150).text)
+            .accessibilityHidden(true)
+    }
+    private func text(_ key: String) -> String { AppLocalization.string(key, language: language) }
 }

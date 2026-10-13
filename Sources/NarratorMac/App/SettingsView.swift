@@ -308,38 +308,3 @@ private struct AppearanceSettingsView: View {
         }.frame(minHeight: 28)
     }
 }
-
-private struct RulesSettingsView: View {
-    @ObservedObject var store: AppStore
-    private let hue = AppTheme.hue(150)
-    var body: some View {
-        VStack(spacing: 14) {
-            GroupBox {
-                if store.rules.isEmpty { Text(store.text("rules.empty")).foregroundStyle(AppTheme.textSecondary) }
-                ForEach(store.rules, id: \.id) { rule in
-                    HStack {
-                        Toggle(rule.label[store.settings.language.lang], isOn: Binding(get: { rule.enabled }, set: { enabled in
-                            store.perform { try store.setEnabled(enabled, id: rule.id) }
-                        }))
-                        Spacer()
-                        Text(store.text("kind.\(rule.kind.rawValue)")).foregroundStyle(AppTheme.textSecondary)
-                        Button(store.text("delete"), role: .destructive) { store.perform { try store.deleteRule(id: rule.id) } }
-                            .buttonStyle(AppTheme.CapsuleButton(hue: AppTheme.hue(350)))
-                    }.frame(minHeight: 28)
-                }
-            } label: { CardHeading(title: store.text("rules.user"), symbol: "text.badge.checkmark", hue: hue) }
-            GroupBox {
-                ForEach(store.builtin.rules, id: \.id) { rule in
-                    LabeledContent(rule.label[store.settings.language.lang]) {
-                        Toggle(rule.label[store.settings.language.lang], isOn: Binding(get: {
-                            !store.settings.disabledBuiltinIds.contains(rule.id)
-                        }, set: {
-                            if $0 { store.settings.disabledBuiltinIds.remove(rule.id) }
-                            else { store.settings.disabledBuiltinIds.insert(rule.id) }
-                        })).labelsHidden().frame(maxWidth: .infinity, alignment: .trailing)
-                    }.frame(minHeight: 28)
-                }
-            } label: { CardHeading(title: store.text("rules.builtin"), symbol: "shippingbox.fill", hue: hue) }
-        }
-    }
-}
