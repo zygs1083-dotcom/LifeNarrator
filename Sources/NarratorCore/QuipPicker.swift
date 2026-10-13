@@ -16,6 +16,11 @@ public struct QuipPicker: Sendable {
 
     public init() {}
 
+    public mutating func forget(ruleID: String) {
+        queues = queues.filter { $0.key.key.ruleID != ruleID }
+        used = used.filter { $0.key.ruleID != ruleID }
+    }
+
     public static func render(_ text: String, rule: Rule, lang: Lang) -> String? {
         var values = rule.variables ?? [:]
         values["label"] = rule.label[lang]

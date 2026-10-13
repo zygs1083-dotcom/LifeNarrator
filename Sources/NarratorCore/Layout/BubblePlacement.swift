@@ -21,7 +21,7 @@ public struct WindowGeometry: Sendable, Equatable {
 
 /// Which side of the highlight box an anchored bubble sits on.
 public enum AnchorSide: Sendable, Equatable {
-    case above, below, right
+    case above, below, right, aboveRight, left
 }
 
 public struct AnchoredPlacement: Sendable, Equatable {
@@ -66,6 +66,33 @@ public enum BubblePlacement {
     /// §7: hit-text rect grown by 4pt horizontally and 3pt vertically.
     public static func highlightBox(around textRect: CGRect) -> CGRect {
         textRect.insetBy(dx: -4, dy: -3)
+    }
+
+    public static func spriteFrame(around textRect: CGRect) -> CGRect {
+        textRect.insetBy(dx: -5, dy: -3)
+    }
+
+    public static func anchoredSprite(size: CGSize, frame: CGRect, window: WindowGeometry,
+                                      visibleFrame: CGRect, occupied: [CGRect]) -> AnchoredPlacement? {
+        let bounds = window.contentArea.intersection(visibleFrame)
+        guard !bounds.isNull else { return nil }
+        let inner = bounds.insetBy(dx: 8, dy: 4)
+        let origins: [(AnchorSide, CGPoint)] = [
+            (.right, CGPoint(x: frame.maxX + 8, y: frame.midY - size.height / 2)),
+            (.aboveRight, CGPoint(x: frame.maxX - 12, y: frame.minY - 4 - size.height)),
+            (.above, CGPoint(x: frame.midX - size.width / 2, y: frame.minY - 8 - size.height)),
+            (.below, CGPoint(x: frame.midX - size.width / 2, y: frame.maxY + 8)),
+            (.left, CGPoint(x: frame.minX - 8 - size.width, y: frame.midY - size.height / 2)),
+        ]
+        for (side, origin) in origins {
+            let x = min(max(origin.x, inner.minX), inner.maxX - size.width)
+            let bubble = CGRect(x: x, y: origin.y, width: size.width, height: size.height)
+            if inner.contains(bubble) && !bubble.intersects(frame)
+                && !occupied.contains(where: { $0.insetBy(dx: -4, dy: -4).intersects(bubble.insetBy(dx: -4, dy: -4)) }) {
+                return AnchoredPlacement(frame: bubble, side: side)
+            }
+        }
+        return nil
     }
 
     /// §8.1 app-level stack. `sizes` is ordered newest first; the newest takes the top slot.

@@ -39,4 +39,25 @@ final class LayoutConnectorTests: XCTestCase {
         let shifted = CGRect(x: 415, y: 345, width: 240, height: 44)
         XCTAssertEqual(BubbleConnector.speechTailRoot(bubble: shifted, highlight: highlight, side: .above, cornerRadius: 14, tailBase: 18), 415 + 14 + 9)
     }
+    func testAboveRightEndpointsTipAndRoot() {
+        let bubble = CGRect(x: 430, y: 345, width: 180, height: 44)
+        let endpoints = BubbleConnector.endpoints(bubble: bubble, highlight: highlight, side: .aboveRight)
+        XCTAssertEqual(endpoints.bubble, CGPoint(x: 520, y: 389))
+        XCTAssertEqual(endpoints.highlight, CGPoint(x: 444, y: 397))
+        XCTAssertEqual(BubbleConnector.speechTailTip(bubble: bubble, highlight: highlight, side: .aboveRight), CGPoint(x: 444, y: 395))
+        XCTAssertEqual(BubbleConnector.speechTailRoot(bubble: bubble, highlight: highlight, side: .aboveRight, cornerRadius: 14, tailBase: 18), 453)
+        XCTAssertNotNil(BubbleConnector.line(bubble: bubble, highlight: highlight, side: .aboveRight))
+    }
+
+    func testLeftEndpointsTipAndRoot() {
+        let bubble = CGRect(x: 208, y: 387, width: 180, height: 44)
+        let endpoints = BubbleConnector.endpoints(bubble: bubble, highlight: highlight, side: .left)
+        XCTAssertEqual(endpoints.bubble, CGPoint(x: 388, y: 409))
+        XCTAssertEqual(endpoints.highlight, CGPoint(x: 396, y: 409))
+        XCTAssertEqual(BubbleConnector.speechTailTip(bubble: bubble, highlight: highlight, side: .left), CGPoint(x: 394, y: 409))
+        XCTAssertEqual(BubbleConnector.speechTailRoot(bubble: bubble, highlight: highlight, side: .left, cornerRadius: 8, tailBase: 12), 409)
+        XCTAssertEqual(BubbleConnector.length(bubble: bubble, highlight: highlight, side: .left), 8)
+        XCTAssertNotNil(BubbleConnector.line(bubble: bubble, highlight: highlight, side: .left))
+    }
+
 }
