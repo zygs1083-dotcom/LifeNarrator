@@ -11,3 +11,9 @@ __pycache__/
 .swiftpm/
 .dev-data/
 .task.md
+
+# Agent collaboration files stay local
+AGENTS.md
+CLAUDE.md
+docs/*
+!docs/images/

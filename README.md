@@ -4,59 +4,54 @@
 
 > Your life, now with a narrator.
 
-LifeNarrator is a lightweight macOS menu bar app that watches what is on your screen and pops up small, cute narration bubbles on the active window: colorful hand-drawn fonts, a few emoji, and a lot of attitude.
+LifeNarrator is a small macOS menu bar app with a noisy little sprite living in it. Every time you switch windows, the sprite reads what is on screen, circles the bits worth a remark with a thin, bright frame and whispers a cheeky line next to each one.
 
-- Open DingTalk → *"Back to work again! 😩"*
-- Open a chat with your boss → their name gets boxed with *"Pig Boss 🐷"*
-- Tell it *"I hate Google"* once → every time you open Google, it grumbles for you.
+- A product page says "$50 off" → *"Was it ever not on sale?"*
+- Your boss's chat is open → their name gets boxed with *"Pig Boss 🐷"*
+- Tell it *"I hate Google"* once → it grumbles every time Google shows up.
 
-![A boxed name and a "Pig Boss" bubble on a test chat window](docs/images/boss-bubble.png)
+![A boxed name and a "Pig Boss" line on a test chat window](docs/images/boss-bubble.png)
 
 > **Status:** v0.5 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
 
 ## Features
 
-- **A noisy little sprite**: every time you switch windows it reads the text on screen, works out what you are looking at, picks the bits worth a remark, circles the exact words with a thin, bright frame and whispers a line about them beside it, in a random clear color. Without a model it only marks what it can be sure of (your rules, chat names, prices, buttons, deadlines). No setup needed; one "liveliness" setting (quiet / lively / rowdy) controls how chatty it is.
-- **Real-time, on the active window**: lines appear right next to the text they are talking about and follow the window when it moves. It stays quiet while you type, in password fields and over full-screen video.
-- **Your own rules**: a global input box (hotkey) where you describe what you love or hate in plain words, e.g. "I hate meetings", "Zhang San is my boss". LifeNarrator turns them into rules and reacts when they come up on screen.
-- **Fully customizable bubbles**: display time, fade and pop animations, how many bubbles at once, size, shape (bubble, cloud, speech balloon, sticker, sticky note), art text effects, color themes, emoji density, persona (snarky, sweet, chuunibyou).
-- **Works without any AI model**: a built-in quip pack covers popular apps and websites.
-- **Bring your own model**: download the built-in engine after install, or connect any OpenAI-compatible API or local server (Ollama, LM Studio). Fast decisions use [System One](https://docs.typesafe.ai/concepts/system-one) models such as Jev or open alternatives through the `/v1/systemone` API.
-- **Bilingual**: English and Simplified Chinese UI and quips.
+- **Reads before it speaks.** With a model, the sprite reads the visible text, works out what you are looking at, picks a few spots, and writes a line about each one. It circles the exact words it is talking about; if it cannot find them on screen, it says nothing.
+- **Right on the text.** Frames sit on the words, lines go into empty space nearby, and both follow the window when it moves. Each mark gets a random light, bright color.
+- **Knows when to be quiet.** Nothing while you type, in password fields, over full-screen video, or in apps you exclude. The same spot is not marked twice within half an hour.
+- **Your own rules.** Press ⌥⇧N and describe what you love or hate in plain words, e.g. "I hate meetings" or "Zhang San is my boss". Rules always fire first.
+- **Easy to tune.** Liveliness (quiet / lively / rowdy) decides how much it says; sliders set the gap between marks, how long each one stays and how many share the screen. Shapes, colors, fonts, emoji and three personas (snarky, sweet, chuunibyou) are all adjustable.
+- **Works without a model.** An offline quip pack covers popular apps and websites, and only confident spots (your rules, chat names, prices, buttons, deadlines) are marked.
+- **Bring your own model.** Download the built-in engine (Qwen3.5-4B, 2.7 GB) after install, or connect any OpenAI-compatible API or local server (Ollama, LM Studio).
+- **Bilingual.** English and Simplified Chinese interface and lines.
 
-## Lightweight by design
+## Lightweight and private
 
-- Event-driven: when nothing changes on screen, it does nothing.
-- Reads text through the Accessibility API first. Screen capture and on-device OCR are used only when needed, and skipped when the window has not changed.
-- Quips are generated ahead of time and cached, so bubbles appear instantly without waiting for a model.
-- No bundled models or fonts. It uses the cute fonts that already ship with macOS.
-- Measured on an M1 Max: 22 MB of memory and 0% CPU when idle. With the built-in model (Qwen3.5-4B, a 2.7 GB download) the first mark appears about 4–6 seconds after a switch and the next ones follow as the model writes them; it makes at most 4 requests a minute, none in Low Power Mode, stops as soon as you switch away, and is unloaded after 10 idle minutes.
-
-## Privacy
-
-Everything runs on your Mac by default. Screen text is never logged or saved to disk, and password fields are never read. If you connect a cloud API, the app tells you clearly that screen text will be sent to it.
+- Event-driven: when nothing changes on screen, it does nothing. Idle, it uses about 22 MB of memory and 0% CPU (M1 Max).
+- Text is read through the Accessibility API; screen capture and on-device OCR are used only for wrapped text that has no exact position.
+- With the built-in model, the first mark appears about 4–6 seconds after a switch. At most 4 requests a minute, none in Low Power Mode; a request stops as soon as you switch away, and the model is unloaded after 10 idle minutes.
+- Everything stays on your Mac by default. Screen text is never logged or saved, input fields and password fields are never sent, and emails, phone numbers and URLs are removed before the model sees anything. If you connect a cloud API, the settings say clearly what is sent.
 
 ## Requirements
 
-- macOS 14 Sonoma or later
-- Apple silicon
-- Accessibility permission (required) and Screen Recording permission (optional, enables OCR for apps that do not expose their text)
+- macOS 14 Sonoma or later on Apple silicon
+- Accessibility permission (required); Screen Recording permission (optional, used for OCR)
 
-## Install and use
+## Install
 
 1. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases), unzip it and move `LifeNarrator.app` to Applications.
-2. The app is not signed with an Apple Developer ID. On macOS 14, right-click it and choose **Open**. On macOS 15, open it once, then go to **System Settings → Privacy & Security** and click **Open Anyway**.
-3. Pick a model option in the welcome window and grant Accessibility permission.
-4. Press **⌥⇧N** (or use the menu bar icon) and type something like "I hate Google" or "Zhang San is my boss". **⌥⇧P** pauses the narrator.
+2. The app is not signed with an Apple Developer ID. On macOS 14, right-click it and choose **Open**. On macOS 15 or later, open it once, then click **Open Anyway** in **System Settings → Privacy & Security**.
+3. Pick a model in the welcome window and grant Accessibility permission.
 
-LifeNarrator lives in the menu bar and has no Dock icon. When the menu bar is full, macOS hides icons that do not fit (especially on MacBooks with a notch). Open LifeNarrator again from Applications or Spotlight to bring up its settings, where the About tab also has a Quit button.
+LifeNarrator lives in the menu bar and has no Dock icon. **⌥⇧N** adds a rule, **⌥⇧P** pauses the sprite. If the menu bar is too full to show the icon (common on MacBooks with a notch), open LifeNarrator again from Applications or Spotlight to bring up its settings.
 
-Releases are signed with the same self-signed certificate from v0.1.4 on, so macOS keeps the Accessibility permission across updates. When updating from an older version, grant it once more: if bubbles stop appearing, remove LifeNarrator from **Privacy & Security → Accessibility** and add it again.
+Releases are signed with the same self-signed certificate since v0.1.4, so the Accessibility permission survives updates. Coming from an older version, remove LifeNarrator from **Privacy & Security → Accessibility** and add it again once.
 
-## Building from source
+## Build from source
 
 ```sh
 swift build
+swift test
 scripts/bundle.sh   # needs Xcode; builds dist/LifeNarrator.app and dist/LifeNarrator.zip
 ```
 

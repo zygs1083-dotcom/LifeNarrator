@@ -109,7 +109,7 @@ func runQuality(modelPath: String) throws {
         }
     }
 
-    let pack = try JSONDecoder().decode(ExamplePack.self, from: Data(contentsOf: URL(fileURLWithPath: "docs/design/quips.json")))
+    let pack = try JSONDecoder().decode(ExamplePack.self, from: Data(contentsOf: URL(fileURLWithPath: "Sources/NarratorCore/Resources/quips.json")))
     for scene in generationScenes {
         let examples = scene.exampleRules.flatMap { id in
             pack.rules.first { $0.id == id }!.quips.filter { $0.lang == "zh" && $0.persona == scene.persona }.prefix(2)
