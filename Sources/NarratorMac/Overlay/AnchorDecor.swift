@@ -32,7 +32,7 @@ struct AnchorDecorView: View {
                     circle.fill(Color(d.group.fill))
                     circle.stroke(stroke, lineWidth: d.size.strokeWidth)
                 }
-            case .rounded, .sticker, .note:
+            case .text, .rounded, .sticker, .note:
                 if let line = BubbleConnector.line(bubble: d.bubbleFrame, highlight: d.highlight, side: d.side) {
                     Path { p in
                         p.move(to: line.from)

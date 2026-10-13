@@ -212,7 +212,7 @@ public final class ContextSensor {
         schedule()
     }
 
-    /// App and window switches are read after a 300 ms debounce. Content changes are read at most once per 2 s
+    /// App and window switches are read after a 150 ms debounce. Content changes are read at most once per 2 s
     /// (a read already scheduled sees the latest content), so constantly changing apps are not re-traversed.
     private func schedule() {
         let switching = appChangePending || windowChangePending
@@ -223,7 +223,7 @@ public final class ContextSensor {
             return
         }
         let generation = generation
-        let delay = switching ? 0.3 : max(0.3, 2 - Date().timeIntervalSince(lastCapture))
+        let delay = switching ? 0.15 : max(0.3, 2 - Date().timeIntervalSince(lastCapture))
         pending = Task { [weak self] in
             do {
                 try await Task.sleep(for: .seconds(delay))

@@ -31,6 +31,7 @@
 "blacklist" = "应用黑名单";
 "blacklist.hint" = "每行一个 bundle ID。黑名单中的应用不会被读取。";
 "shape" = "形状";
+"shape.text" = "纯文字";
 "shape.rounded" = "圆角气泡";
 "shape.cloud" = "云朵";
 "shape.speech" = "带尾巴对话框";

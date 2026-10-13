@@ -98,7 +98,7 @@ private struct AppearanceSettingsView: View {
                 }
                 Toggle(store.text("dwell.persistent"), isOn: Binding(get: {
                     store.settings.bubbleStyle.dwell == .untilDismissed
-                }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(6) }))
+                }, set: { store.settings.bubbleStyle.dwell = $0 ? .untilDismissed : .seconds(3) }))
                 if case .seconds(let seconds) = store.settings.bubbleStyle.dwell {
                     Stepper("\(store.text("dwell.seconds")): \(Int(seconds))", value: Binding(get: { seconds }, set: {
                         store.settings.bubbleStyle.dwell = .seconds($0)

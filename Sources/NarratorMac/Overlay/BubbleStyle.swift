@@ -3,7 +3,7 @@ import Foundation
 import NarratorCore
 
 public enum BubbleShape: String, CaseIterable, Sendable {
-    case rounded, cloud, speech, sticker, note
+    case text, rounded, cloud, speech, sticker, note
 }
 
 /// Art-text effects of visual-spec §4; they stack.
@@ -71,14 +71,15 @@ public enum Dwell: Sendable, Equatable {
 }
 
 public struct BubbleStyle: Sendable {
-    public var shape: BubbleShape = .rounded
-    public var size: BubbleSize = .medium
+    // Default is the "glimpse": a small line of text with no bubble behind it, gone after a few seconds.
+    public var shape: BubbleShape = .text
+    public var size: BubbleSize = .small
     public var theme: ColorTheme = .macaron
     public var textEffects: TextEffects = [.outline, .shadow]
     public var animation: BubbleAnimation = .fade
     public var emojiDensity: EmojiDensity = .moderate
     public var font: FontChoice = .persona
-    public var dwell: Dwell = .seconds(6)
+    public var dwell: Dwell = .seconds(3)
     public var maxOnScreen = 3
 
     public init() {}

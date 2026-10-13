@@ -46,7 +46,7 @@ struct BubbleAppearance {
     /// Outer box handed to placement (§2 per-shape expansion).
     var outerSize: CGSize {
         switch shape {
-        case .rounded:
+        case .text, .rounded:
             contentSize
         case .cloud:
             CGSize(width: contentSize.width + 0.5 * contentSize.height, height: 1.9 * contentSize.height)
@@ -61,7 +61,7 @@ struct BubbleAppearance {
 
     var contentOrigin: CGPoint {
         switch shape {
-        case .rounded, .speech: .zero
+        case .text, .rounded, .speech: .zero
         case .cloud: CGPoint(x: 0.25 * contentSize.height, y: 0.45 * contentSize.height)
         case .sticker: CGPoint(x: size.stickerPaperInset, y: size.stickerPaperInset)
         case .note: CGPoint(x: (outerSize.width - contentSize.width) / 2, y: 8)
@@ -71,7 +71,7 @@ struct BubbleAppearance {
     /// The rect the shape itself occupies inside the outer box.
     var bodyRect: CGRect {
         switch shape {
-        case .rounded, .speech: CGRect(origin: .zero, size: contentSize)
+        case .text, .rounded, .speech: CGRect(origin: .zero, size: contentSize)
         case .cloud, .sticker, .note: CGRect(origin: .zero, size: outerSize)
         }
     }
@@ -144,9 +144,11 @@ struct ArtText: View {
     var body: some View {
         let fs = appearance.size.fontSize
         let neon = appearance.neon
-        let text = appearance.group.text
+        // With no bubble behind it, light text on a dark edge reads on both light and dark windows.
+        let textOnly = appearance.shape == .text && !neon
+        let text = textOnly ? appearance.group.fill : appearance.group.text
         let w = max(1, 0.07 * fs)
-        let outlineColor = neon ? Color(PaletteColor(hex: ColorTheme.neonFill)) : Color(appearance.group.stroke)
+        let outlineColor = neon ? Color(PaletteColor(hex: ColorTheme.neonFill)) : Color(textOnly ? appearance.group.text : appearance.group.stroke)
         let offsets: [CGPoint] = [
             CGPoint(x: w, y: 0), CGPoint(x: -w, y: 0), CGPoint(x: 0, y: w), CGPoint(x: 0, y: -w),
             CGPoint(x: 0.71 * w, y: 0.71 * w), CGPoint(x: -0.71 * w, y: 0.71 * w),
@@ -168,6 +170,7 @@ struct ArtText: View {
         }
         .shadow(color: neon ? Color(text).opacity(0.8) : .clear, radius: neon ? 0.35 * fs : 0)
         .shadow(color: appearance.effects.contains(.shadow) ? .black.opacity(neon ? 0.45 : 0.25) : .clear, radius: 0, x: 0.06 * fs, y: 0.10 * fs)
+        .shadow(color: textOnly ? .black.opacity(0.35) : .clear, radius: 2)
     }
 }
 
@@ -209,6 +212,8 @@ struct BubbleBodyView: View {
         let glow = a.neon ? stroke.opacity(0.7) : .clear
         let glowRadius: CGFloat = a.neon ? 8 : 0
         switch a.shape {
+        case .text:
+            EmptyView()
         case .rounded:
             let shape = RoundedRectangle(cornerRadius: min(a.contentSize.height / 2, a.size.roundedCornerRadius), style: .continuous)
             shape.fill(fill)

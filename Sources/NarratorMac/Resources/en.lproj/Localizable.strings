@@ -31,6 +31,7 @@
 "blacklist" = "Excluded apps";
 "blacklist.hint" = "One bundle ID per line. Excluded apps will not be read.";
 "shape" = "Shape";
+"shape.text" = "Text only";
 "shape.rounded" = "Rounded bubble";
 "shape.cloud" = "Cloud";
 "shape.speech" = "Speech bubble";
