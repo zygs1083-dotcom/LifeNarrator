@@ -35,14 +35,14 @@ import Testing
     #expect(!SpriteScout.targets(in: later, candidates: [], memory: memory, onScreen: [], level: .lively).isEmpty)
 }
 
-@Test func spriteMemoryLeastRecentUsesSixtySecondMinimum() {
+@Test func spriteMemoryLeastRecentUsesTenSecondMinimum() {
     var memory = SpriteMemory()
     let keys = (0..<3).map { SpriteMemory.Key(bundleId: "test", text: String($0)) }
     memory.mark(key: keys[0], quip: quip("早"), now: epoch)
-    memory.mark(key: keys[1], quip: quip("晚"), now: epoch.addingTimeInterval(30))
-    #expect(memory.leastRecent(among: keys, now: epoch.addingTimeInterval(59.999)) == nil)
-    #expect(memory.leastRecent(among: keys.reversed(), now: epoch.addingTimeInterval(60)) == keys[0])
-    #expect(memory.leastRecent(among: [keys[1], keys[2]], now: epoch.addingTimeInterval(90)) == keys[1])
+    memory.mark(key: keys[1], quip: quip("晚"), now: epoch.addingTimeInterval(5))
+    #expect(memory.leastRecent(among: keys, now: epoch.addingTimeInterval(9.999)) == nil)
+    #expect(memory.leastRecent(among: keys.reversed(), now: epoch.addingTimeInterval(10)) == keys[0])
+    #expect(memory.leastRecent(among: [keys[1], keys[2]], now: epoch.addingTimeInterval(20)) == keys[1])
 }
 
 @Test func spriteMemoryCacheIsIndependentOfMarkTTL() {

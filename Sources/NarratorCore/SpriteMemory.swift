@@ -80,7 +80,7 @@ public struct SpriteMemory: Sendable {
 
     public func leastRecent(among keys: [Key], now: Date) -> Key? {
         keys.filter {
-            entries[$0]?.lastMarkedAt.map { now.timeIntervalSince($0) >= 60 } == true
+            entries[$0]?.lastMarkedAt.map { now.timeIntervalSince($0) >= 10 } == true
         }.min { entries[$0]!.lastMarkedAt! < entries[$1]!.lastMarkedAt! }
     }
 
