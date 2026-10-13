@@ -127,7 +127,7 @@ public struct OnboardingView: View {
 
     private func permissionStatus(_ granted: Bool) -> some View {
         let hue = AppTheme.hue(granted ? 150 : 42)
-        Label(store.text(granted ? "permission.granted" : "permission.notGranted"),
+        return Label(store.text(granted ? "permission.granted" : "permission.notGranted"),
               systemImage: granted ? "checkmark.circle.fill" : "circle.dashed")
             .font(AppTheme.font(.badge)).foregroundStyle(hue.text)
             .padding(.horizontal, 8).padding(.vertical, 3).background(hue.soft, in: Capsule())
