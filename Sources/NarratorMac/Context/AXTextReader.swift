@@ -15,7 +15,8 @@ enum AXAccess {
         switch result {
         case .success: return value
         // invalidUIElement: the element was destroyed while the window was being read.
-        case .attributeUnsupported, .noValue, .notImplemented, .invalidUIElement: return nil
+        // failure: some apps return the generic error for individual elements; skip them instead of failing the whole read.
+        case .attributeUnsupported, .noValue, .notImplemented, .invalidUIElement, .failure: return nil
         default: throw AXFailure(operation: name, code: result)
         }
     }
@@ -46,7 +47,7 @@ enum AXAccess {
         let error = AXUIElementCopyParameterizedAttributeValue(
             element, kAXBoundsForRangeParameterizedAttribute as CFString, parameter, &result)
         switch error {
-        case .parameterizedAttributeUnsupported, .attributeUnsupported, .noValue, .notImplemented, .illegalArgument, .invalidUIElement: return nil
+        case .parameterizedAttributeUnsupported, .attributeUnsupported, .noValue, .notImplemented, .illegalArgument, .invalidUIElement, .failure: return nil
         case .success: break
         default: throw AXFailure(operation: kAXBoundsForRangeParameterizedAttribute, code: error)
         }

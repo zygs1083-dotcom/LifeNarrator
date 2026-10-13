@@ -173,7 +173,7 @@ public final class ContextSensor {
                                               Unmanaged.passUnretained(self).toOpaque())
         switch result {
         case .success: observations.registrations.append((element, name, window))
-        case .notificationUnsupported, .notImplemented, .invalidUIElement: break
+        case .notificationUnsupported, .notImplemented, .invalidUIElement, .failure: break
         default: throw AXFailure(operation: name, code: result)
         }
     }
