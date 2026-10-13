@@ -190,9 +190,7 @@ public final class OverlayController: NSObject {
             do {
                 keyDelta = try keyboardScrollDelta(event, application: track.application)
             } catch {
-                if let failure = error as? AXFailure, failure.code == .cannotComplete { return }
-                onError(error)
-                return
+                if (error as? AXFailure)?.code != .cannotComplete { onError(error) }
             }
         }
         if event.type == .scrollWheel || keyDelta != nil {
