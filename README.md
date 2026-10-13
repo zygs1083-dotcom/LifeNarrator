@@ -12,7 +12,7 @@ LifeNarrator is a small macOS menu bar app with a noisy little sprite living in 
 
 ![A boxed name and a "Pig Boss" line on a test chat window](docs/images/boss-bubble.png)
 
-> **Status:** v0.5 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
+> **Status:** v0.6 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
 
 ## Features
 
@@ -29,7 +29,7 @@ LifeNarrator is a small macOS menu bar app with a noisy little sprite living in 
 
 - Event-driven: when nothing changes on screen, it does nothing. Idle, it uses about 22 MB of memory and 0% CPU (M1 Max).
 - Text is read through the Accessibility API; screen capture and on-device OCR are used only for wrapped text that has no exact position.
-- With the built-in model, the first mark appears about 4–6 seconds after a switch. At most 4 requests a minute, none in Low Power Mode; a request stops as soon as you switch away, and the model is unloaded after 10 idle minutes.
+- With the built-in model, the first mark appears about 3–5 seconds after a switch. At most 4 requests a minute, none in Low Power Mode; a request stops as soon as you switch away, and the model is unloaded after 10 idle minutes.
 - Everything stays on your Mac by default. Screen text is never logged or saved, input fields and password fields are never sent, and emails, phone numbers and URLs are removed before the model sees anything. If you connect a cloud API, the settings say clearly what is sent.
 
 ## Requirements
