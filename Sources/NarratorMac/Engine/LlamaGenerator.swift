@@ -19,6 +19,9 @@ public actor LlamaGenerator: TextGenerator {
     }
 
     public var lastPrefillSeconds: Double { engine?.lastPrefillSeconds ?? 0 }
+    public var lastPrefixCached: Bool { engine?.lastPrefixCached ?? false }
+    public var lastPrefixRestoreSeconds: Double { engine?.lastPrefixRestoreSeconds ?? 0 }
+    public var prefixSnapshotBytes: Int { engine?.prefixSnapshotBytes ?? 0 }
 
     public func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?,
                              partial: @escaping @Sendable (String) -> Bool) async throws -> String {
@@ -27,11 +30,12 @@ public actor LlamaGenerator: TextGenerator {
         defer { scheduleUnload() }
         let grammar = try LlamaGrammar.grammar(for: schema)
         if engine == nil { engine = try LlamaEngine(modelPath: modelPath) }
-        var chat = ""
-        if let system { chat += "<|im_start|>system\n\(system)<|im_end|>\n" }
+        let cachePrefix = system.map { "<|im_start|>system\n\($0)<|im_end|>\n" }
+        var chat = cachePrefix ?? ""
         chat += "<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
         try Task.checkCancellation()
-        return try engine!.generate(prompt: chat, grammar: grammar, maxTokens: maxTokens ?? 1024) {
+        return try engine!.generate(prompt: chat, grammar: grammar, maxTokens: maxTokens ?? 1024,
+                                    cachePrefix: cachePrefix) {
             !Task.isCancelled && partial($0)
         }
     }

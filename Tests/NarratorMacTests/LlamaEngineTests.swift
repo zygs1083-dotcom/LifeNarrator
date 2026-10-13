@@ -55,6 +55,64 @@ final class LlamaEngineTests: XCTestCase {
         XCTAssertEqual(probabilities.reduce(0, +), 1, accuracy: 1e-12)
     }
 
+    func testGenerationPrefixSnapshotReducesPrefill() throws {
+        let engine = try engine()
+        let system = String(repeating: "Read the screen carefully and return only JSON.\n", count: 100)
+        let prefix = "<|im_start|>system\n\(system)<|im_end|>\n"
+        let grammar = #"root ::= "{\"text\":\"你好\"}""#
+        let first = try engine.generate(
+            prompt: prefix + "<|im_start|>user\nScreen one.<|im_end|>\n<|im_start|>assistant\n",
+            grammar: grammar, maxTokens: 32, cachePrefix: prefix)
+        XCTAssertEqual(first, "{\"text\":\"你好\"}")
+        XCTAssertFalse(engine.lastPrefixCached)
+        XCTAssertEqual(engine.lastPrefixRestoreSeconds, 0)
+        XCTAssertGreaterThan(engine.prefixSnapshotBytes, 0)
+        let firstPrefill = engine.lastPrefillSeconds
+        let second = try engine.generate(
+            prompt: prefix + "<|im_start|>user\nScreen two.<|im_end|>\n<|im_start|>assistant\n",
+            grammar: grammar, maxTokens: 32, cachePrefix: prefix)
+        XCTAssertEqual(second, "{\"text\":\"你好\"}")
+        XCTAssertTrue(engine.lastPrefixCached)
+        XCTAssertGreaterThan(engine.lastPrefixRestoreSeconds, 0)
+        XCTAssertLessThan(engine.lastPrefillSeconds, firstPrefill * 0.5)
+    }
+
+    func testGenerationPrefixReplacementAndCancellation() throws {
+        let engine = try engine()
+        let prefix = "<|im_start|>system\nReturn JSON.<|im_end|>\n"
+        let suffix = "<|im_start|>user\nWrite JSON.<|im_end|>\n<|im_start|>assistant\n"
+        let grammar = #"root ::= "{\"text\":\"你好\"}""#
+        XCTAssertThrowsError(try engine.generate(prompt: prefix + suffix, grammar: grammar,
+                                                maxTokens: 32, cachePrefix: prefix) { _ in false }) {
+            XCTAssertTrue($0 is CancellationError)
+        }
+        XCTAssertEqual(try engine.generate(prompt: prefix + suffix, grammar: grammar,
+                                          maxTokens: 32, cachePrefix: prefix), "{\"text\":\"你好\"}")
+        XCTAssertTrue(engine.lastPrefixCached)
+        let changed = "<|im_start|>system\nWrite a JSON object.<|im_end|>\n"
+        XCTAssertEqual(try engine.generate(prompt: changed + suffix, grammar: grammar,
+                                          maxTokens: 32, cachePrefix: changed), "{\"text\":\"你好\"}")
+        XCTAssertFalse(engine.lastPrefixCached)
+        XCTAssertEqual(try engine.generate(prompt: prefix + suffix, grammar: grammar,
+                                          maxTokens: 32, cachePrefix: prefix), "{\"text\":\"你好\"}")
+        XCTAssertFalse(engine.lastPrefixCached)
+        XCTAssertEqual(try engine.generate(prompt: prefix + suffix, grammar: grammar,
+                                          maxTokens: 32), "{\"text\":\"你好\"}")
+        XCTAssertFalse(engine.lastPrefixCached)
+        XCTAssertEqual(engine.lastPrefixRestoreSeconds, 0)
+    }
+
+    func testGenerationWithWholePromptCachedRestoresLogits() throws {
+        let engine = try engine()
+        let prompt = "<|im_start|>user\nWrite JSON.<|im_end|>\n<|im_start|>assistant\n"
+        let grammar = #"root ::= "{\"text\":\"你好\"}""#
+        for _ in 0..<2 {
+            XCTAssertEqual(try engine.generate(prompt: prompt, grammar: grammar,
+                                              maxTokens: 32, cachePrefix: prompt), "{\"text\":\"你好\"}")
+        }
+        XCTAssertTrue(engine.lastPrefixCached)
+    }
+
     func testTokenCallbackCancelsAndEngineCanGenerateAgain() throws {
         let engine = try engine()
         let prompt = "<|im_start|>user\nWrite JSON.<|im_end|>\n<|im_start|>assistant\n"

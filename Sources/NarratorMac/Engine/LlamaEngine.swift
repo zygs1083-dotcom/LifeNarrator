@@ -6,6 +6,7 @@ public final class LlamaEngine {
         case metalUnavailable, modelLoad, contextCreation, tokenization, emptyOption
         case prefixBoundary, decode(Int32), contextOverflow, cacheRemoval, missingLogits
         case invalidGrammar, tokenPiece, invalidUTF8, generationLimit
+        case snapshotSave, snapshotRestore
     }
 
     private static let backend: Void = llama_backend_init()
@@ -14,9 +15,17 @@ public final class LlamaEngine {
     private let vocabulary: OpaquePointer
     private var cachedPrefix: String?
     private var prefixTokens: [llama_token] = []
+    private struct PrefixSnapshot {
+        let tokens: [llama_token]
+        let data: [UInt8]
+    }
+    private var generationPrefix: PrefixSnapshot?
     public private(set) var prefixPrefillSeconds = 0.0
     public private(set) var generatedTokens = 0
     public private(set) var lastPrefillSeconds = 0.0
+    public private(set) var lastPrefixCached = false
+    public private(set) var lastPrefixRestoreSeconds = 0.0
+    public var prefixSnapshotBytes: Int { generationPrefix?.data.count ?? 0 }
 
     public init(modelPath: String) throws {
         _ = Self.backend
@@ -82,10 +91,13 @@ public final class LlamaEngine {
     }
 
     public func generate(prompt: String, grammar: String, maxTokens: Int,
+                         cachePrefix: String? = nil,
                          onToken: (String) -> Bool = { _ in true }) throws -> String {
         clear()
         generatedTokens = 0
         lastPrefillSeconds = 0
+        lastPrefixCached = false
+        lastPrefixRestoreSeconds = 0
         guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else {
             throw Failure.invalidGrammar
         }
@@ -100,8 +112,37 @@ public final class LlamaEngine {
         llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
         llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED))
         let tokens = try tokenize(prompt, special: true)
+        guard !tokens.isEmpty else { throw Failure.tokenization }
         let start = ContinuousClock.now
-        try evaluate(tokens, position: 0)
+        if let cachePrefix {
+            var candidate = try tokenize(cachePrefix, special: true)
+            guard tokens.starts(with: candidate) else { throw Failure.prefixBoundary }
+            // Sequence snapshots omit logits; leave one token to decode if the prefix is the whole prompt.
+            if candidate.count == tokens.count { candidate.removeLast() }
+            if let snapshot = generationPrefix, snapshot.tokens == candidate {
+                let restoreStart = ContinuousClock.now
+                let restored = snapshot.data.withUnsafeBufferPointer {
+                    llama_state_seq_set_data(context, $0.baseAddress, $0.count, 0)
+                }
+                guard restored == snapshot.data.count else { throw Failure.snapshotRestore }
+                lastPrefixRestoreSeconds = seconds(since: restoreStart)
+                lastPrefixCached = true
+            } else {
+                generationPrefix = nil
+                try evaluate(candidate, position: 0)
+                let size = llama_state_seq_get_size(context, 0)
+                guard size > 0 else { throw Failure.snapshotSave }
+                var data = [UInt8](repeating: 0, count: size)
+                let saved = data.withUnsafeMutableBufferPointer {
+                    llama_state_seq_get_data(context, $0.baseAddress, $0.count, 0)
+                }
+                guard saved == size else { throw Failure.snapshotSave }
+                generationPrefix = PrefixSnapshot(tokens: candidate, data: data)
+            }
+            try evaluate(Array(tokens.dropFirst(candidate.count)), position: candidate.count)
+        } else {
+            try evaluate(tokens, position: 0)
+        }
         lastPrefillSeconds = seconds(since: start)
         var text = ""
         var bytes: [UInt8] = []
