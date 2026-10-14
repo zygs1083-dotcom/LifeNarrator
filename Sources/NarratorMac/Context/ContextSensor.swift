@@ -292,11 +292,9 @@ public final class ContextSensor {
         visualTask = nil
         ocrLines = []
         valueChanges = [:]
+        onWindowChanged()
         // Our own windows (settings, onboarding) are never narrated.
-        guard app.bundleIdentifier != nil, app.processIdentifier != getpid() else {
-            onWindowChanged()
-            return
-        }
+        guard app.bundleIdentifier != nil, app.processIdentifier != getpid() else { return }
         application = app
         axApplication = AXUIElementCreateApplication(app.processIdentifier)
         var observer: AXObserver?
@@ -339,13 +337,14 @@ public final class ContextSensor {
         visualTask?.cancel()
         visualTask = nil
         ocrLines = []
-        window = try AXAccess.element(axApplication!, kAXFocusedWindowAttribute)
         windowFrame = nil
+        // The engine drops its snapshot together with our lines, even when reading the new window throws.
+        onWindowChanged()
+        window = try AXAccess.element(axApplication!, kAXFocusedWindowAttribute)
         windowChangePending = true
         if ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[sprite] \(application!.bundleIdentifier!) windowChanged timestamp=\(Int(Date().timeIntervalSince1970 * 1000))\n".utf8))
         }
-        onWindowChanged()
         guard let window else { return }
         for name in [kAXTitleChangedNotification, kAXMovedNotification, kAXResizedNotification,
                      kAXValueChangedNotification, kAXUIElementDestroyedNotification] {
