@@ -1,3 +1,3 @@
 public enum NarratorCore {
-    public static let version = "0.7.3"
+    public static let version = "0.7.4"
 }
