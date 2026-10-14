@@ -55,7 +55,8 @@ enum AppTheme {
         color(PaletteColor(hex: light), PaletteColor(hex: dark))
     }
 
-    private static func color(_ light: PaletteColor, _ dark: PaletteColor) -> Color {
+    // SwiftUI resolves dynamic colors on its display-link thread, so the provider must not be main-actor isolated.
+    nonisolated private static func color(_ light: PaletteColor, _ dark: PaletteColor) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
             let rgb = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
             return NSColor(srgbRed: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1)

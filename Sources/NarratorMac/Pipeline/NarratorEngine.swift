@@ -466,6 +466,12 @@ public final class NarratorEngine {
         if lineIndex >= 0 && SpritePrompt.privacyRanges(in: snapshot.textLines[lineIndex].text).contains(where: { $0.overlaps(range) }) { return false }
         guard memory.status(key: .init(bundleId: snapshot.bundleId, text: quote), now: Date())?.isMarked != true else { return false }
         let rect = lineIndex >= 0 ? try await sensor.textRect(lineIndex: lineIndex, range: range) : nil
+        // OCR can take a while; the sensor's lines may have been replaced meanwhile, so locate again.
+        if self.snapshot?.textLines != snapshot.textLines {
+            return try await display(quote: quote, lineIndex: lineIndex, range: range, quip: quip,
+                ruleID: ruleID, cooldownRuleID: cooldownRuleID, source: source, reason: reason,
+                tick: tick, generation: generation, reservation: id)
+        }
         let track = lineIndex >= 0 ? try sensor.markTrack(lineIndex: lineIndex, kind: rect?.kind) : nil
         try await waitForTyping(generation: generation, source: source)
         let latest = self.snapshot!
