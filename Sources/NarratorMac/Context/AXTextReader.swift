@@ -148,7 +148,9 @@ enum AXTextReader {
             if let role, visible, textRoles.contains(role) || ["AXWebArea", "AXCheckBox", kAXScrollAreaRole].contains(role) {
                 valueElements.append(element)
             }
-            if let role, textRoles.contains(role), visible {
+            // Chromium collapses text scrolled out of a non-AXScrollArea container to a 1 pt sliver at its edge,
+            // and screen-reader-only copies are 1×1; neither is visible.
+            if let role, textRoles.contains(role), visible, frame!.width > 2, frame!.height > 2 {
                 let title = try AXAccess.value(element, kAXTitleAttribute) as? String
                 let text = role == kAXButtonRole ? title : (try AXAccess.value(element, kAXValueAttribute) as? String) ?? title
                 if let text {
