@@ -10,7 +10,8 @@ public enum BubbleSize: String, CaseIterable, Sendable {
     public var fontSize: CGFloat { pick(14, 18, 24) }
     public var lineSpacing: CGFloat { pick(2, 3, 4) }
     public var maxWidth: CGFloat { pick(220, 300, 400) }
-    public var maxLines: Int { Int(pick(2, 3, 3)) }
+    // Three lines at S too: the 160 pt narrow bubble needs them for an 18-character quip.
+    public var maxLines: Int { 3 }
     public var horizontalPadding: CGFloat { pick(10, 14, 18) }
     public var verticalPadding: CGFloat { pick(6, 9, 12) }
     public var emojiSize: CGFloat { pick(16, 20, 26) }
