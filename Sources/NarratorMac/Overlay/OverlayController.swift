@@ -8,6 +8,8 @@ public struct MarkTrack {
     let element: AXUIElement
     let application: AXUIElement
     var ancestors: [AXUIElement] = []
+    /// What the first hit test found instead of the text, e.g. a transparent layer many apps lay over their content.
+    var standIn: AXUIElement?
     var origin: CGPoint
     var lastHitTest = Date.distantPast
 
@@ -306,7 +308,7 @@ public final class OverlayController: NSObject {
         for (overlay, i) in tracked {
             let bubble = overlay.model.bubbles[i]
             guard !bubble.leaving, let delta = deltas[bubble.id] else { continue }
-            // A new mark is checked once even if it has not moved: the model may pick text hidden under a sticky header.
+            // A new mark is checked once even if it has not moved, to learn what hit tests return over its text.
             let tested = bubble.track!.lastHitTest != .distantPast
             if hypot(delta.x, delta.y) >= 0.5 { overlay.model.bubbles[i].track!.origin = positions[bubble.id]! }
             else if tested { continue }
@@ -317,7 +319,7 @@ public final class OverlayController: NSObject {
             let point = CGPoint(x: highlight.midX + overlay.origin.x - lead.x,
                                 y: highlight.midY + overlay.origin.y - lead.y)
             do {
-                if try occluded(bubble.track!, at: point) {
+                if try occluded(&overlay.model.bubbles[i].track!, at: point, first: !tested) {
                     removeImmediately(bubble.id, from: overlay)
                     if looping {
                         followRemoved += 1
@@ -373,17 +375,29 @@ public final class OverlayController: NSObject {
         }
     }
 
-    private func occluded(_ track: MarkTrack, at point: CGPoint) throws -> Bool {
+    /// Something other than the text, or its stand-in, is hit. Once the text itself is hit, the stand-in is dropped,
+    /// so text that scrolls under a sticky header is still caught.
+    private func occluded(_ track: inout MarkTrack, at point: CGPoint, first: Bool) throws -> Bool {
         var hit: AXUIElement?
         guard AXUIElementCopyElementAtPosition(track.application, Float(point.x), Float(point.y), &hit) == .success,
-              var element = hit else { return false }
-        if CFEqual(element, track.element) || track.ancestors.contains(where: { CFEqual($0, element) }) { return false }
+              let hit else { return false }
+        if try hits(hit, track) {
+            track.standIn = nil
+            return false
+        }
+        if first { track.standIn = hit }
+        return !(track.standIn.map { CFEqual($0, hit) } ?? false)
+    }
+
+    private func hits(_ hit: AXUIElement, _ track: MarkTrack) throws -> Bool {
+        if CFEqual(hit, track.element) || track.ancestors.contains(where: { CFEqual($0, hit) }) { return true }
+        var element = hit
         for _ in 0..<3 {
             guard let parent = try AXAccess.element(element, kAXParentAttribute) else { break }
-            if CFEqual(parent, track.element) { return false }
+            if CFEqual(parent, track.element) { return true }
             element = parent
         }
-        return true
+        return false
     }
 
     /// Moves the window's bubbles with it (§6 position follow). Bubbles that no longer fit are dismissed.
