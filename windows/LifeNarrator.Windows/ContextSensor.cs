@@ -69,9 +69,6 @@ internal sealed class ContextSensor : IDisposable
     void Run()
     {
         automation = new CUIAutomation8();
-        var timeouts = (IUIAutomation2)automation;
-        timeouts.ConnectionTimeout = 100;
-        timeouts.TransactionTimeout = 100;
         ocr = new WindowOcr(ocrUnavailable);
         while (!work.IsCompleted)
         {
@@ -366,8 +363,13 @@ internal sealed class ContextSensor : IDisposable
         var source = new TaskCompletionSource<TrackSample[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         work.Add(() =>
         {
+            var timeouts = (IUIAutomation2)automation;
+            var connectionTimeout = timeouts.ConnectionTimeout;
+            var transactionTimeout = timeouts.TransactionTimeout;
             try
             {
+                timeouts.ConnectionTimeout = 100;
+                timeouts.TransactionTimeout = 100;
                 var samples = new List<TrackSample>();
                 foreach (var id in ids)
                 {
@@ -398,6 +400,11 @@ internal sealed class ContextSensor : IDisposable
                 source.SetResult(samples.ToArray());
             }
             catch (Exception error) { source.SetException(error); }
+            finally
+            {
+                timeouts.ConnectionTimeout = connectionTimeout;
+                timeouts.TransactionTimeout = transactionTimeout;
+            }
         });
         return source.Task;
     }

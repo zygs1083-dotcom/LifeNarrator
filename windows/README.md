@@ -39,7 +39,8 @@ active-user poll drive snapshots. Visible TextPattern ranges are split by line;
 subranges use UIA bounds or explicitly tagged proportional estimates. Text anchors
 retain their UIA element/range on that thread. Wheel, navigation-key,
 and ScrollPattern notifications drive at most 60 follow reads per second until one
-second after the last event. UIA connection/transaction timeouts are 100 ms;
+second after the last event. Follow reads set UIA connection/transaction timeouts
+to 100 ms;
 expired elements and offscreen anchors lose their decoration immediately and the
 narration fades out. OCR anchors are dismissed on wheel/ScrollPattern events.
 
