@@ -163,7 +163,7 @@
     "stream": true,
     "keyRequired": true,
     "keyURL": "https://bailian.console.aliyun.com",
-    "modelsEndpoint": true,
+    "modelsEndpoint": false,
     "suggestedModels": []
   },
   {
