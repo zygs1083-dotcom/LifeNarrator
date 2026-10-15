@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import NarratorCore
-@testable import narrator_brain
+@testable import NarratorBrain
 
 private func response(_ json: String) throws -> [String: Any] {
     try JSONSerialization.jsonObject(with: #require(try BrainRPC.handle(Data(json.utf8)))) as! [String: Any]

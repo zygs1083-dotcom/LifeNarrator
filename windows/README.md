@@ -1,5 +1,8 @@
 # T19 Windows spike
 
+The full T20b brain and W1 layout/port contract is in [brain-protocol.md](brain-protocol.md).
+The standalone T19 `ping` / `matchRules` harness below remains supported.
+
 This is a technical verification harness, not an application. The shared Swift core stays in-process on macOS; this executable only establishes the future Windows stdio boundary.
 
 ## Run

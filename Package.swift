@@ -7,8 +7,8 @@ var targets: [Target] = [
     .target(name: "NarratorCore", resources: [.process("Resources")]),
     .target(name: "NarratorBrain", dependencies: ["NarratorCore"]),
     .testTarget(name: "NarratorCoreTests", dependencies: ["NarratorCore"]),
-    .executableTarget(name: "narrator-brain", dependencies: ["NarratorCore"]),
-    .testTarget(name: "NarratorBrainTests", dependencies: ["narrator-brain", "NarratorCore", "NarratorBrain"]),
+    .executableTarget(name: "narrator-brain", dependencies: ["NarratorBrain"]),
+    .testTarget(name: "NarratorBrainTests", dependencies: ["NarratorCore", "NarratorBrain"]),
 ]
 
 // macOS-only targets are left out on Linux so NarratorCore can be built and tested there.

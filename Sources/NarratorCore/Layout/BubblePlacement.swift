@@ -4,7 +4,7 @@ import CoreGraphics
 #endif
 
 /// A front window in screen coordinates (top-left origin, pt), visual-spec §8.
-public struct WindowGeometry: Sendable, Equatable {
+public struct WindowGeometry: Codable, Sendable, Equatable {
     public var frame: CGRect
     /// Title bar plus toolbar; 52 is the §8.1 estimate used when AX gives no AXToolbar.
     public var chromeHeight: CGFloat
