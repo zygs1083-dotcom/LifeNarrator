@@ -13,7 +13,58 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: swift build
-      - run: if [ -d Tests/NarratorCoreTests ]; then swift test; fi
+      - run: swift test
+
+  headless-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji libfontconfig1
+      - run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-bubble-headless
+          path: artifacts/bubble-headless.png
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f
+        with:
+          swift-version: swift-6.2-release
+          swift-build: 6.2-RELEASE
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: swift --version
+      - run: swift build --target NarratorCore
+      - run: swift test
+      - run: swift build -c release --product narrator-brain
+      - run: windows/scripts/package-brain.ps1
+      - name: Publish shell
+        if: ${{ !cancelled() }}
+        run: |
+          dotnet publish windows/LifeNarrator.Windows -c Release -r win-x64 --self-contained true -o artifacts/shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $files = @(Get-ChildItem artifacts/shell -File -Recurse)
+          @{ totalBytes = ($files | Measure-Object Length -Sum).Sum; fileCount = $files.Count; selfContained = $true } |
+            ConvertTo-Json | Set-Content artifacts/shell-size.json
+      - run: windows/scripts/run-spikes.ps1
+        if: ${{ !cancelled() }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-spike
+          path: |
+            artifacts/
+            !artifacts/fixtures/edge-profile/**
+          if-no-files-found: warn
 
   macos:
     runs-on: macos-15
