@@ -4,11 +4,21 @@ import XCTest
 
 final class LayoutColorTests: XCTestCase {
     func testFixedPalettesHaveSixGroups() {
-        for theme in [ColorTheme.macaron, .candy, .neon] {
+        for theme in [ColorTheme.macaron, .candy, .neon, .starry] {
             XCTAssertEqual(theme.palette.count, 6, theme.rawValue)
         }
         XCTAssertTrue(ColorTheme.random.palette.isEmpty)
         XCTAssertEqual(ColorTheme.neon.palette[0].text, ColorTheme.neon.palette[0].stroke)
+    }
+
+    func testStarryPaletteTextContrast() {
+        func luminance(_ color: PaletteColor) -> Double {
+            let channels = [color.red, color.green, color.blue].map { $0 <= 0.04045 ? $0 / 12.92 : pow(($0 + 0.055) / 1.055, 2.4) }
+            return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        }
+        for group in ColorTheme.starry.palette {
+            XCTAssertGreaterThanOrEqual((luminance(group.text) + 0.05) / (luminance(group.fill) + 0.05), 4.5)
+        }
     }
 
     func testHexDecoding() {

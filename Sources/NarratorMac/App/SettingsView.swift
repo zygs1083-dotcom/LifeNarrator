@@ -3,11 +3,12 @@ import NarratorCore
 import SwiftUI
 
 public enum SettingsTab: CaseIterable {
-    case sprite, appearance, rules, models, general
+    case sprite, appearance, memory, rules, models, general
     var key: String {
         switch self {
         case .sprite: "tab.sprite"
         case .appearance: "appearance"
+        case .memory: "tab.memory"
         case .rules: "rules"
         case .models: "models"
         case .general: "general"
@@ -17,6 +18,7 @@ public enum SettingsTab: CaseIterable {
         switch self {
         case .sprite: "sparkles"
         case .appearance: "paintpalette.fill"
+        case .memory: "brain"
         case .rules: "text.badge.checkmark"
         case .models: "brain.head.profile"
         case .general: "gearshape.fill"
@@ -26,6 +28,7 @@ public enum SettingsTab: CaseIterable {
         switch self {
         case .sprite: AppTheme.hue(320)
         case .appearance: AppTheme.hue(255)
+        case .memory: AppTheme.hue(175)
         case .rules: AppTheme.hue(150)
         case .models: AppTheme.hue(200)
         case .general: AppTheme.hue(42)
@@ -57,7 +60,7 @@ public struct AppSettingsView: View {
                         }
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(tab == item ? item.hue.text : AppTheme.textSecondary)
-                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .padding(.horizontal, 10).padding(.vertical, 7)
                         .background {
                             if tab == item {
                                 Capsule().fill(item.hue.soft)
@@ -71,12 +74,13 @@ public struct AppSettingsView: View {
                     .accessibilityAddTraits(tab == item ? .isSelected : [])
                 }
             }
-            .padding(.horizontal, 78).frame(maxWidth: .infinity).frame(height: 52)
+            .padding(.leading, 78).padding(.trailing, 20).frame(maxWidth: .infinity).frame(height: 52)
             ScrollView {
                 Group {
                     switch tab {
                     case .sprite: SpriteSettingsView(store: store)
                     case .appearance: AppearanceSettingsView(store: store)
+                    case .memory: MemorySettingsView(store: store, showRules: { tab = .rules })
                     case .rules: RulesSettingsView(store: store)
                     case .models: ModelSettingsView(store: store)
                     case .general: GeneralSettingsView(store: store)
@@ -104,6 +108,7 @@ private struct SpriteSettingsView: View {
     private let hue = AppTheme.hue(320)
     var body: some View {
         VStack(spacing: 14) {
+            GrowthCard(store: store)
             if !store.screenRecordingGranted && store.settings.liveliness != .quiet {
                 ScreenRecordingReminder(store: store)
             }
@@ -257,7 +262,9 @@ private struct AppearanceSettingsView: View {
         HStack(alignment: .top, spacing: 14) {
             VStack(spacing: 14) {
                 GroupBox {
-                    choice("shape", values: BubbleShape.allCases, selection: $store.settings.bubbleStyle.shape).pickerStyle(.menu)
+                    choice("shape", values: BubbleShape.allCases, selection: $store.settings.bubbleStyle.shape,
+                           unlock: { $0 == .star ? .starBubble : nil }).pickerStyle(.menu)
+                    if !store.isUnlocked(.starBubble) { UnlockLabel(store: store, unlock: .starBubble) }
                     choice("size", values: BubbleSize.allCases, selection: $store.settings.bubbleStyle.size).pickerStyle(.segmented)
                     Picker(store.text("font"), selection: Binding(get: {
                         switch store.settings.bubbleStyle.font {
@@ -270,7 +277,9 @@ private struct AppearanceSettingsView: View {
                     }.pickerStyle(.menu).frame(minHeight: 28)
                 } label: { CardHeading(title: store.text("appearance.look"), symbol: "bubble.left.fill", hue: hue) }
                 GroupBox {
-                    choice("theme", values: ColorTheme.allCases, selection: $store.settings.bubbleStyle.theme).pickerStyle(.menu)
+                    choice("theme", values: ColorTheme.allCases, selection: $store.settings.bubbleStyle.theme,
+                           unlock: { $0 == .starry ? .starryTheme : nil }).pickerStyle(.menu)
+                    if !store.isUnlocked(.starryTheme) { UnlockLabel(store: store, unlock: .starryTheme) }
                     effect("outline", .outline)
                     effect("shadow", .shadow)
                     effect("gradient", .gradient)
@@ -278,6 +287,18 @@ private struct AppearanceSettingsView: View {
                 GroupBox {
                     choice("animation", values: BubbleAnimation.allCases, selection: Binding(get: { store.settings.bubbleStyle.animation }, set: { store.settings.bubbleStyle.animation = $0 })).pickerStyle(.menu)
                     choice("emoji", values: EmojiDensity.allCases, selection: $store.settings.bubbleStyle.emojiDensity).pickerStyle(.segmented)
+                    Picker(store.text("emoji.selection"), selection: Binding(get: {
+                        store.settings.bubbleStyle.emoji ?? ""
+                    }, set: { store.settings.bubbleStyle.emoji = $0.isEmpty ? nil : $0 })) {
+                        Text(store.text("emoji.automatic")).tag("")
+                        ForEach(BubbleStyle.extraEmoji, id: \.self) { emoji in
+                            Group {
+                                if store.isUnlocked(.emoji) { Text(verbatim: emoji) }
+                                else { Label("\(emoji) · Lv.\(GrowthUnlock.emoji.level)", systemImage: "lock.fill") }
+                            }.tag(emoji).disabled(!store.isUnlocked(.emoji))
+                        }
+                    }.pickerStyle(.menu).frame(minHeight: 28)
+                    if !store.isUnlocked(.emoji) { UnlockLabel(store: store, unlock: .emoji) }
                 } label: { CardHeading(title: store.text("appearance.motion"), symbol: "wind", hue: hue) }
             }.frame(width: 380)
             GroupBox {
@@ -288,7 +309,7 @@ private struct AppearanceSettingsView: View {
 
     private var previewID: String {
         let style = store.settings.bubbleStyle
-        return "\(style.shape)-\(style.size)-\(style.theme)-\(style.textEffects.rawValue)-\(style.animation)-\(style.emojiDensity)-\(style.font)-\(store.settings.persona)-\(store.settings.language)"
+        return "\(style.shape)-\(style.size)-\(style.theme)-\(style.textEffects.rawValue)-\(style.animation)-\(style.emojiDensity)-\(style.emoji ?? "")-\(style.font)-\(store.settings.persona)-\(store.settings.language)"
     }
 
     private var fakeWindow: some View {
@@ -328,14 +349,23 @@ private struct AppearanceSettingsView: View {
         let group = style.theme == .random ? ColorSelection.randomGroup(baseHue: 160, index: 0) : style.theme.palette[0]
         var appearance = BubbleAppearance.make(shape: style.shape, size: style.size, theme: style.theme, group: group,
             effects: style.textEffects, font: font, text: store.text("preview.text"),
-            emoji: style.emojiDensity == .none ? [] : style.emojiDensity == .many ? ["✨", "🐱", "💬"] : ["✨"], quipID: "preview")
+            emoji: style.displayedEmoji(["✨", "🐱", "💬"]), quipID: "preview")
         if style.shape == .speech { appearance.setAppLevelTail(corner: .topRight) }
         return BubbleBodyView(appearance: appearance)
     }
 
-    private func choice<T: RawRepresentable & Hashable>(_ key: String, values: [T], selection: Binding<T>) -> some View where T.RawValue == String {
+    private func choice<T: RawRepresentable & Hashable>(_ key: String, values: [T], selection: Binding<T>,
+                                                       unlock: @escaping (T) -> GrowthUnlock? = { _ in nil }) -> some View where T.RawValue == String {
         Picker(store.text(key), selection: selection) {
-            ForEach(values, id: \.self) { value in Text(store.text("\(key).\(value.rawValue)")).tag(value) }
+            ForEach(values, id: \.self) { value in
+                let required = unlock(value)
+                let locked = required.map { !store.isUnlocked($0) } ?? false
+                Group {
+                    if locked {
+                        Label("\(store.text("\(key).\(value.rawValue)")) · Lv.\(required!.level)", systemImage: "lock.fill")
+                    } else { Text(store.text("\(key).\(value.rawValue)")) }
+                }.tag(value).disabled(locked)
+            }
         }.frame(minHeight: 28)
     }
 

@@ -1,5 +1,21 @@
 import SwiftUI
 
+struct StarShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            for index in 0..<10 {
+                let angle = Double(index) * .pi / 5 - .pi / 2
+                let radius = index.isMultiple(of: 2) ? 1.0 : 0.62
+                let point = CGPoint(x: rect.midX + cos(angle) * radius * rect.width / 2,
+                                    y: rect.midY + sin(angle) * radius * rect.height / 2)
+                if index == 0 { path.move(to: point) }
+                else { path.addLine(to: point) }
+            }
+            path.closeSubpath()
+        }
+    }
+}
+
 /// Tail of a speech bubble in the body's local coordinates (visual-spec §2.3).
 struct SpeechTail: Equatable {
     enum Edge { case top, bottom, left, right }

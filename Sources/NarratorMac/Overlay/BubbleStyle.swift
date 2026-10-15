@@ -3,7 +3,7 @@ import Foundation
 import NarratorCore
 
 public enum BubbleShape: String, CaseIterable, Sendable {
-    case text, rounded, cloud, speech, sticker, note
+    case text, rounded, cloud, speech, sticker, note, star
 }
 
 /// Art-text effects of visual-spec §4; they stack.
@@ -74,9 +74,20 @@ public struct BubbleStyle: Sendable {
     public var textEffects: TextEffects = [.outline, .shadow]
     public var animation: BubbleAnimation = .fade
     public var emojiDensity: EmojiDensity = .moderate
+    public var emoji: String?
+    public static let extraEmoji = ["🌟", "🥳", "🦊", "🐱", "🦄", "🍀", "🌈", "🚀"]
     public var font: FontChoice = .persona
     public var dwell: Dwell = .seconds(3)
     public var maxOnScreen = 3
 
     public init() {}
+
+    public func displayedEmoji(_ original: [String]) -> [String] {
+        let selected = emoji.map { [$0] } ?? original
+        switch emojiDensity {
+        case .none: return []
+        case .moderate: return Array(selected.prefix(1))
+        case .many: return selected
+        }
+    }
 }

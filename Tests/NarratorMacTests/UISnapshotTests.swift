@@ -123,8 +123,91 @@ final class UISnapshotTests: XCTestCase {
         }
         for paused in [false, true] {
             store.settings.paused = paused
-            try render(MenuBarView(store: store), dark: false, size: NSSize(width: 240, height: 230))
+            try render(MenuBarView(store: store), dark: false, size: NSSize(width: 240, height: 320))
                 .write(to: directory.appendingPathComponent("ui-menu-\(paused ? "paused" : "onDuty")-light.png"))
+        }
+    }
+
+    func testMemoryAndGrowthInLightAndDark() throws {
+        let application = NSApplication.shared
+        application.setActivationPolicy(.regular)
+        application.finishLaunching()
+        let directory = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SNAPSHOT_DIR"] ?? ".build/snapshots")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let previous = ProcessInfo.processInfo.environment["LIFENARRATOR_DATA_DIR"]
+        setenv("LIFENARRATOR_DATA_DIR", root.path, 1)
+        defer {
+            if let previous { setenv("LIFENARRATOR_DATA_DIR", previous, 1) }
+            else { unsetenv("LIFENARRATOR_DATA_DIR") }
+            try! FileManager.default.removeItem(at: root)
+        }
+        let data = try AppDataDirectory()
+        let memoryURL = root.appendingPathComponent("memory.json")
+        let growthURL = root.appendingPathComponent("growth.json")
+        for language in [InterfaceLanguage.zhHans, .en] {
+            let zh = language == .zhHans
+            let lang = zh ? "zh" : "en"
+            for filled in [false, true] {
+                var memories = try MemoryStore(url: memoryURL)
+                try memories.clear()
+                if filled {
+                    let name = try XCTUnwrap(memories.add(kind: .nickname, text: zh ? "叫我阿王" : "Call me Alex", source: .manual))
+                    try memories.pin(id: name.id, pinned: true)
+                    _ = try memories.add(kind: .fact, text: zh ? "在做人生旁白" : "Building LifeNarrator", source: .chat)
+                    _ = try memories.add(kind: .preference, text: zh ? "喜欢茉莉花茶" : "I enjoy jasmine tea", source: .manual)
+                    _ = try memories.add(kind: .episode, text: zh ? "认识满 30 天" : "30 days together", source: .stats)
+                }
+                let rule = Rule(id: "memory.snapshot.rule", kind: .topic, source: .user,
+                    input: zh ? "我讨厌开会" : "I dislike meetings",
+                    label: .init(zh: "我讨厌开会", en: "I dislike meetings"), sentiment: .dislike,
+                    match: Match(aliases: ["开会", "meeting"]), highlight: true)
+                try RuleLoader.save(filled ? [rule] : [], to: data.rules)
+                var growth = try GrowthTracker(url: root.appendingPathComponent("fixture-growth.json"),
+                    now: Date().addingTimeInterval(-32 * 86400)).state
+                growth.level = filled ? 15 : 1
+                growth.experience = filled ? 9230 : 30
+                growth.unlocked = Set(GrowthUnlock.allCases.filter { $0.level <= growth.level })
+                growth.consecutiveDays = filled ? 7 : 1
+                growth.narrations = filled ? 1420 : 0
+                growth.chatMessages = filled ? 86 : 0
+                try JSONEncoder().encode(growth).write(to: growthURL)
+                var settings = AppSettings()
+                settings.language = language
+                settings.liveliness = .quiet
+                settings.spriteName = zh ? "星仔" : "Stella"
+                if filled {
+                    settings.bubbleStyle.shape = .star
+                    settings.bubbleStyle.theme = .starry
+                    settings.bubbleStyle.emoji = "🦊"
+                }
+                try data.saveSettings(settings)
+                let store = try AppStore()
+                for dark in [false, true] {
+                    let mode = dark ? "dark" : "light"
+                    let state = filled ? "filled" : "empty"
+                    let memory = AppSettingsView(store: store, tab: .memory)
+                    try render(memory, dark: dark)
+                        .write(to: directory.appendingPathComponent("ui-memory-\(state)-\(lang)-\(mode).png"))
+                    if filled {
+                        try render(memory, dark: dark, scrollToBottom: true)
+                            .write(to: directory.appendingPathComponent("ui-memory-filled-scrolled-\(lang)-\(mode).png"))
+                    }
+                    let card = GrowthCard(store: store).padding(20)
+                        .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+                        .groupBoxStyle(.card).frame(width: 740, height: 340).background(AppTheme.windowBackground)
+                    try render(card, dark: dark, size: NSSize(width: 740, height: 340))
+                        .write(to: directory.appendingPathComponent("ui-growth-lv\(growth.level)-\(lang)-\(mode).png"))
+                    try render(MenuBarView(store: store), dark: dark, size: NSSize(width: 240, height: 320))
+                        .write(to: directory.appendingPathComponent("ui-menu-lv\(growth.level)-\(lang)-\(mode).png"))
+                    let appearance = AppSettingsView(store: store, tab: .appearance)
+                    let unlock = filled ? "unlocked" : "locked"
+                    try render(appearance, dark: dark)
+                        .write(to: directory.appendingPathComponent("ui-appearance-\(unlock)-\(lang)-\(mode).png"))
+                    try render(appearance, dark: dark, scrollToBottom: true)
+                        .write(to: directory.appendingPathComponent("ui-appearance-\(unlock)-scrolled-\(lang)-\(mode).png"))
+                }
+            }
         }
     }
 
