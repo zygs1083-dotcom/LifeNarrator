@@ -88,8 +88,11 @@ final class ScreenOverlay {
     let origin: CGPoint
     /// Screen visibleFrame in panel coordinates.
     let visibleFrame: CGRect
+    /// The screen geometry the panel was built for.
+    let source: (frame: CGRect, visible: CGRect, primaryHeight: CGFloat)
 
     init(screen: NSScreen, primaryHeight: CGFloat) {
+        source = (screen.frame, screen.visibleFrame, primaryHeight)
         origin = CGPoint(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY)
         let visible = screen.visibleFrame
         visibleFrame = CGRect(x: visible.minX - origin.x, y: primaryHeight - visible.maxY - origin.y, width: visible.width, height: visible.height)
@@ -685,9 +688,11 @@ public final class OverlayController: NSObject {
         }
         guard let screen = NSScreen.screens.max(by: { overlapArea($0) < overlapArea($1) }), overlapArea(screen) > 0 else { return nil }
         let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as! CGDirectDisplayID
-        if let existing = screens[id] {
+        // Plugging a display in or out, or moving the Dock, changes the geometry; a stale panel fails every placement.
+        if let existing = screens[id], existing.source == (screen.frame, screen.visibleFrame, primaryHeight) {
             return existing
         }
+        screens[id]?.panel.orderOut(nil)
         let overlay = ScreenOverlay(screen: screen, primaryHeight: primaryHeight)
         screens[id] = overlay
         return overlay
