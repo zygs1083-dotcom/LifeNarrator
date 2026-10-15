@@ -124,7 +124,12 @@ try {
     $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'Swift' }) -join ';'
     Remove-Item (Join-Path $data 'said.json'), (Join-Path $data 'brain.log') -ErrorAction SilentlyContinue
     $shell = Start-Process ./artifacts/shell/LifeNarrator.exe -PassThru -RedirectStandardOutput artifacts/shell.stdout.log -RedirectStandardError artifacts/shell.stderr.log
-    Wait-For 'tracked model mark' { [E2EWindow]::ActiveMouse(); @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor }).Count -gt 0 }
+    Wait-For 'tracked model mark' {
+        [E2EWindow]::ActiveMouse()
+        @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor }).Count -gt 0 -and
+        (Test-Path (Join-Path $data 'brain.log')) -and
+        (Select-String -Path (Join-Path $data 'brain.log') -Pattern 'source=model.*show=true' -Quiet)
+    }
     $before = Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor } | Select-Object -Last 1
     $textBefore = Probe 'before'
     Assert-Aligned $before.anchor $textBefore
