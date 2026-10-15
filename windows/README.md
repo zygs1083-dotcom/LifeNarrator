@@ -149,6 +149,7 @@ only for the disposable CI runner and writes fixture settings and credentials.
 
 Interactive uninstall asks whether to delete settings, local history and API keys.
 No is the default. Silent uninstall always retains user data and credentials.
+
 ## 内置 GGUF 引擎（W2b）
 
 Windows x64 构建前运行 `windows/scripts/setup-llama.ps1`。脚本校验官方 b11429 CPU / Vulkan ZIP 和同提交 C 头文件的 SHA-256，解压到 gitignore 的 `.dev-data/llama`，从 DLL 导出表生成 MSVC 导入库；`windows/llama/module.modulemap` 供 SwiftPM 导入。脚本把运行库目录加入当前 PowerShell 的 PATH；手动开发时用 `. windows/scripts/setup-llama.ps1` 后运行 `swift test`。不需要本机构建 llama.cpp，也无需安装 Vulkan SDK。运行时从已加载的 llama.dll 所在目录寻找动态 CPU / Vulkan 后端。
