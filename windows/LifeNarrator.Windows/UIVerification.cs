@@ -93,6 +93,38 @@ public sealed partial class ShellApp
         }
     }
 
+    async Task VerifyCompanion()
+    {
+        try
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            while (!overlay!.HasShown && watch.Elapsed < TimeSpan.FromSeconds(60)) await Task.Delay(100);
+            if (!overlay.HasShown) throw new Exception("No narration before companion verification");
+            var probe = new Window(); verificationScreen = probe.Screens.Primary!.Bounds; probe.Close();
+            await Capture("e2e-star-bubble");
+            await brain!.Call("growth.setName", new { name = "小星" }); await companion.Refresh();
+            await ShowChat("有我陪你呀");
+            await chatWindow!.Send("请记住我喜欢抹茶");
+            if (!companion.Memories.Any(m => m.Text == "喜欢抹茶")) throw new Exception("Chat remember intent did not reach memory store");
+            await Capture("e2e-chat");
+            await chatWindow.Send("安静点");
+            if (settings.Liveliness != "quiet") throw new Exception("Chat setting intent did not configure host");
+            await chatWindow.Send("讨厌开会");
+            if (settings.Rules.Length != 1 || companion.Growth!.State.RulesLearned != 1) throw new Exception("Chat rule intent did not persist/record growth");
+            chatWindow.Hide(); ShowSettings();
+            settingsWindow!.SelectTab(3); await Capture("e2e-memory");
+            settingsWindow.SelectTab(0); await Capture("e2e-growth");
+            Artifact.Write("e2e-companion.json", new { chat = true, memory = true, growth = true, starBubble = true,
+                name = companion.Growth.Name, level = companion.Growth.State.Level, rules = settings.Rules.Length, setting = settings.Liveliness });
+            exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown();
+        }
+        catch (Exception failure)
+        {
+            Artifact.Write("e2e-companion-failure.json", new { error = failure.ToString() });
+            exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown(1);
+        }
+    }
+
     async Task Capture(string name)
     {
         await Task.Delay(600);

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 import NarratorCore
 @testable import NarratorBrain
@@ -234,4 +237,11 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
         f.configure(nil)
         #expect(try await f.brain.chatContext(snapshot: snapshot).title.isEmpty)
     }
+}
+
+@Test func chatSchemaCanBeSentToAPI() throws {
+    let client = OpenAIChatClient(baseURL: URL(string: "http://127.0.0.1:18765/v1")!, path: "/chat/completions", model: "fixture", key: "")
+    let request = try client.makeRequest(system: "companion", prompt: "hello", schema: ChatEngine.schema)
+    let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+    #expect(body["response_format"] != nil)
 }

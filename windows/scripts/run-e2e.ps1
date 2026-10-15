@@ -176,6 +176,34 @@ try {
     @{ scroll = @{ before = $before; after = $after; textBefore = $textBefore; textAfter = $textAfter; offscreenRemoved = $true }
        ocr = @{ snapshot = $true; mark = $ocrMark }; screenshots = @('e2e-before.png', 'e2e-after.png', 'e2e-offscreen.png', 'e2e-ocr.png') } |
         ConvertTo-Json -Depth 10 | Set-Content artifacts/e2e.json
+    taskkill /PID $shell.Id /T /F | Out-Null
+    $shell.WaitForExit(); $shell = $null
+    # Use the image fixture again for the companion scene, after the follow/OCR assertions finish.
+    $settings = Get-Content (Join-Path $data 'settings.json') -Raw | ConvertFrom-Json
+    $settings | Add-Member -NotePropertyName bubbleShape -NotePropertyValue 'star' -Force
+    $settings | Add-Member -NotePropertyName bubbleTheme -NotePropertyValue 'starry' -Force
+    $settings | Add-Member -NotePropertyName memoryEnabled -NotePropertyValue $true -Force
+    $settings | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $data 'settings.json') -Encoding utf8
+    $referenceNow = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() - 978307200
+    @{
+        firstMetAt = $referenceNow - 30 * 86400; activeDays = 30; consecutiveDays = 7
+        narrations = 250; chatMessages = 28; rulesLearned = 0; personasTried = @('gentle')
+        experience = 9100; level = 15
+        unlocked = @('spriteName', 'emoji', 'starBubble', 'catchphrase', 'greetings', 'starryTheme')
+        lastActiveDay = $null; narrationExperienceToday = 0; lastLateNight = $null
+        anniversaries = @(7, 30); anniversaryEpisodes = @(7, 30)
+    } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $data 'growth.json') -Encoding utf8
+    Remove-Item (Join-Path $data 'memory.json'), (Join-Path $data 'chat.json'), (Join-Path $data 'sprite-name.json'),
+        (Join-Path $data 'said.json'), (Join-Path $data 'brain.log'), artifacts/e2e-companion.json -ErrorAction SilentlyContinue
+    if (![E2EWindow]::SetForegroundWindow($ocrWindow)) { throw 'Cannot foreground companion fixture' }
+    $shell = Start-Process ./artifacts/shell/LifeNarrator.exe -ArgumentList '--verify-companion' -PassThru -RedirectStandardOutput artifacts/e2e-companion-shell.stdout.log -RedirectStandardError artifacts/e2e-companion-shell.stderr.log
+    $companionWatch = [Diagnostics.Stopwatch]::StartNew()
+    while (!$shell.HasExited -and $companionWatch.Elapsed.TotalSeconds -lt 90) {
+        [E2EWindow]::ActiveMouse()
+        Start-Sleep -Milliseconds 200
+    }
+    if (!$shell.HasExited) { throw 'Companion verification timed out' }
+    if ($shell.ExitCode -ne 0 -or !(Test-Path artifacts/e2e-companion.json)) { throw 'Companion verification failed' }
 } catch {
     Screenshot 'e2e-failure.png'
     throw

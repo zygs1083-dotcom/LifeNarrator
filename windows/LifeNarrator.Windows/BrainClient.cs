@@ -87,11 +87,13 @@ internal sealed class BrainClient : IAsyncDisposable
             {
                 var result = await port(method, message.TryGetProperty("params", out var p) ? p :
                     JsonSerializer.SerializeToElement(new { }));
-                response = new { jsonrpc = "2.0", id = message.GetProperty("id"), result };
+                if (!message.TryGetProperty("id", out var id)) return;
+                response = new { jsonrpc = "2.0", id, result };
             }
             catch (Exception error)
             {
-                response = new { jsonrpc = "2.0", id = message.GetProperty("id"),
+                if (!message.TryGetProperty("id", out var id)) throw;
+                response = new { jsonrpc = "2.0", id,
                     error = new { code = error is MissingMethodException ? -32601 : -32000, message = error.Message } };
             }
             await Write(response);

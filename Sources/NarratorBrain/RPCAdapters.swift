@@ -60,8 +60,10 @@ import NarratorCore
 @MainActor final class RPCHost: BrainHost {
     let peer: RPCPeer
     init(_ peer: RPCPeer) { self.peer = peer }
+    var ruleSaved: () throws -> Void = {}
     func saveRule(input: String) async throws {
         let _: RPCNull = try await peer.request("host.saveRule", .object(["input": .string(input)]))
+        try ruleSaved()
     }
     func applySetting(_ setting: ChatSetting) async throws {
         let _: RPCNull = try await peer.request("host.applySetting", .object(["setting": try .encode(setting)]))

@@ -24,6 +24,10 @@ public sealed partial class ShellApp : Application
     Channel<(string Method, object Params)>? changes;
     Task? eventPump;
     SettingsWindow? settingsWindow;
+    ChatWindow? chatWindow;
+    ChatHotKey? chatHotKey;
+    Companion companion = null!;
+    NativeMenuItem identity = null!, chatItem = null!;
     OnboardingWindow? onboarding;
     readonly SemaphoreSlim configurationGate = new(1);
     Texts text = null!;
@@ -39,6 +43,10 @@ public sealed partial class ShellApp : Application
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         settings = Settings.Load();
         text = new Texts(settings);
+        companion = new Companion((method, parameters) => brain!.Call(method, parameters));
+        companion.Changed += UpdateTray;
+        identity = new NativeMenuItem { IsEnabled = false };
+        chatItem = Item(text["chat.open"], () => ShowChat());
         status = new NativeMenuItem { Header = "人生旁白", IsEnabled = false };
         details = new NativeMenuItem { Header = "错误详情", IsVisible = false };
         pause = Item("在岗", async () => { settings.Paused = !settings.Paused; await Configure(); settingsWindow?.Refresh(); });
@@ -61,7 +69,7 @@ public sealed partial class ShellApp : Application
         ocrHint = new NativeMenuItem("OCR 不可用：请在 Windows 设置中安装简体中文或英语（美国）OCR 语言")
             { IsEnabled = false, IsVisible = false };
         var menu = new NativeMenu();
-        menu.Items.Add(status); menu.Items.Add(details); menu.Items.Add(ocrHint); menu.Items.Add(pause);
+        menu.Items.Add(identity); menu.Items.Add(chatItem); menu.Items.Add(status); menu.Items.Add(details); menu.Items.Add(ocrHint); menu.Items.Add(pause);
         levelHeader = new NativeMenuItem("热闹程度") { Menu = levelMenu }; menu.Items.Add(levelHeader);
         personaHeader = new NativeMenuItem("人格") { Menu = personaMenu }; menu.Items.Add(personaHeader);
         menu.Items.Add(restart); menu.Items.Add(new NativeMenuItemSeparator());
@@ -83,8 +91,9 @@ public sealed partial class ShellApp : Application
                     onboarding.Show();
                 }
                 if (Program.VerifyUI) await VerifyUI();
+                if (Program.VerifyCompanion) await VerifyCompanion();
             }
-            catch (Exception failure) { Report(failure.Message); if (Program.VerifyUI) desktop.Shutdown(1); }
+            catch (Exception failure) { Report(failure.Message); if (Program.VerifyUI || Program.VerifyCompanion) desktop.Shutdown(1); }
         });
         base.OnFrameworkInitializationCompleted();
     }
@@ -106,7 +115,8 @@ public sealed partial class ShellApp : Application
         settings ??= Settings.Load();
         error = null;
         UpdateTray();
-        overlay = new OverlayController(settings, Report);
+        overlay = new OverlayController(settings, Report, companion, (narration, point) => OpenChat(narration, point));
+        chatHotKey = new ChatHotKey(() => OpenChat());
         var channel = Channel.CreateUnbounded<(string, object)>(new UnboundedChannelOptions { SingleReader = true });
         changes = channel;
         var input = new WindowEvents(() => sensor?.RequestRead(),
@@ -122,6 +132,7 @@ public sealed partial class ShellApp : Application
             Path.Combine(Settings.DataDirectory, "brain.log"), Port,
             message => Dispatcher.UIThread.Post(() => { overlay?.DismissAll(); Report(message); }));
         await brain.Call("configure", settings.Configuration());
+        await companion.Refresh();
         eventPump = Pump(changes.Reader, brain);
     }
 
@@ -139,6 +150,34 @@ public sealed partial class ShellApp : Application
         if (method.StartsWith("sensor.")) return await sensor!.Call(method, parameters);
         if (method.StartsWith("overlay."))
             return await Dispatcher.UIThread.InvokeAsync(() => overlay!.Call(method, parameters, brain!));
+        if (method == "host.stateChanged")
+        {
+            Dispatcher.UIThread.Post(async () =>
+            {
+                try { if (!stopping) await companion.Refresh(); }
+                catch (Exception failure) { Report(failure.Message); }
+            });
+            return null;
+        }
+        if (method == "host.saveRule")
+        {
+            var rule = await brain!.Call("rules.compile", new { input = parameters.GetProperty("input").GetString()! });
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            { settings.Rules = [..settings.Rules, rule]; await Configure(); });
+            return null;
+        }
+        if (method == "host.applySetting")
+        {
+            var change = parameters.GetProperty("setting");
+            await Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                if (change.TryGetProperty("liveliness", out var level) && level.ValueKind != System.Text.Json.JsonValueKind.Null) settings.Liveliness = level.GetString()!;
+                if (change.TryGetProperty("paused", out var paused) && paused.ValueKind != System.Text.Json.JsonValueKind.Null) settings.Paused = paused.GetBoolean();
+                if (change.TryGetProperty("persona", out var persona) && persona.ValueKind != System.Text.Json.JsonValueKind.Null) settings.Persona = persona.GetString()!;
+                await Configure();
+            });
+            return null;
+        }
         if (method == "host.report")
         {
             await Dispatcher.UIThread.InvokeAsync(() => Report(parameters.GetProperty("error").GetProperty("message").GetString()!));
@@ -178,10 +217,26 @@ public sealed partial class ShellApp : Application
         if (onboarding != null && !settings.OnboardingCompleted) { onboarding.Activate(); return; }
         if (settingsWindow == null)
         {
-            settingsWindow = new SettingsWindow(settings, Configure, TestConnection);
+            settingsWindow = new SettingsWindow(settings, Configure, TestConnection, companion);
             settingsWindow.Closed += (_, _) => settingsWindow = null;
         }
         settingsWindow.Refresh(); settingsWindow.Show(); settingsWindow.Activate();
+    }
+
+    async void OpenChat(string? narration = null, PixelPoint? near = null)
+    {
+        try { await ShowChat(narration, near); }
+        catch (Exception failure) { Report(failure.Message); }
+    }
+
+    async Task ShowChat(string? narration = null, PixelPoint? near = null)
+    {
+        if (chatWindow == null)
+        {
+            chatWindow = new ChatWindow(settings, companion);
+            chatWindow.Closed += (_, _) => chatWindow = null;
+        }
+        await chatWindow.Open(narration, near);
     }
 
     void Report(string message)
@@ -193,6 +248,8 @@ public sealed partial class ShellApp : Application
 
     void UpdateTray()
     {
+        identity.Header = companion.Name(settings) + " · Lv." + (companion.Growth?.State.Level ?? 1);
+        chatItem.Header = text["chat.open"];
         var paused = settings.Paused;
         status.Header = error == null ? (paused ? text["paused"] : text["sprite.onDuty"]) : text["app.error"];
         tray.ToolTipText = error == null ? (string)status.Header! : text["app.error"] + ": " + error.Split('\n')[0];
@@ -239,6 +296,8 @@ public sealed partial class ShellApp : Application
     async Task Stop()
     {
         stopping = true;
+        chatWindow?.Close(); chatWindow = null;
+        chatHotKey?.Dispose(); chatHotKey = null;
         events?.Dispose(); events = null;
         changes?.Writer.TryComplete();
         if (brain != null) { await brain.DisposeAsync(); brain = null; }

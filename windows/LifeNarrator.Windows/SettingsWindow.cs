@@ -11,14 +11,17 @@ internal sealed class SettingsWindow : Window
 {
     readonly Settings settings;
     readonly Texts text;
+    readonly Companion? companion;
     readonly Func<Task> configure;
     readonly Func<Task<double>> testConnection;
     readonly DockPanel root = new() { Margin = new Thickness(20) };
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
     int tab;
 
-    public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection)
+    public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Companion? companion = null)
     {
+        this.companion = companion;
+        if (companion != null) { companion.Changed += Refresh; Closed += (_, _) => companion.Changed -= Refresh; }
         this.settings = settings; this.configure = configure; this.testConnection = testConnection;
         text = new Texts(settings);
         Width = 780; Height = 660; MinWidth = 640; MinHeight = 500;
@@ -40,10 +43,11 @@ internal sealed class SettingsWindow : Window
         Title = text["app.name"] + " · " + text["settings"];
         root.Children.Clear();
         var tabs = Views.Choices([
-            ("0", text["tab.sprite"], ""), ("1", text["models"], ""), ("2", text["general"], "")],
+            ("0", text["tab.sprite"], ""), ("1", text["models"], ""), ("2", text["general"], ""), ("3", text["tab.memory"], "")],
             tab.ToString(), id => { tab = int.Parse(id); Render(); }, tabs: true);
         DockPanel.SetDock(tabs, Dock.Top); root.Children.Add(tabs);
-        Control content = tab switch { 0 => Sprite(), 1 => new ModelView(settings, configure, testConnection), _ => General() };
+        Control content = tab switch { 0 => Sprite(), 1 => new ModelView(settings, configure, testConnection), 2 => General(),
+            _ => new MemoryView(settings, companion!, this, configure, Run) };
         root.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
     }
@@ -59,6 +63,7 @@ internal sealed class SettingsWindow : Window
             p.Caption.Text(settings.EffectiveLanguage))), settings.Persona,
             id => Run(async () => { settings.Persona = id; await configure(); }));
         return Views.Stack(
+            companion == null ? new StackPanel() : new GrowthCard(settings, companion, configure, Run),
             Views.Card(text["sprite.onDuty"], duty, Views.Caption(text["sprite.onDuty.hint"])),
             Views.Card(text["liveliness"], levels, Views.Caption(text["liveliness.hint"])),
             Views.Card(text["persona"], personas),

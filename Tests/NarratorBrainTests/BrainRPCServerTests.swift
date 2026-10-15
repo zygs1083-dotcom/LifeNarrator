@@ -57,6 +57,7 @@ private actor ConnectionGenerator: TextGenerator {
         output.append(value)
         written.continuation.yield(value)
         guard case .string(let method) = value["method"] else { return }
+        if method == "host.stateChanged" { return }
         let result: RPCValue
         switch method {
         case "sensor.isTyping", "sensor.isSecureFocused", "sensor.isLowPowerMode": result = .bool(false)
@@ -70,7 +71,7 @@ private actor ConnectionGenerator: TextGenerator {
         case "sensor.placementObstacles": result = .array([])
         case "overlay.highlight": result = .null
         case "overlay.show": result = .object(["shown": .bool(true), "placement": .string("right")])
-        case "sensor.refresh", "sensor.startVisualLines", "overlay.dismissAll", "overlay.follow", "overlay.windowFrameChanged", "host.report": result = .null
+        case "sensor.refresh", "sensor.startVisualLines", "overlay.dismissAll", "overlay.follow", "overlay.windowFrameChanged", "host.report", "host.saveRule", "host.applySetting": result = .null
         default: Issue.record("Unexpected method \(method)"); return
         }
         var reply: [String: RPCValue] = ["jsonrpc": .string("2.0"), "id": try #require(value["id"])]
@@ -96,6 +97,115 @@ private actor ConnectionGenerator: TextGenerator {
 }
 
 @Suite(.timeLimit(.minutes(1))) @MainActor struct BrainRPCServerScenarios {
+    @Test func memoryAndGrowthRoundTrip() async throws {
+        let shell = ScriptedShell()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let server = BrainRPCServer(writeLine: shell.write)
+        let task = Task { try await server.run(lines: shell.input.stream) }
+        var nextID = 100
+        func call(_ method: String, _ params: RPCValue = .object([:])) async throws -> RPCValue {
+            nextID += 1
+            let id = RPCValue.number(Decimal(nextID))
+            try shell.send(method, params: params, id: id)
+            await shell.waitForReply(id)
+            return try #require(shell.output.last { $0["id"] == id })
+        }
+        _ = try await call("configure", configuration(directory: directory))
+        let compiled = try await call("rules.compile", .object(["input": .string("讨厌开会")]))
+        #expect(compiled["result"]?["input"] == .string("讨厌开会"))
+        #expect(compiled["result"]?["kind"] == .string("topic"))
+        let locked = try await call("growth.setName", .object(["name": .string("小星")]))
+        #expect(locked["error"]?["code"] == .number(-32602))
+        let added = try await call("memory.add", .object(["kind": .string("fact"), "text": .string("喜欢抹茶")]))
+        let id = try #require(added["result"]?["id"])
+        #expect(added["result"]?["source"] == .string("manual"))
+        let duplicate = try await call("memory.add", .object(["kind": .string("fact"), "text": .string("喜欢抹茶")]))
+        #expect(duplicate["result"] == .null)
+        let invalid = try await call("memory.edit", .object(["id": .string(UUID().uuidString), "kind": .string("fact"), "text": .string("test")]))
+        #expect(invalid["error"]?["code"] == .number(-32602))
+        _ = try await call("memory.edit", .object(["id": id, "kind": .string("preference"), "text": .string("爱喝红茶")]))
+        _ = try await call("memory.pin", .object(["id": id, "pinned": .bool(true)]))
+        let listed = try await call("memory.list")
+        let entries = try #require(listed["result"]).decode([Memory].self)
+        #expect(entries.count == 1 && entries[0].kind == .preference && entries[0].pinned && entries[0].text == "爱喝红茶")
+        for index in 0..<26 {
+            _ = try await call("memory.add", .object(["kind": .string("fact"), "text": .string(String(repeating: String(UnicodeScalar(0x4E00 + index)!), count: 2))]))
+        }
+        _ = try await call("growth.setName", .object(["name": .string(" 小星 ")]))
+        let growth = try await call("growth.state")
+        #expect(growth["result"]?["name"] == .string("小星"))
+        #expect(growth["result"]?["state"]?["level"] == .number(2))
+        #expect(growth["result"]?["nextLevelExperience"] == .number(360))
+        #expect(shell.output.contains { $0["method"] == .string("host.stateChanged") && $0["id"] == nil })
+        _ = try await call("memory.delete", .object(["id": id]))
+        let remaining = try await call("memory.list")
+        #expect(try #require(remaining["result"]).decode([Memory].self).count == 26)
+        _ = try await call("memory.clear")
+        let empty = try await call("memory.list")
+        #expect(empty["result"] == .array([]))
+        var disabled = try configuration(directory: directory).decode([String: RPCValue].self)
+        var settings = try #require(disabled["settings"]).decode([String: RPCValue].self)
+        settings["memoryEnabled"] = .bool(false); disabled["settings"] = .object(settings)
+        _ = try await call("configure", .object(disabled))
+        let ignored = try await call("memory.add", .object(["kind": .string("fact"), "text": .string("不该保存")]))
+        #expect(ignored["result"] == .null)
+        shell.input.continuation.finish(); try await task.value
+        var restored: [RPCValue] = []
+        let second = BrainRPCServer { restored.append(try JSONDecoder().decode(RPCValue.self, from: Data($0.utf8))) }
+        try second.receive(RPCValue.object(["jsonrpc": .string("2.0"), "id": .number(1), "method": .string("configure"),
+            "params": configuration(directory: directory)]).line())
+        try second.receive(#"{"jsonrpc":"2.0","id":2,"method":"growth.state"}"#)
+        #expect(restored.last?["result"]?["name"] == .string("小星"))
+        #expect(restored.last?["result"]?["state"]?["level"] == .number(2))
+    }
+
+    @Test func chatIntentsAndPrivacyRoundTrip() async throws {
+        let shell = ScriptedShell()
+        let generator = CompanionGenerator()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let server = BrainRPCServer(writeLine: shell.write, generatorFactory: { _ in generator })
+        let task = Task { try await server.run(lines: shell.input.stream) }
+        var nextID = 200
+        func call(_ method: String, _ params: RPCValue = .object([:])) async throws -> RPCValue {
+            nextID += 1
+            let id = RPCValue.number(Decimal(nextID))
+            try shell.send(method, params: params, id: id); await shell.waitForReply(id)
+            return try #require(shell.output.last { $0["id"] == id })
+        }
+        _ = try await call("configure", configuration(directory: directory, kind: "api"))
+        let frame = CGRect(x: 0, y: 0, width: 1000, height: 800)
+        let snapshot = ContextSnapshot(bundleId: "fixture", appName: "Fixture", pid: 1, windowTitle: "work",
+            windowFrame: frame, contentFrame: frame, textLines: [TextLine(text: "screen-only secret@example.com", rect: frame)],
+            textSource: .ax, capturedAt: Date())
+        _ = try await call("snapshot", .object(["snapshot": try .encode(snapshot), "windowID": .number(7),
+            "change": try .encode(ContextChange(appChanged: true, windowChanged: true, hostChanged: false))]))
+        for (index, intent) in ["remember", "setting", "rule", "forget"].enumerated() {
+            await generator.setIntent(intent)
+            let result = try await call("chat.send", .object(["text": .string("hello"), "narration": .string("刚才的旁白"), "includeScreen": .bool(index == 1)]))
+            #expect(result["result"]?["reply"] == .string("我在呢。"))
+            if index == 0 { #expect(result["result"]?["notice"] != nil) }
+        }
+        let compiled = try await call("rules.compile", .object(["input": .string("讨厌开会")]))
+        #expect(compiled["result"]?["match"]?["aliases"] == .array([.string("开会")]))
+        let history = try await call("chat.history")
+        #expect(try #require(history["result"]).decode([ChatTurn].self).count == 4)
+        let memories = try await call("memory.list")
+        let remaining = try #require(memories["result"]).decode([Memory].self)
+        #expect(!remaining.contains { $0.source == .chat || $0.text.contains("screen-only") })
+        let prompts = await generator.prompts
+        #expect(!prompts[0].contains("screen-only"))
+        #expect(prompts[1].contains("screen-only") && !prompts[1].contains("secret@example.com"))
+        #expect(prompts[0].contains("刚才的旁白"))
+        #expect(shell.output.contains { $0["method"] == .string("host.saveRule") && $0["params"]?["input"] == .string("讨厌开会") })
+        #expect(shell.output.contains { $0["method"] == .string("host.applySetting") && $0["params"]?["setting"]?["paused"] == .bool(true) })
+        let growth = try await call("growth.state")
+        #expect(growth["result"]?["state"]?["chatMessages"] == .number(4))
+        #expect(growth["result"]?["state"]?["rulesLearned"] == .number(1))
+        shell.input.continuation.finish(); try await task.value
+    }
+
     @Test(arguments: [#"{"ok":true}"#, #"{"ok":false}"#, "invalid JSON"])
     func connectionTestValidatesReplyAndDoesNotBlockRPC(_ response: String) async throws {
         let shell = ScriptedShell()
@@ -299,5 +409,23 @@ private actor ConnectionGenerator: TextGenerator {
         #expect(try await sensor.markTrack(lineIndex: 0, kind: nil) == nil)
         shell.input.continuation.finish()
         try await replies.value
+    }
+}
+
+private actor CompanionGenerator: TextGenerator {
+    var intent = "remember"
+    var prompts: [String] = []
+    func setIntent(_ intent: String) { self.intent = intent }
+    func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
+        if schema == GenerationPrompts.compiledRuleSchema {
+            return #"{"kind":"topic","label":{"zh":"开会","en":"meetings"},"sentiment":"dislike","note":"","aliases":["开会"],"domains":[],"appNames":[],"highlight":true,"variables":{}}"#
+        }
+        if schema != ChatEngine.schema { return #"{"marks":[]}"# }
+        prompts.append(prompt)
+        let rule: RPCValue = intent == "rule" ? .string("讨厌开会") : .null
+        let setting: RPCValue = intent == "setting" ? .object(["paused": .bool(true)]) : .null
+        let memories: RPCValue = intent == "remember" ? .array([.object(["kind": .string("fact"), "text": .string("喜欢抹茶")])]) : .array([])
+        return try RPCValue.object(["intent": .string(intent), "reply": .string("我在呢。"), "rule": rule,
+            "setting": setting, "memories": memories, "forget": intent == "forget" ? .string("喜欢抹茶") : .null]).line()
     }
 }
