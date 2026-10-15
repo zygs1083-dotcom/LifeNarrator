@@ -1,4 +1,3 @@
-import CoreFoundation
 import Foundation
 import NarratorCore
 
@@ -16,7 +15,7 @@ public enum BrainRPC {
         guard let request = object as? [String: Any], request["jsonrpc"] as? String == "2.0",
               let method = request["method"] as? String,
               request["id"] == nil || request["id"] is String || request["id"] is NSNull
-                || (request["id"] is NSNumber && CFGetTypeID(request["id"] as AnyObject) != CFBooleanGetTypeID()),
+                || (request["id"] is NSNumber && String(cString: (request["id"] as! NSNumber).objCType) != "c"),
               request["params"] == nil || request["params"] is [String: Any] || request["params"] is [Any]
         else { return try rpcError(-32600, "Invalid Request") }
         let id = request["id"] ?? NSNull()
