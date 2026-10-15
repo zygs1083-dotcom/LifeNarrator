@@ -28,14 +28,13 @@ public final class AppStore: ObservableObject {
                 }
                 llama = nil
             }
-            engine?.configure()
+            perform { try engine?.configure() }
         }
     }
     @Published public private(set) var personas: PersonaCatalog
     @Published public private(set) var rules: [Rule]
     @Published public var error: String?
     @Published public private(set) var screenRecordingGranted = ContextPermissions.isGranted(.screenCapture)
-    public var said: SaidHistory
     public let builtin: QuipPack
     public let directory: AppDataDirectory
     public let updater = Updater()
@@ -58,8 +57,6 @@ public final class AppStore: ObservableObject {
         personas = try PersonaCatalog.load(from: directory.personas)
         try KeychainStore.migrateGenerationKey()
         builtin = try RuleLoader.loadBuiltin()
-        said = FileManager.default.fileExists(atPath: directory.said.path)
-            ? try JSONDecoder().decode(SaidHistory.self, from: Data(contentsOf: directory.said)) : SaidHistory()
         if FileManager.default.fileExists(atPath: directory.rules.path) {
             rules = try RuleLoader.load(from: directory.rules)
         } else {
@@ -70,14 +67,10 @@ public final class AppStore: ObservableObject {
         downloadSubscriptions = downloaders.map { downloader in
             downloader.$state.dropFirst().sink { [unowned self] state in
                 self.objectWillChange.send()
+                self.perform { try self.engine?.configure() }
                 if case .ready = state { self.pregenerator.schedule() }
             }
         }
-    }
-
-    public func recordSaid(_ text: String, now: Date) throws {
-        said.record(text, now: now)
-        try JSONEncoder().encode(said).write(to: directory.said, options: .atomic)
     }
 
     public func start() {
@@ -207,13 +200,18 @@ public final class AppStore: ObservableObject {
     private func saveRules(_ updated: [Rule]) throws {
         try RuleLoader.save(updated, to: directory.rules)
         rules = updated
-        engine?.configure()
+        perform { try engine?.configure() }
     }
 
     public func releaseModel() async {
         await llama?.close()
         await modelRelease?.value
         llama = nil
+    }
+
+    func saveAPIKey(_ key: String, account: String) throws {
+        try KeychainStore.save(key, account: account)
+        try engine?.configure()
     }
 
     public func textGenerator() throws -> (any TextGenerator)? {
@@ -262,7 +260,7 @@ public final class AppStore: ObservableObject {
         let updated = PersonaCatalog(custom: personas.custom.filter { $0.id != id })
         try updated.save(to: directory.personas)
         personas = updated
-        engine?.configure()
+        perform { try engine?.configure() }
     }
 
     public func compile(_ input: String, generator: (any TextGenerator)?) async throws -> Rule {

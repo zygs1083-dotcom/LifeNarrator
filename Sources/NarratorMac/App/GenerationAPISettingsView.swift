@@ -47,7 +47,7 @@ struct GenerationAPISettingsView: View {
             HStack {
                 Button(store.text("api.saveKey")) {
                     store.perform {
-                        try KeychainStore.save(key, account: store.settings.generationAPI.account)
+                        try store.saveAPIKey(key, account: store.settings.generationAPI.account)
                         keySaved = true
                     }
                 }.buttonStyle(AppTheme.CapsuleButton())

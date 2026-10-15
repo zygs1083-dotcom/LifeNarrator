@@ -1,11 +1,12 @@
 import Darwin
 import Foundation
 import NarratorCore
+import NarratorBrain
 import os
 
 /// Serializes the synchronous `LlamaEngine` on its own queue; loads the model on first use and
 /// releases it after 10 idle minutes.
-public actor LlamaGenerator: TextGenerator {
+public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
     private let queue = DispatchSerialQueue(label: "LifeNarrator.LlamaGenerator", qos: .utility)
     public nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
