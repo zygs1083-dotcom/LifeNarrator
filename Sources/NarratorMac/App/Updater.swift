@@ -184,7 +184,13 @@ public final class Updater: NSObject, ObservableObject, URLSessionDownloadDelega
     done
     mv "$app" "$work/previous.app"
     mv "$work/LifeNarrator.app" "$app"
-    /usr/bin/open "$app"
     committed=true
+    # Right after the old process exits, LaunchServices can still refuse to launch (error -600) for a moment.
+    for attempt in 1 2 3 4 5; do
+      if /usr/bin/open "$app"; then exit 0; fi
+      sleep 1
+    done
+    echo "The update is installed, but LifeNarrator could not be opened. Open it from Applications." >&2
+    exit 1
     """#
 }

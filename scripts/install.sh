@@ -67,6 +67,11 @@ fi
 if [[ -e $app ]]; then mv "$app" "$staging/previous.app"; fi
 installed=true
 mv "$staging/new.app" "$app"
-open "$app"
 committed=true
 echo "LifeNarrator installed at $app"
+# Right after the old process exits, LaunchServices can still refuse to launch (error -600) for a moment.
+for ((i=0; i<5; i++)); do
+  if open "$app"; then exit 0; fi
+  sleep 1
+done
+echo "LifeNarrator: Installed, but it could not be opened. Open it from $install_dir." >&2
