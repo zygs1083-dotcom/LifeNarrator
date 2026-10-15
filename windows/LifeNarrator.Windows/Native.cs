@@ -40,6 +40,15 @@ internal static partial class Native
         public int XPels, YPels;
         public uint Used, Important;
     }
+    [StructLayout(LayoutKind.Sequential)] public struct CursorPoint { public int X, Y; }
+    [DllImport("user32.dll", SetLastError = true)] public static extern bool GetCursorPos(out CursorPoint point);
+    public static void SetOverlayInteractive(nint window, bool interactive)
+    {
+        var style = GetWindowLongPtrW(window, ExStyle).ToInt64();
+        Marshal.SetLastPInvokeError(0);
+        if (SetWindowLongPtrW(window, ExStyle, (nint)(interactive ? style & ~Transparent : style | Transparent)) == 0
+            && Marshal.GetLastPInvokeError() != 0) throw new Win32Exception();
+    }
     public static void ApplyOverlayStyles(nint window)
     {
         Marshal.SetLastPInvokeError(0);

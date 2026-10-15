@@ -7,7 +7,7 @@ namespace LifeNarrator.Windows;
 
 internal static class Program
 {
-    internal static bool VerifyUI;
+    internal static bool VerifyUI, VerifyCompanion;
     [STAThread]
     public static int Main(string[] args)
     {
@@ -18,7 +18,8 @@ internal static class Program
             return 0;
         }
         VerifyUI = args.SequenceEqual(new[] { "--verify-ui" });
-        if (args.Length == 0 || VerifyUI)
+        VerifyCompanion = args.SequenceEqual(new[] { "--verify-companion" });
+        if (args.Length == 0 || VerifyUI || VerifyCompanion)
         {
             using var single = new Mutex(true, "Local\\LifeNarrator.Windows", out var first);
             if (!first) return 0;

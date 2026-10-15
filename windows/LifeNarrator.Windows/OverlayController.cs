@@ -8,7 +8,10 @@ namespace LifeNarrator.Windows;
 
 internal sealed class OverlayController : IDisposable
 {
-    sealed record Surface(Window Window, Canvas Canvas, DisplayMap Map);
+    sealed record Surface(Window Window, Canvas Canvas, DisplayMap Map)
+    {
+        public bool Interactive;
+    }
     sealed class Bubble(Narration narration, Surface surface, Control visual, Control? highlight, Box frame, Box? anchor)
     {
         public readonly Narration Narration = narration;
@@ -28,6 +31,8 @@ internal sealed class OverlayController : IDisposable
     readonly Surface[] surfaces;
     readonly List<Bubble> bubbles = [];
     readonly Settings settings;
+    readonly Companion companion;
+    readonly Action<string, PixelPoint> openChat;
     readonly DispatcherTimer timer;
     readonly DispatcherTimer followTimer = null!;
     readonly Action<string> failed;
@@ -35,15 +40,16 @@ internal sealed class OverlayController : IDisposable
     DateTimeOffset followUntil;
     readonly SemaphoreSlim followGate = new(1);
     int revision;
+    public bool HasShown { get; private set; }
     public DisplayMap[] Displays => surfaces.Select(x => x.Map).ToArray();
 
-    public OverlayController(Settings settings, Action<string> failed)
+    public OverlayController(Settings settings, Action<string> failed, Companion companion, Action<string, PixelPoint> openChat)
     {
-        this.settings = settings; this.failed = failed;
+        this.settings = settings; this.failed = failed; this.companion = companion; this.openChat = openChat;
         var probe = new Window();
         surfaces = probe.Screens.All.Select(screen =>
         {
-            var canvas = new Canvas { IsHitTestVisible = false, ClipToBounds = true };
+            var canvas = new Canvas { ClipToBounds = true };
             var window = new Window
             {
                 SystemDecorations = SystemDecorations.None, ShowInTaskbar = false, ShowActivated = false,
@@ -97,6 +103,7 @@ internal sealed class OverlayController : IDisposable
             var tier = tierResult.GetString()!;
             var surface = surfaces.FirstOrDefault(x => x.Map.Logical(x.Map.Bounds).Rect.Contains(narration.Window.Frame.Rect.Center)) ?? surfaces[0];
             var rounded = !narration.Framed;
+            var shape = settings.ActiveShape(companion.Growth);
             var fillOpacity = 1d;
             var visual = MakeVisual(rounded, false);
             var narrow = MakeVisual(rounded, true);
@@ -128,6 +135,13 @@ internal sealed class OverlayController : IDisposable
             } : null;
             var bubble = new Bubble(narration, surface, visual, highlight, placement.Frame,
                 placement.Highlight);
+            visual.PointerReleased += (_, e) =>
+            {
+                if (e.InitialPressMouseButton != Avalonia.Input.MouseButton.Left) return;
+                var position = surface.Map.Physical(bubble.Frame);
+                openChat(narration.Text, new PixelPoint((int)(position.X + position.W), (int)position.Y));
+                e.Handled = true;
+            };
             visual.Opacity = 0;
             if (highlight != null) { highlight.Opacity = 0; surface.Canvas.Children.Add(highlight); }
             surface.Canvas.Children.Add(visual);
@@ -136,9 +150,11 @@ internal sealed class OverlayController : IDisposable
             Position(bubble);
             await Follow(); // Catch scrolling during model generation before the first visible frame.
             Log("show", bubble);
+            HasShown |= bubbles.Contains(bubble) && bubble.Dismissed == null;
             return new { shown = bubbles.Contains(bubble) && bubble.Dismissed == null, placement = placement.PlacementName };
 
-            BubbleVisual MakeVisual(bool round, bool small) => new(narration.Id, narration.Text, narration.Emoji, narration.Language, tier, round, small, fillOpacity);
+            BubbleVisual MakeVisual(bool round, bool small) => new(narration.Id, narration.Text, settings.ActiveEmoji(narration.Emoji, companion.Growth), narration.Language, tier, round, small, fillOpacity,
+                shape, settings.ActiveTheme(companion.Growth));
             async Task<Placement?> Place(BubbleVisual normal, BubbleVisual small)
             {
                 var existing = bubbles.Where(x => x.Dismissed == null && x.Narration.WindowID == narration.WindowID).ToArray();
@@ -148,7 +164,7 @@ internal sealed class OverlayController : IDisposable
                     narration.Anchor, narration.Line, narration.Window,
                     visibleFrame = surface.Map.Logical(surface.Map.WorkArea),
                     occupied = existing.SelectMany(x => x.Anchor == null ? new[] { x.Frame } : new[] { x.Frame, x.Anchor }).ToArray(),
-                    obstacles = narration.Obstacles, inkInset = new Dimensions(rounded ? 0 : 8, rounded ? 0 : 6),
+                    obstacles = narration.Obstacles, inkInset = new Dimensions(rounded || shape == "star" ? 0 : 8, rounded || shape == "star" ? 0 : 6),
                     stackSizes = existing.Where(x => x.Narration.Anchor == null).Reverse().Select(x => new Dimensions(x.Frame.W, x.Frame.H)).ToArray()
                 });
                 return result.ValueKind == JsonValueKind.Null ? null : Placement.Read(result);
@@ -259,6 +275,14 @@ internal sealed class OverlayController : IDisposable
 
     void Animate()
     {
+        if (!Native.GetCursorPos(out var cursor)) throw new System.ComponentModel.Win32Exception();
+        foreach (var surface in surfaces)
+        {
+            var point = surface.Map.Logical(new Box(cursor.X, cursor.Y, 0, 0)).Rect.Position;
+            var interactive = bubbles.Any(b => b.Surface == surface && b.Dismissed == null && b.Frame.Rect.Contains(point));
+            if (interactive != surface.Interactive)
+            { Native.SetOverlayInteractive(surface.Window.TryGetPlatformHandle()!.Handle, interactive); surface.Interactive = interactive; }
+        }
         var now = DateTimeOffset.UtcNow;
         foreach (var bubble in bubbles.ToArray())
         {

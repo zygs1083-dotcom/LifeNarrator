@@ -22,6 +22,14 @@ internal sealed class Settings
     public double Dwell { get; set; } = 3;
     public int MaxOnScreen { get; set; } = 3;
     public string[] Blacklist { get; set; } = [];
+    public bool MemoryEnabled { get; set; } = true;
+    public string BubbleShape { get; set; } = "automatic";
+    public string BubbleTheme { get; set; } = "random";
+    public string Emoji { get; set; } = "";
+    public JsonElement[] Rules { get; set; } = [];
+    public string ActiveShape(GrowthInfo? growth) => BubbleShape == "star" && growth?.Has("starBubble") == true ? "star" : "automatic";
+    public string ActiveTheme(GrowthInfo? growth) => BubbleTheme == "starry" && growth?.Has("starryTheme") == true ? "starry" : "random";
+    public string[] ActiveEmoji(string[] original, GrowthInfo? growth) => growth?.Has("emoji") == true && Emoji.Length > 0 ? [Emoji] : original;
     public ProviderSettings Provider { get; set; } = new();
 
     public static string DataDirectory => Path.Combine(
@@ -38,6 +46,8 @@ internal sealed class Settings
             || settings.Persona is not ("sharp" or "gentle" or "chuuni" or "teacher" or "mom" or "hype" or "cat")
             || settings.Lang is not ("zh" or "en") || settings.Language is not ("system" or "zh" or "en") || !double.IsFinite(settings.MarkGap) || settings.MarkGap < 0
             || !double.IsFinite(settings.Dwell) || settings.Dwell <= 0 || settings.MaxOnScreen <= 0
+            || settings.BubbleShape is not ("automatic" or "star") || settings.BubbleTheme is not ("random" or "starry")
+            || !new[] { "", "✨", "🌷", "😺", "🥹", "🫶", "🌈", "🎉" }.Contains(settings.Emoji)
             || settings.Provider.Kind is not ("none" or "api"))
             throw new InvalidDataException("Invalid Windows shell settings");
         return settings;
@@ -55,8 +65,8 @@ internal sealed class Settings
     public object Configuration() => new
     {
         settings = new { Liveliness, MarkGap, Paused, Blacklist, Persona, lang = EffectiveLanguage,
-            disabledBuiltinIds = Array.Empty<string>(), MaxOnScreen, ownProcessID = Environment.ProcessId, memoryEnabled = true },
-        rules = Array.Empty<object>(), customPersonas = Array.Empty<object>(),
+            disabledBuiltinIds = Array.Empty<string>(), MaxOnScreen, ownProcessID = Environment.ProcessId, MemoryEnabled },
+        rules = Rules, customPersonas = Array.Empty<object>(),
         generator = GeneratorConfiguration(),
         dataDirectory = DataDirectory
     };

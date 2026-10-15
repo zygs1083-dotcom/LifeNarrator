@@ -15,6 +15,10 @@
     <Compile Include="../LifeNarrator.Windows/Settings.cs" Link="Settings.cs" />
     <Compile Include="../LifeNarrator.Windows/AppTheme.cs" Link="AppTheme.cs" />
     <Compile Include="../LifeNarrator.Windows/Catalog.cs" Link="Catalog.cs" />
+    <Compile Include="../LifeNarrator.Windows/Companion.cs" Link="Companion.cs" />
+    <Compile Include="../LifeNarrator.Windows/ChatWindow.cs" Link="ChatWindow.cs" />
+    <Compile Include="../LifeNarrator.Windows/GrowthCard.cs" Link="GrowthCard.cs" />
+    <Compile Include="../LifeNarrator.Windows/MemoryView.cs" Link="MemoryView.cs" />
     <Compile Include="../LifeNarrator.Windows/SettingsWindow.cs" Link="SettingsWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/ModelView.cs" Link="ModelView.cs" />
     <Compile Include="../LifeNarrator.Windows/OnboardingWindow.cs" Link="OnboardingWindow.cs" />

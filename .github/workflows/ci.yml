@@ -27,7 +27,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-bubble-headless
-          path: artifacts/bubble-*.png
+          path: |
+            artifacts/bubble-*.png
+            artifacts/ui-headless-*.png
           if-no-files-found: error
 
   windows:

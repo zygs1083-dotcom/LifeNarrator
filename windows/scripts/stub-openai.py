@@ -21,6 +21,18 @@ class Handler(BaseHTTPRequestHandler):
         ]}
         if request["messages"][-1]["content"] == "Return JSON with ok set to true.":
             marks = {"ok": True}
+        system = request["messages"][0]["content"]
+        if "little LifeNarrator companion" in system:
+            user = json.loads(request["messages"][-1]["content"])["user"]
+            marks = {"intent": "remember", "reply": "记住啦，我陪着你。", "rule": None,
+                     "setting": None, "memories": [{"kind": "preference", "text": "喜欢抹茶"}], "forget": None}
+            if user == "安静点":
+                marks.update(intent="setting", reply="好，我安静一点。", setting={"liveliness": "quiet"}, memories=[])
+            elif user == "讨厌开会":
+                marks.update(intent="rule", reply="记住了，下次帮你吐槽开会。", rule=user, memories=[])
+        elif "aliases" in request["messages"][-1]["content"]:
+            marks = {"kind": "topic", "label": {"zh": "开会", "en": "meetings"}, "sentiment": "dislike",
+                     "note": "", "aliases": ["开会"], "domains": [], "appNames": [], "highlight": True, "variables": {}}
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.end_headers()

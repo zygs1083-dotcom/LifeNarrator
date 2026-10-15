@@ -6,7 +6,7 @@
 
 请求为 `{"jsonrpc":"2.0","id":1,"method":"ping","params":{}}`；成功回复为 `{"jsonrpc":"2.0","id":1,"result":...}`；错误回复为 `{"jsonrpc":"2.0","id":1,"error":{"code":-32602,"message":"...","data":...}}`（data 可省略）。id 可以是字符串或数值，也接受 null；建议外壳使用递增整数。无 id 的通知不产生回复。params 可省略为 `{}`；下面各方法使用具名对象参数。
 
-大脑向外壳发出的每次端口调用都有字符串 id：`brain:1`、`brain:2`……。两端的请求 id 各自独立。外壳**必须持续读取 stdout 并处理端口请求**，不能在等某个事件的回复时停止分发。多个请求可同时在路上，回复可乱序，以 id 配对。事件按收到的行顺序交给大脑；事件回复只表示已接收，生成、传感器访问和显示会在之后异步发生。被取消请求的迟到回复忽略。
+大脑向外壳发出的每次端口调用都有字符串 id：`brain:1`、`brain:2`……。两端的请求 id 各自独立。外壳**必须持续读取 stdout 并处理端口请求**，不能在等某个事件的回复时停止分发。大脑也会发送没有 id 的 `host.stateChanged` 通知；外壳处理后不得回包。多个请求可同时在路上，回复可乱序，以 id 配对。事件按收到的行顺序交给大脑；事件回复只表示已接收，生成、传感器访问和显示会在之后异步发生。被取消请求的迟到回复忽略。
 
 外壳发给大脑的 `layout.*` 请求可在处理 `overlay.show` 时发起，等待布局结果后再回复 `overlay.show`，无需另开会话。`ping` 和 `layout.*` 不要求先 configure。
 
@@ -61,6 +61,48 @@ customPersonas 是完整 PersonaProfile 数组：`{id,emoji,name,caption,descrip
 通过现有生成器发送一个最小 JSON 请求（`{"ok":true}`），验证响应并返回 `{elapsedMilliseconds:number}`。
 不要求 configure，不替换当前配置，也不使用屏幕文字。调用异步执行，等待时仍处理其他 RPC。
 配置错误返回 -32602；请求失败或响应无效返回 -32003。会话关闭时取消未完成的测试。
+
+### chat.send / chat.history
+
+`chat.send` 参数：`{text:string,narration?:string,includeScreen:bool}`。text 不可为空；narration 是点击旁白时附带的文字。result 为 `ChatTurn = {id:UUID字符串,user:string,reply:string,notice?:string}`，notice 为首次记忆隐私提示。`chat.history` 参数 `{}`，result 为最近最多 50 轮的 `ChatTurn[]`。对话存于数据目录的 `chat.json`。
+
+大脑从最近的外部窗口 snapshot 生成上下文，复用 `SpriteBrain.chatContext` 的密码焦点、黑名单和隐私过滤；外壳不传原始 screen/title。只在 includeScreen=true 时附上过滤后的屏幕文字。外壳打开聊天窗口时应默认取消勾选。生成异步执行，期间继续分发 RPC（包括 host 端口及其嵌套 configure/rules.compile）。模型未配置、生成失败、无效意图、宿主操作失败返回 -32004，不伪造回复；外壳保留输入并展示错误。
+
+### memory.list/add/edit/pin/delete/clear
+
+| 方法 | params | result |
+| --- | --- | --- |
+| memory.list | `{}` | Memory[] |
+| memory.add | `{kind,text}` | 新 Memory，近似重复或 memoryEnabled=false 时 null |
+| memory.edit | `{id,kind,text}` | null |
+| memory.pin | `{id,pinned:bool}` | null |
+| memory.delete | `{id}` | null |
+| memory.clear | `{}` | null；保留用户规则和聊天记录 |
+
+`Memory = {id:UUID字符串,kind:"fact"|"preference"|"nickname"|"episode",text:string,source:"chat"|"stats"|"manual",createdAt:date,lastUsedAt:date,uses:integer,pinned:bool}`。手动添加的 source 固定为 manual，text 沿用大脑的 1–40 字约束。编辑、置顶和删除的未知 id 返回 -32602，参数或文字无效返回 -32602，文件 IO 失败返回 -32000。总开关由 configure.settings.memoryEnabled 控制；关掉时已有记忆可查看、编辑和删除，但不会新增或参与生成。记忆保存在 `memory.json`。
+
+### growth.state / growth.setName
+
+`growth.state` 参数 `{}`，result：
+
+```
+{
+  "state": {"firstMetAt":"...", "activeDays":1, "consecutiveDays":1,
+    "narrations":0, "chatMessages":0, "rulesLearned":0, "personasTried":["gentle"],
+    "experience":30, "level":1, "unlocked":[], "...":"其余 GrowthState 统计字段"},
+  "name":"", "title":"刚孵出来", "daysKnown":0,
+  "nextLevelExperience":160,
+  "unlocks":[{"id":"spriteName","level":2,"name":"给小精灵起名字"}, "..."]
+}
+```
+
+state 沿用 `GrowthState` 编码；称号、认识天数、解锁等级和名称均由大脑计算，使用 configure 的语言。满级时 nextLevelExperience 省略或 null。unlocked 为 `spriteName/emoji/starBubble/catchphrase/greetings/starryTheme/oldFriend` 的集合。
+
+`growth.setName` 参数 `{name:string}`，result null；Lv.2 前返回 -32602。名字首尾去空白，空字符串表示使用人格名。Windows 的名字保存在同一数据目录的 `sprite-name.json`；原有成长数字仍存 `growth.json`。更新后发 host.stateChanged。外壳只能在对应 unlocked 项存在时启用名字、扩展表情、星星形状和星空主题。
+
+### rules.compile
+
+参数 `{input:string}`，result 为 configure.rules 使用的 `Rule`。供处理 `host.saveRule` 的 Windows 宿主嵌套调用；复用 Core 的 RuleCompiler 和当前生成器，不保存、不自行计经验。Windows 应持久化规则并带完整规则数组重新 configure，然后回复 host.saveRule；成功后 RPC 宿主适配器记录一次 rule 成长事件。Windows 应用匹配沿用 appNames（不解析 Mac bundle id）。编译失败返回 -32004。
 
 ### snapshot
 
@@ -119,7 +161,7 @@ covered 时 Mac 会改圆角、取消旋转、使用 0.92 填充并重新测量�
 
 ## 大脑 → 外壳（端口请求）
 
-所有方法均带 id，外壳必须回复 result 或 error。无参数时 params 为 `{}`。不支持的方法也必须回复 -32601。
+除下文 host.stateChanged 通知外，端口方法均带 id，外壳必须回复 result 或 error。无参数时 params 为 `{}`。不支持的方法也必须回复 -32601。
 
 | 方法 | params | result |
 | --- | --- | --- |
@@ -141,7 +183,11 @@ covered 时 Mac 会改圆角、取消旋转、使用 0.92 填充并重新测量�
 | overlay.follow | `{}` | null |
 | overlay.highlight | `{id:string}` | Rect 或 null |
 | overlay.windowFrameChanged | `{windowID:uint32,window:Window}` | null |
+| host.saveRule | `{input:string}` | null；编译、持久化、configure 成功后才回复 |
+| host.applySetting | `{setting:{liveliness?:string,paused?:bool,persona?:string}}` | null；按非 null 字段更新本地设置、保存并 configure 后回复 |
 | host.report | `{error:{code:integer,message:string,data?:any}}` | null |
+
+`host.stateChanged` 是 **无 id 通知**，params `{}`，不回包。记忆、成长数字、名字或人格配置变化时触发；外壳重新读取 memory.list / growth.state，更新已打开的界面和托盘名字/Lv。通知不携带屏幕文字或 API key。
 
 Narration 必填：`id:string,quipID:string,ruleID:string,sequence:integer,text:string,emoji:string[],language:"zh"|"en",persona:Persona,framed:bool,obstacles:Rect[],windowID:uint32,window:Window`；可选 `anchor:Rect,line:Rect,trackID:string`。id 标识本次气泡实例，quipID 标识台词，ruleID 标识规则；trackID 是外壳给 markTrack 的不透明句柄，大脑原样转发给浮层。framed 控制文字框装饰；即使 false，仍可有 anchor 供定位。
 
@@ -150,7 +196,8 @@ sensor.isTyping、isSecureFocused、boundsProbe、textRect、markTrack 的错误
 ## 错误码与 T19
 
 - -32700：JSON 解析错误；-32600：无效请求；-32601：未知方法；-32602：参数/配置错误。
-- -32000：数据目录或历史文件 IO 错误；-32001：builtin 不支持；-32002：事件之前尚未 configure。
+- -32004：聊天、规则编译或宿主意图执行失败。
+- -32000：数据目录、记忆、成长、名字或历史文件 IO 错误；-32001：builtin 不支持；-32002：事件之前尚未 configure。
 - 可抛错端口保留外壳返回的错误码。错误通知不产生回复。
 
 T19 `matchRules` 仍供旧验证程序调用：参数 `{snapshot:ContextSnapshot,rules:Rule[]}`，result 为 `[{ruleId:string,lineIndex:integer|null}]`。**仅此旧入口**沿用 Foundation 的 CGRect 数组 `[[x,y],[w,h]]`，日期 ISO 8601；每个 snapshot 按 appChanged/hostChanged 匹配，时间取 capturedAt。W1 使用本页的新事件与矩形对象格式。

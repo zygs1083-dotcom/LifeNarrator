@@ -48,6 +48,7 @@ internal static class BrainChecks
                     if (placement.GetProperty("highlight").Read<Box>().W <= 0) throw new Exception("Missing highlight");
                     shown.TrySetResult();
                     return new { shown = true, placement = placement.GetProperty("placement").GetString() };
+                case "host.stateChanged": return null;
                 case "host.report": throw new Exception(p.ToString());
                 default: throw new MissingMethodException(method);
             }

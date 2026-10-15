@@ -9,6 +9,10 @@ import NarratorCore
     private var connectionTests: [UUID: Task<Void, Never>] = [:]
     private var brain: SpriteBrain?
     private var directory: URL?
+    private var lastSnapshot: ContextSnapshot?
+    private var configuration: RPCConfiguration?
+    private var generator: (any TextGenerator)?
+    private var spriteName = ""
 
     public convenience init(writeLine: @escaping (String) throws -> Void) {
         self.init(writeLine: writeLine, generatorFactory: { try $0.makeGenerator() })
@@ -35,6 +39,7 @@ import NarratorCore
             for task in connectionTests.values { task.cancel() }
             continuation.finish()
             brain?.windowChanged()
+            brain?.onStateChange = nil
             peer.close()
         }
         for await event in events.stream {
@@ -63,27 +68,23 @@ import NarratorCore
         let params = object["params"] ?? .object([:])
         let result: RPCValue
         do {
-            if method == "testConnection" {
-                struct Params: Decodable { let generator: RPCGeneratorConfiguration }
-                let configuration = try params.decode(Params.self).generator
-                guard configuration.kind == .api, let generator = try generatorFactory(configuration) else {
-                    throw BrainRPCError(code: -32602, message: "testConnection requires an API generator")
-                }
+            if ["testConnection", "chat.send", "rules.compile"].contains(method) {
+                let operation = try asyncOperation(method, params: params)
                 let token = UUID()
                 connectionTests[token] = Task {
                     defer { connectionTests.removeValue(forKey: token) }
-                    let response: RPCValue
-                    do { response = try await Self.testConnection(generator) }
-                    catch {
+                    do {
+                        let response = try await operation()
                         if let id = object["id"] {
-                            do { try reply(error: BrainRPCError(code: -32003, message: "Connection test: \(error)"), id: id) }
+                            try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": response]))
+                        }
+                    } catch {
+                        if let id = object["id"] {
+                            let failure = error as? BrainRPCError ?? BrainRPCError(
+                                code: error is CocoaError ? -32000 : (method == "testConnection" ? -32003 : -32004), message: String(describing: error))
+                            do { try reply(error: failure, id: id) }
                             catch { events.continuation.yield(.failure(error)) }
                         }
-                        return
-                    }
-                    if let id = object["id"] {
-                        do { try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": response])) }
-                        catch { events.continuation.yield(.failure(error)) }
                     }
                 }
                 return
@@ -92,7 +93,7 @@ import NarratorCore
         }
         catch {
             if let id = object["id"] {
-                let error = error as? BrainRPCError ?? BrainRPCError(code: -32602, message: "Invalid params: \(error)")
+                let error = error as? BrainRPCError ?? BrainRPCError(code: error is CocoaError ? -32000 : -32602, message: "Invalid params: \(error)")
                 try reply(error: error, id: id)
             }
             return
@@ -121,17 +122,27 @@ import NarratorCore
             if brain == nil {
                 do {
                     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-                    brain = try SpriteBrain(sensor: RPCSensor(peer), overlay: RPCOverlay(peer), host: RPCHost(peer),
+                    let nameURL = url.appendingPathComponent("sprite-name.json")
+                    if FileManager.default.fileExists(atPath: nameURL.path) {
+                        spriteName = try JSONDecoder().decode(String.self, from: Data(contentsOf: nameURL))
+                    }
+                    let host = RPCHost(peer)
+                    host.ruleSaved = { [unowned self] in try self.brain!.recordGrowth(.rule) }
+                    brain = try SpriteBrain(sensor: RPCSensor(peer), overlay: RPCOverlay(peer), host: host,
                                             saidURL: url.appendingPathComponent("said.json"))
                 } catch { throw BrainRPCError(code: -32000, message: "Data directory: \(error)") }
                 directory = url
+                brain!.onStateChange = { [weak self] in self?.stateChanged() }
                 brain!.start()
             }
+            self.configuration = configuration
+            self.generator = generator
             brain!.configure(settings: settings, content: content, generator: .success(generator))
             return .null
         case "snapshot":
             struct Params: Decodable { let snapshot: ContextSnapshot; let windowID: UInt32; let change: ContextChange }
             let p = try params.decode(Params.self)
+            lastSnapshot = p.snapshot
             try configured().snapshot(p.snapshot, windowID: p.windowID, change: p.change)
             return .null
         case "windowFrameChanged":
@@ -139,6 +150,43 @@ import NarratorCore
             try configured().windowFrameChanged(params.decode(Params.self).frame)
             return .null
         case "windowChanged": try configured().windowChanged(); return .null
+        case "chat.history": return try .encode(configured().chat.turns)
+        case "memory.list": return try .encode(configured().memories)
+        case "memory.add":
+            struct Params: Decodable { let kind: Memory.Kind; let text: String }
+            let p = try params.decode(Params.self)
+            return try .encode(configured().addMemory(kind: p.kind, text: p.text))
+        case "memory.edit", "memory.pin", "memory.delete":
+            struct Params: Decodable { let id: UUID; let kind: Memory.Kind?; let text: String?; let pinned: Bool? }
+            let p = try params.decode(Params.self), brain = try configured()
+            guard brain.memories.contains(where: { $0.id == p.id }) else {
+                throw BrainRPCError(code: -32602, message: "Unknown memory id")
+            }
+            switch method {
+            case "memory.edit":
+                guard let kind = p.kind, let text = p.text else {
+                    throw BrainRPCError(code: -32602, message: "memory.edit requires kind and text")
+                }
+                try brain.editMemory(id: p.id, kind: kind, text: text)
+            case "memory.pin":
+                guard let pinned = p.pinned else { throw BrainRPCError(code: -32602, message: "memory.pin requires pinned") }
+                try brain.pinMemory(id: p.id, pinned: pinned)
+            default: try brain.deleteMemory(id: p.id)
+            }
+            return .null
+        case "memory.clear": try configured().clearMemories(); return .null
+        case "growth.state": return try companionState()
+        case "growth.setName":
+            struct Params: Decodable { let name: String }
+            let name = try params.decode(Params.self).name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard try configured().growthState.unlocked.contains(.spriteName) else {
+                throw BrainRPCError(code: -32602, message: "Sprite names unlock at Lv.2")
+            }
+            do { try JSONEncoder().encode(name).write(to: directory!.appendingPathComponent("sprite-name.json"), options: .atomic) }
+            catch { throw BrainRPCError(code: -32000, message: "Sprite name: \(error)") }
+            spriteName = name
+            stateChanged()
+            return .null
         case "layout.sizeTier": return try RPCLayout.sizeTier(params)
         case "layout.place": return try RPCLayout.place(params)
         case "matchRules":
@@ -152,6 +200,61 @@ import NarratorCore
         default: throw BrainRPCError(code: -32601, message: "Method not found")
         }
     }
+
+    private func stateChanged() {
+        do { try peer.send(.object(["jsonrpc": .string("2.0"), "method": .string("host.stateChanged"), "params": .object([:])])) }
+        catch { events.continuation.yield(.failure(error)) }
+    }
+
+    private func companionState() throws -> RPCValue {
+        let state = try configured().growthState, lang = configuration!.settings.lang
+        struct Unlock: Encodable { let id: GrowthUnlock; let level: Int; let name: String }
+        struct State: Encodable {
+            let state: GrowthState; let name: String; let title: String
+            let nextLevelExperience: Int?; let daysKnown: Int; let unlocks: [Unlock]
+        }
+        return try .encode(State(state: state, name: spriteName, title: state.title(lang: lang),
+            nextLevelExperience: state.nextLevelExperience, daysKnown: state.daysKnown(now: Date()),
+            unlocks: GrowthUnlock.allCases.map { Unlock(id: $0, level: $0.level, name: $0.name(lang: lang)) }))
+    }
+
+    private func asyncOperation(_ method: String, params: RPCValue) throws -> () async throws -> RPCValue {
+        if method == "testConnection" {
+            struct Params: Decodable { let generator: RPCGeneratorConfiguration }
+            let configuration = try params.decode(Params.self).generator
+            guard configuration.kind == .api, let generator = try generatorFactory(configuration) else {
+                throw BrainRPCError(code: -32602, message: "testConnection requires an API generator")
+            }
+            return { try await Self.testConnection(generator) }
+        }
+        let brain = try configured()
+        if method == "chat.send" {
+            struct Params: Decodable { let text: String; let narration: String?; let includeScreen: Bool }
+            let p = try params.decode(Params.self)
+            guard !p.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw BrainRPCError(code: -32602, message: "Chat text cannot be empty")
+            }
+            let snapshot = lastSnapshot
+            return {
+                let context = try await brain.chatContext(snapshot: snapshot, narration: p.narration)
+                return try .encode(await brain.sendChat(p.text, context: context, includeScreen: p.includeScreen))
+            }
+        }
+        struct Params: Decodable { let input: String }
+        let p = try params.decode(Params.self), configuration = configuration!, generator = generator
+        return {
+            let rule: Rule
+            if let generator {
+                rule = try await RuleCompiler.compile(input: p.input, lang: configuration.settings.lang, now: Date(),
+                    generator: generator, resolveBundleIds: Self.resolveBundleIds)
+            } else {
+                rule = try RuleCompiler.compileWithoutModel(input: p.input, pack: RuleLoader.loadBuiltin(), now: Date())
+            }
+            return try .encode(rule)
+        }
+    }
+
+    nonisolated private static func resolveBundleIds(_ names: [String]) -> [String] { [] }
 
     private static func testConnection(_ generator: any TextGenerator) async throws -> RPCValue {
         let start = ContinuousClock.now
