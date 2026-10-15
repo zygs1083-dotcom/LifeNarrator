@@ -173,7 +173,7 @@ public final class AppStore: ObservableObject {
     }
 
     public func releaseModel() async {
-        await llama.release()
+        await llama.close()
     }
 
     public func textGenerator() throws -> (any TextGenerator)? {
