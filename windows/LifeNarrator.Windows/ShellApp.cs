@@ -150,7 +150,11 @@ public sealed partial class ShellApp : Application
         await configurationGate.WaitAsync();
         try
         {
-            if (brain != null) await brain.Call("configure", configuration);
+            if (brain != null)
+            {
+                await brain.Call("configure", configuration);
+                eventPump ??= Pump(changes!.Reader, brain);
+            }
             error = null;
             UpdateTray();
         }

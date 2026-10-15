@@ -35,6 +35,13 @@ public sealed partial class ShellApp
             for (var index = 0; index < 3; index++) await welcome.Advance();
             await Task.Delay(300);
             if (!settings.OnboardingCompleted || settingsWindow == null) throw new Exception("Offline onboarding did not finish");
+            await Stop();
+            settings.Provider = new ProviderSettings { Kind = "api" };
+            try { await Start(); throw new Exception("Incomplete API draft unexpectedly configured"); }
+            catch (BrainException) { }
+            settings.Provider.Kind = "none";
+            await Configure();
+            if (eventPump == null || eventPump.IsCompleted) throw new Exception("Correcting an API draft did not restore the event pump");
             settingsWindow.SelectTab(0); settingsWindow.UpdateLayout();
             var cat = settingsWindow.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetAutomationId(b) == "choice-cat");
             cat.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -74,7 +81,7 @@ public sealed partial class ShellApp
             var menu = desktop.Windows.Single(w => w.Name?.StartsWith("AvaloniaTrayPopupRoot_") == true);
             if (menu.GetVisualDescendants().OfType<MenuItem>().Count() < 5) throw new Exception("Tray menu did not render");
             await Capture("ui-tray-menu");
-            Artifact.Write("ui-verification.json", new { installedExecutable = Environment.ProcessPath, onboarding = true,
+            Artifact.Write("ui-verification.json", new { installedExecutable = Environment.ProcessPath, onboarding = true, invalidDraftRecovery = true,
                 persistedPersona = settings.Persona, markGap = settings.MarkGap, connectionMilliseconds = elapsed,
                 themes = new[] { "Light", "Dark" }, languages = new[] { "zh", "en" } });
             exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown();
