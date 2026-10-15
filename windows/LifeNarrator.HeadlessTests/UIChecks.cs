@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Interactivity;
+using Avalonia.Input;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using LifeNarrator.Windows;
@@ -21,7 +22,9 @@ internal static class UIChecks
         cat.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         var slider = window.GetVisualDescendants().OfType<Slider>().Single(s => AutomationProperties.GetAutomationId(s) == "pace.gap");
         slider.Value = 9;
-        if (settings.Persona != "cat" || settings.MarkGap != 9 || configurations != 2) throw new Exception("Sprite edits did not configure immediately");
+        slider.Focus(); window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None); window.KeyReleaseQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        if (settings.MarkGap != 10) throw new Exception("Pace slider does not support keyboard input");
+        if (settings.Persona != "cat" || settings.MarkGap != 10 || configurations != 3) throw new Exception("Sprite edits did not configure immediately");
         foreach (var variant in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         {
             Application.Current.RequestedThemeVariant = variant;
@@ -33,6 +36,9 @@ internal static class UIChecks
             }
         }
         window.SelectTab(2); window.UpdateLayout();
+        var blacklist = window.GetVisualDescendants().OfType<TextBox>().Single(c => AutomationProperties.GetAutomationId(c) == "blacklist");
+        blacklist.Focus(); window.KeyTextInput("notepad");
+        if (!settings.Blacklist.SequenceEqual(new[] { "notepad" })) throw new Exception("Blacklist text input did not configure");
         var language = window.GetVisualDescendants().OfType<ComboBox>().Single(c => AutomationProperties.GetAutomationId(c) == "language");
         language.SelectedIndex = 2;
         if (settings.EffectiveLanguage != "en" || !window.Title!.Contains("Settings")) throw new Exception("Language change did not refresh UI");
