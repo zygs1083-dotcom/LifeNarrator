@@ -32,12 +32,12 @@ final class BubbleSnapshotTests: XCTestCase {
     }
 
     func testAnchoredComposites() throws {
-        let canvas = CGRect(x: 0, y: 0, width: 360, height: 220)
-        let window = WindowGeometry(frame: canvas, chromeHeight: 0)
-        let highlight = BubblePlacement.spriteFrame(around: CGRect(x: 150, y: 170, width: 48, height: 20))
         for shape in BubbleShape.allCases {
+            let canvas = CGRect(x: 0, y: 0, width: shape == .star ? 520 : 360, height: shape == .star ? 420 : 220)
+            let window = WindowGeometry(frame: canvas, chromeHeight: 0)
+            let highlight = BubblePlacement.spriteFrame(around: CGRect(x: canvas.midX - 30, y: canvas.maxY - 50, width: 48, height: 20))
             var a = appearance(shape: shape, theme: .clear, size: .medium, text: "Pig Boss incoming", language: "en")
-            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: a.outerSize, frame: highlight, line: highlight, window: window, visibleFrame: canvas, occupied: [], obstacles: []))
+            let placement = try XCTUnwrap(BubblePlacement.anchoredSprite(size: a.outerSize, frame: highlight, line: highlight, window: window, visibleFrame: canvas, occupied: [], obstacles: []), shape.rawValue)
             if shape == .speech {
                 a.setAnchoredTail(frame: placement.frame, highlight: highlight, side: placement.side)
             }
