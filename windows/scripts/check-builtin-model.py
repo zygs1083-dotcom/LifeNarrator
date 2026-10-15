@@ -17,7 +17,7 @@ for name in ('said.json', 'growth.json', 'memories.json'):
 environment = os.environ.copy()
 environment['LIFENARRATOR_DEBUG'] = '1'
 # The executable/DLL directory alone must supply Swift and llama (including dynamic backends).
-environment['PATH'] = str(Path(environment['SystemRoot']) / 'System32')
+environment['PATH'] = str(Path(environment['SYSTEMROOT']) / 'System32')
 process = subprocess.Popen([str(executable.resolve())], cwd=executable.resolve().parent,
                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            text=True, encoding='utf-8', env=environment)
