@@ -90,6 +90,8 @@ try:
                      change=dict(appChanged=True, windowChanged=True, hostChanged=True)))
             continue
         method, params = value['method'], value['params']
+        if method == 'host.stateChanged':
+            continue
         if method in ('sensor.isTyping', 'sensor.isSecureFocused', 'sensor.isLowPowerMode'):
             result = False
         elif method == 'sensor.boundsProbe':
