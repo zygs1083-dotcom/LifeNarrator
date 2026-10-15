@@ -143,7 +143,8 @@ internal sealed class Updater : IDisposable
             if ($null -ne $parent -and !$parent.WaitForExit(60000)) { throw 'LifeNarrator did not quit within 60 seconds.' }
             Add-Content $helperLog 'Shell exited; starting installer.'
             $installer = Join-Path $PSScriptRoot 'LifeNarrator-Setup.exe'
-            $setup = Start-Process $installer -ArgumentList "/VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /NORESTART /UPDATE=1 /DIR=`"$InstallDirectory`" /LOG=`"$log`"" -PassThru -Wait
+            $setup = Start-Process $installer -ArgumentList "/VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /NORESTART /UPDATE=1 /DIR=`"$InstallDirectory`" /LOG=`"$log`"" -PassThru
+            $setup.WaitForExit()
             Add-Content $helperLog "Installer exit code: $($setup.ExitCode)"
             if ($setup.ExitCode -ne 0) { throw "Installer exit code: $($setup.ExitCode)" }
         } catch {

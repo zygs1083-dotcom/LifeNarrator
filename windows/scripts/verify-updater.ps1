@@ -69,7 +69,11 @@ try {
 } finally {
     $env:PATH = $oldPath
     Remove-Item Env:LIFENARRATOR_UPDATE_RELEASES, Env:LIFENARRATOR_VERIFY_UPDATE_RESULT, Env:LIFENARRATOR_UPDATE_WORKSPACE -ErrorAction SilentlyContinue
-    if (Test-Path "$data/updates") { Copy-Item "$data/updates" artifacts/update-logs -Recurse -Force }
+    if (Test-Path "$data/updates") {
+        New-Item artifacts/update-logs -ItemType Directory -Force | Out-Null
+        Get-ChildItem "$data/updates" -Filter '*.log' -Recurse | Copy-Item -Destination artifacts/update-logs -Force
+        if (Test-Path "$data/updates/failure.json") { Copy-Item "$data/updates/failure.json" artifacts/update-logs }
+    }
     Copy-Item "$release/LifeNarrator-Setup.exe", "$release/checksums-windows.txt" artifacts -Force
     foreach ($owned in @($app, $server)) {
         if ($null -ne $owned -and !$owned.HasExited) { taskkill /PID $owned.Id /T /F | Out-Null }
