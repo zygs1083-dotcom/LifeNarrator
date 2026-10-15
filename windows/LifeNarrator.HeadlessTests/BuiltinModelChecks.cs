@@ -44,8 +44,6 @@ internal static class BuiltinModelChecks
         Box Line(JsonElement p) => rect with { Y = 100 + p.GetProperty("lineIndex").GetInt32() * 24 };
         var previousDebug = Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG");
         Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", "1");
-        var previousBacktrace = Environment.GetEnvironmentVariable("SWIFT_BACKTRACE");
-        Environment.SetEnvironmentVariable("SWIFT_BACKTRACE", "enable=yes,interactive=no");
         await using var brain = new BrainClient(Path.GetFullPath(executable), Path.Combine(directory, "stderr.log"), (method, p) =>
         {
             object? result = method switch
@@ -69,7 +67,6 @@ internal static class BuiltinModelChecks
         }, message => failed.TrySetResult(message));
         using var observedProcess = System.Diagnostics.Process.GetProcessById(brain.ProcessID);
         Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", previousDebug);
-        Environment.SetEnvironmentVariable("SWIFT_BACKTRACE", previousBacktrace);
         object Show(JsonElement narration)
         {
             File.AppendAllText(Path.Combine(directory, "overlays.jsonl"), JsonSerializer.Serialize(narration) + "\n");

@@ -9,6 +9,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f
+        with:
+          swift-version: swift-6.2-release
+          swift-build: 6.2-RELEASE
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
@@ -24,6 +28,15 @@ jobs:
           key: qwen35-08b-q4km-bd258782
       - run: windows/scripts/setup-test-model.ps1
       - run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- artifacts/brain/narrator-brain.exe
+      - name: Native process events
+        if: always()
+        shell: pwsh
+        run: |
+          try {
+            Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000,1001; StartTime=(Get-Date).AddMinutes(-10)} |
+              Where-Object Message -Like '*narrator-brain*' | Format-List * |
+              Out-File artifacts/builtin-ui-test/windows-events.log
+          } catch { $_ | Out-File artifacts/builtin-ui-test/windows-events.log }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
