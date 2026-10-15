@@ -40,7 +40,7 @@ Filename: "{app}\LifeNarrator.exe"; Description: "{cm:LaunchProgram,LifeNarrator
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "LifeNarrator"; Flags: uninsdeletevalue
 
 [UninstallRun]
-Filename: "{app}\LifeNarrator.exe"; Parameters: "--delete-user-data"; Flags: runhidden waituntilterminated; Check: DeleteUserData
+Filename: "{app}\LifeNarrator.exe"; Parameters: "--delete-user-data"; Flags: runhidden waituntilterminated; RunOnceId: DeleteUserData; Check: DeleteUserData
 
 [Code]
 var

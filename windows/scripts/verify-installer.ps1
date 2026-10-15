@@ -1,9 +1,12 @@
 $ErrorActionPreference = 'Stop'
 $installed = Join-Path $env:LOCALAPPDATA 'Programs/LifeNarrator'
 $data = Join-Path $env:APPDATA 'LifeNarrator'
+$artifactDirectory = (Resolve-Path artifacts).Path
+$installLog = Join-Path $artifactDirectory 'install.log'
+$uninstallLog = Join-Path $artifactDirectory 'uninstall.log'
 # The hosted runner contains only the fixtures created by run-e2e.ps1.
 if (Test-Path $data) { Remove-Item $data -Recurse -Force }
-$setup = Start-Process ./artifacts/LifeNarrator-Setup.exe -ArgumentList '/VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /NORESTART /LOG=artifacts/install.log' -PassThru -Wait
+$setup = Start-Process ./artifacts/LifeNarrator-Setup.exe -ArgumentList "/VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /NORESTART /LOG=`"$installLog`"" -PassThru -Wait
 if ($setup.ExitCode -ne 0) { throw "Install failed: $($setup.ExitCode)" }
 if (!(Test-Path "$installed/brain/narrator-brain.exe")) { throw 'Installed brain missing' }
 $stub = $null
@@ -24,8 +27,8 @@ try {
     $startup = Get-ItemPropertyValue 'HKCU:/Software/Microsoft/Windows/CurrentVersion/Run' LifeNarrator
     if ($startup -ne "`"$installed\LifeNarrator.exe`"") { throw "Wrong startup path: $startup" }
     $before = (Get-FileHash "$data/settings.json").Hash
-    $uninstall = Start-Process "$installed/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=artifacts/uninstall.log' -PassThru -Wait
-    if ($uninstall.ExitCode -ne 0) { throw "Uninstall failed: $($uninstall.ExitCode)" }
+    $uninstall = Start-Process "$installed/unins000.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /LOG=`"$uninstallLog`"" -PassThru -Wait
+    if ($uninstall.ExitCode -ne 0) { Get-Content $uninstallLog; throw "Uninstall failed: $($uninstall.ExitCode)" }
     if (Test-Path "$installed/LifeNarrator.exe") { throw 'Uninstall left executable behind' }
     if ((Get-FileHash "$data/settings.json").Hash -ne $before) { throw 'Silent uninstall changed user settings' }
     if (Get-ItemProperty 'HKCU:/Software/Microsoft/Windows/CurrentVersion/Run' -Name LifeNarrator -ErrorAction SilentlyContinue) { throw 'Uninstall left startup entry behind' }
