@@ -13,16 +13,22 @@ private final class RecordedText: @unchecked Sendable {
 }
 
 private final class FixtureProtocol: URLProtocol {
-    struct Fixture: Sendable { var status: Int; var chunks: [Data] }
+    struct Fixture: Sendable {
+        var status: Int
+        var chunks: [Data]
+        var finish: Bool
+        var onStop: (@Sendable () -> Void)?
+    }
     final class Registry: @unchecked Sendable {
         let lock = NSLock()
         var fixtures: [String: Fixture] = [:]
     }
     static let registry = Registry()
+    private var fixture: Fixture?
 
-    static func install(status: Int = 200, chunks: [Data]) -> (URL, URLSessionConfiguration) {
+    static func install(status: Int = 200, chunks: [Data], finish: Bool = true, onStop: (@Sendable () -> Void)? = nil) -> (URL, URLSessionConfiguration) {
         let url = URL(string: "https://\(UUID().uuidString.lowercased()).test")!
-        registry.lock.withLock { registry.fixtures[url.host!] = Fixture(status: status, chunks: chunks) }
+        registry.lock.withLock { registry.fixtures[url.host!] = Fixture(status: status, chunks: chunks, finish: finish, onStop: onStop) }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [FixtureProtocol.self]
         return (url, configuration)
@@ -32,11 +38,12 @@ private final class FixtureProtocol: URLProtocol {
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
         let fixture = Self.registry.lock.withLock { Self.registry.fixtures.removeValue(forKey: request.url!.host!)! }
+        self.fixture = fixture
         client!.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: fixture.status, httpVersion: "HTTP/1.1", headerFields: nil)!, cacheStoragePolicy: .notAllowed)
         for chunk in fixture.chunks { client!.urlProtocol(self, didLoad: chunk) }
-        client!.urlProtocolDidFinishLoading(self)
+        if fixture.finish { client!.urlProtocolDidFinishLoading(self) }
     }
-    override func stopLoading() {}
+    override func stopLoading() { fixture?.onStop?() }
 }
 
 private func sse(_ object: [String: Any]) throws -> String {
@@ -90,7 +97,11 @@ private func sse(_ object: [String: Any]) throws -> String {
 
 @Test func partialFalseCancelsGeneration() async throws {
     let event = try sse(["choices": [["delta": ["content": "{"]]]])
-    let (url, configuration) = FixtureProtocol.install(chunks: [Data(event.utf8), Data(event.utf8)])
+    let (stopped, continuation) = AsyncStream<Void>.makeStream()
+    let (url, configuration) = FixtureProtocol.install(chunks: [Data(event.utf8), Data(event.utf8)], finish: false) {
+        continuation.yield(())
+        continuation.finish()
+    }
     let client = OpenAIChatClient(baseURL: url, path: "chat/completions", model: "fixture", configuration: configuration)
     let received = RecordedText()
     await #expect(throws: CancellationError.self) {
@@ -99,6 +110,8 @@ private func sse(_ object: [String: Any]) throws -> String {
         }
     }
     #expect(received.all == ["{"])
+    var iterator = stopped.makeAsyncIterator()
+    #expect(await iterator.next() != nil)
 }
 
 @Test func anthropicStreamsOnlyEmitToolJSON() async throws {

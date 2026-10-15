@@ -52,7 +52,8 @@ public final class AppStore: ObservableObject {
     private var modelRelease: Task<Void, Never>?
 
     public init() throws {
-        directory = try AppDataDirectory()
+        let directory = try AppDataDirectory()
+        self.directory = directory
         settings = try directory.loadSettings()
         personas = try PersonaCatalog.load(from: directory.personas)
         try KeychainStore.migrateGenerationKey()

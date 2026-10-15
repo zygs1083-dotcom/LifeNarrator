@@ -67,6 +67,17 @@ final class UISnapshotTests: XCTestCase {
         try customStore.deletePersona(custom.id)
         XCTAssertEqual(customStore.settings.persona, .sharp)
         XCTAssertTrue(try PersonaCatalog.load(from: store.directory.personas).custom.isEmpty)
+        store.settings.provider = .api
+        for provider in ["zhipu", "ollama"] {
+            store.settings.generationAPI = ProviderConfiguration(presetID: provider, model: "fixture")
+            for dark in [false, true] {
+                let view = ScrollView { ModelSettingsView(store: store).padding(20) }
+                    .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+                    .groupBoxStyle(.card).frame(width: 780, height: 580).background(AppTheme.windowBackground)
+                try render(view, dark: dark).write(to: directory.appendingPathComponent("ui-provider-\(provider)-\(dark ? "dark" : "light").png"))
+            }
+        }
+        store.settings.provider = .builtin
         let fixtures: [(RuleKind, String, Match)] = [
             (.person, "张三是我领导", Match(aliases: ["张三"], region: .header)),
             (.site, "我讨厌谷歌", Match(domains: ["google.com"])),
