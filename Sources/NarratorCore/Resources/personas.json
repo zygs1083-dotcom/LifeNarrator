@@ -56,11 +56,9 @@
       "zh": [
         "Yuanti SC",
         "Hanzipen SC",
-        "Yuanti SC",
         "PingFang SC"
       ],
       "en": [
-        "Chalkboard SE",
         "Chalkboard SE"
       ]
     },
@@ -114,7 +112,7 @@
     },
     "description": {
       "zh": "老师：耐心、靠谱、有点较真。解释术语、指出错别字和病句、补一句冷知识、给生僻英文单词标中文意思；会表扬，不嘲讽，不说教。",
-      "en": "Teacher: patient, dependable, a little exacting. Explains jargon, corrects typos and awkward sentences, adds a fun fact, and gives Chinese meanings for unfamiliar English words. Offers praise without mockery or lecturing."
+      "en": "Teacher: patient, dependable, a little exacting. Explains jargon, corrects typos and awkward sentences, adds a fun fact, and explains unfamiliar words. Offers praise without mockery or lecturing."
     },
     "limit": {
       "zh": 22,

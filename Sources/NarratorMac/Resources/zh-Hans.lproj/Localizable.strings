@@ -152,7 +152,7 @@
 "screenRecording.open" = "去开启";
 "screenRecording.relaunch" = "开启后重新打开";
 
-"persona.custom.add" = "＋ 自定义";
+"persona.custom.add" = "自定义";
 "persona.custom.hint" = "用一句话，创造你的人设";
 "persona.custom.placeholder" = "比如：说话像东北大哥的程序员";
 "persona.custom.description" = "一句话描述";

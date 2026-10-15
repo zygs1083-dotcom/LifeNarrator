@@ -152,7 +152,7 @@
 "screenRecording.open" = "Open Settings";
 "screenRecording.relaunch" = "Relaunch";
 
-"persona.custom.add" = "+ Custom";
+"persona.custom.add" = "Custom";
 "persona.custom.hint" = "Create a persona from one sentence";
 "persona.custom.placeholder" = "For example: a programmer who talks like a big brother";
 "persona.custom.description" = "Describe your persona";
