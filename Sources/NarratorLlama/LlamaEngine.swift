@@ -1,5 +1,8 @@
 import Foundation
 import llama
+#if os(Windows)
+import WinSDK
+#endif
 
 public final class LlamaEngine {
     public enum Failure: Error {
@@ -9,7 +12,17 @@ public final class LlamaEngine {
         case snapshotSave, snapshotRestore
     }
 
-    private static let backend: Void = llama_backend_init()
+    private static let backend: Void = {
+        #if os(Windows)
+        let module = GetModuleHandleA("llama.dll")
+        var path = [WCHAR](repeating: 0, count: 32768)
+        let length = GetModuleFileNameW(module, &path, DWORD(path.count))
+        let directory = URL(fileURLWithPath: String(decoding: path.prefix(Int(length)), as: UTF16.self))
+            .deletingLastPathComponent().path
+        ggml_backend_load_all_from_path(directory)
+        #endif
+        llama_backend_init()
+    }()
     private let model: OpaquePointer
     private let context: OpaquePointer
     private let vocabulary: OpaquePointer
@@ -29,9 +42,11 @@ public final class LlamaEngine {
 
     public init(modelPath: String) throws {
         _ = Self.backend
+        #if os(macOS)
         guard llama_supports_gpu_offload() else { throw Failure.metalUnavailable }
+        #endif
         var parameters = llama_model_default_params()
-        parameters.n_gpu_layers = -1
+        parameters.n_gpu_layers = llama_supports_gpu_offload() ? -1 : 0
         guard let model = llama_model_load_from_file(modelPath, parameters) else {
             throw Failure.modelLoad
         }

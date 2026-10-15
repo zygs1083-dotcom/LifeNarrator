@@ -1,7 +1,7 @@
 import Foundation
 import NarratorCore
 import NarratorBrain
-@testable import NarratorMac
+import NarratorLlama
 import XCTest
 
 final class LlamaGrammarTests: XCTestCase {

@@ -1,0 +1,6 @@
+module llama [system] {
+    header "../../.dev-data/llama/include/llama.h"
+    link "llama"
+    link "ggml"
+    export *
+}

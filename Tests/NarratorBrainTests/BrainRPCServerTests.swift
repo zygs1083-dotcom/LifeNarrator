@@ -284,7 +284,7 @@ private actor ConnectionGenerator: TextGenerator {
         #expect(output.count == 8)
     }
 
-    @Test func configureRejectsBuiltinInvalidProviderAndDirectoryChanges() throws {
+    @Test func configureRejectsMissingModelInvalidProviderAndDirectoryChanges() throws {
         var output: [RPCValue] = []
         let server = BrainRPCServer { output.append(try JSONDecoder().decode(RPCValue.self, from: Data($0.utf8))) }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -294,9 +294,16 @@ private actor ConnectionGenerator: TextGenerator {
                 "method": .string("configure"), "params": params]).line())
         }
         try call(configuration(directory: directory, kind: "builtin"))
-        #expect(output.last?["error"]?["code"] == .number(-32001))
+        #expect(output.last?["error"]?["code"] == .number(-32602))
         #expect(!FileManager.default.fileExists(atPath: directory.path))
-        var bad = try configuration(directory: directory, kind: "api").decode([String: RPCValue].self)
+        var bad = try configuration(directory: directory, kind: "builtin").decode([String: RPCValue].self)
+        for path in ["", directory.appendingPathComponent("missing.gguf").path] {
+            bad["generator"] = .object(["kind": .string("builtin"), "modelPath": .string(path)])
+            try call(.object(bad))
+            #expect(output.last?["error"]?["code"] == .number(-32602))
+            #expect(!FileManager.default.fileExists(atPath: directory.path))
+        }
+        bad = try configuration(directory: directory, kind: "api").decode([String: RPCValue].self)
         bad["generator"] = .object(["kind": .string("api"), "presetId": .string("unknown"), "model": .string("m"), "key": .string("")])
         try call(.object(bad))
         #expect(output.last?["error"]?["code"] == .number(-32602))

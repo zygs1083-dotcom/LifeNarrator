@@ -149,3 +149,10 @@ only for the disposable CI runner and writes fixture settings and credentials.
 
 Interactive uninstall asks whether to delete settings, local history and API keys.
 No is the default. Silent uninstall always retains user data and credentials.
+## 内置 GGUF 引擎（W2b）
+
+Windows x64 构建前运行 `windows/scripts/setup-llama.ps1`。脚本校验官方 b11429 CPU / Vulkan ZIP 和同提交 C 头文件的 SHA-256，解压到 gitignore 的 `.dev-data/llama`，从 DLL 导出表生成 MSVC 导入库；`windows/llama/module.modulemap` 供 SwiftPM 导入。脚本把运行库目录加入当前 PowerShell 的 PATH；手动开发时用 `. windows/scripts/setup-llama.ps1` 后运行 `swift test`。不需要本机构建 llama.cpp，也无需安装 Vulkan SDK。运行时从已加载的 llama.dll 所在目录寻找动态 CPU / Vulkan 后端。
+
+`windows/scripts/package-brain.ps1` 收集实际 PE 导入闭包，并显式包含动态 CPU 变体、Vulkan 后端及 OpenMP 许可证。brain 目录可独立运行；没有 Vulkan 设备时使用 CPU。模型不打进 brain 目录，通过 configure 的 `generator: {kind:"builtin", modelPath:"绝对路径"}` 指定。
+
+CI 缓存并校验固定 revision 的 Qwen3.5-0.8B Q4_K_M，执行 `python windows/scripts/check-builtin-model.py artifacts/brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL`。该检查仅用打包目录的 DLL，通过 RPC 配置、snapshot、传感器回复和真实 overlay.show 验证标记，`artifacts/builtin-model-test/` 保存协议、stderr 和首条 / 整批毫秒指标。

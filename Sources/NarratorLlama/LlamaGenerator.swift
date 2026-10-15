@@ -1,8 +1,9 @@
-import Darwin
 import Foundation
 import NarratorCore
-import NarratorBrain
+#if os(macOS)
+import Darwin
 import os
+#endif
 
 /// Serializes the synchronous `LlamaEngine` on its own queue; loads the model on first use and
 /// releases it after 10 idle minutes.
@@ -14,9 +15,14 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
     private var engine: LlamaEngine?
     private var waitForRelease: Task<Void, Never>?
     private var unload: Task<Void, Never>?
+    #if os(macOS)
     private nonisolated let generating = OSAllocatedUnfairLock(initialState: false)
-    public nonisolated var isBusy: Bool { generating.withLock { $0 } }
     private nonisolated let closed = OSAllocatedUnfairLock(initialState: false)
+    #else
+    private nonisolated let generating = LockedFlag()
+    private nonisolated let closed = LockedFlag()
+    #endif
+    public nonisolated var isBusy: Bool { generating.withLock { $0 } }
 
     public init(modelPath: String, waitForRelease: Task<Void, Never>? = nil) {
         self.modelPath = modelPath
@@ -73,7 +79,20 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
             do { try await Task.sleep(for: .seconds(600)) } catch { return }
             engine = nil
             // Freed model and compute buffers otherwise stay in the process footprint.
+            #if os(macOS)
             malloc_zone_pressure_relief(nil, 0)
+            #endif
         }
     }
 }
+
+#if os(Windows)
+private final class LockedFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    func withLock<T>(_ body: (inout Bool) -> T) -> T {
+        lock.withLock { body(&value) }
+    }
+}
+#endif

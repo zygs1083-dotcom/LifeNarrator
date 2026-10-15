@@ -1,5 +1,8 @@
 import Foundation
 import NarratorCore
+#if canImport(NarratorLlama)
+import NarratorLlama
+#endif
 
 struct RPCGeneratorConfiguration: Decodable {
     enum Kind: String, Decodable { case none, api, builtin }
@@ -9,11 +12,23 @@ struct RPCGeneratorConfiguration: Decodable {
     let baseURL: String?
     let structured: StructuredOutput?
     let key: String?
+    let modelPath: String?
 
-    func makeGenerator() throws -> (any TextGenerator)? {
+    func makeGenerator(waitForRelease: () -> Task<Void, Never>? = { nil }) throws -> (any TextGenerator)? {
         switch kind {
         case .none: return nil
-        case .builtin: throw BrainRPCError(code: -32001, message: "builtin generator is not supported")
+        case .builtin:
+            guard let modelPath, !modelPath.isEmpty else {
+                throw BrainRPCError(code: -32602, message: "builtin requires modelPath")
+            }
+            guard FileManager.default.fileExists(atPath: modelPath) else {
+                throw BrainRPCError(code: -32602, message: "Model file does not exist: \(modelPath)")
+            }
+            #if canImport(NarratorLlama)
+            return LlamaGenerator(modelPath: modelPath, waitForRelease: waitForRelease())
+            #else
+            throw BrainRPCError(code: -32001, message: "builtin generator is not supported on this platform")
+            #endif
         case .api:
             guard let presetId, let model, let key else {
                 throw BrainRPCError(code: -32602, message: "api requires presetId, model and key")
