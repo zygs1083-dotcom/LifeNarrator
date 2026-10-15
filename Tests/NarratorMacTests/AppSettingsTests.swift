@@ -4,6 +4,16 @@ import NarratorCore
 import XCTest
 
 final class AppSettingsTests: XCTestCase {
+    func testLegacyPersonaStringAndCustomIDRoundTrip() throws {
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as! [String: Any]
+        json["persona"] = "sharp"
+        XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json)).persona, .sharp)
+        json["persona"] = "custom.example"
+        let custom = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(custom.persona.rawValue, "custom.example")
+        XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(custom)).persona, custom.persona)
+    }
+
     func testEffectiveDwellExtendsForMoreThanThreeMarksWithoutChangingSettings() {
         var style = BubbleStyle()
         for (count, seconds, expected) in [(1, 3.0, 3.0), (3, 3, 3), (4, 3, 10),

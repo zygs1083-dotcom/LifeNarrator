@@ -26,16 +26,17 @@ final class QuipPregenerator {
     private func fill() async throws {
         guard let generator = try store.textGenerator() else { return }
         let lang = store.settings.language.lang
-        let persona = store.settings.persona.rawValue
+        let persona = store.settings.persona
+        let catalog = store.personas
         let missing = store.rules.filter { rule in
-            rule.enabled && !rule.quips.contains { $0.lang == lang && $0.persona.rawValue == persona }
+            rule.enabled && !rule.quips.contains { $0.lang == lang && $0.persona == persona }
         }.map(\.id)
         for id in missing {
             for _ in 0..<2 {
                 // The rule may have been deleted while an earlier batch was generating.
                 guard var rule = store.rules.first(where: { $0.id == id }) else { break }
                 do {
-                    rule.quips += try await RuleCompiler.generateQuips(for: rule, lang: lang, persona: .init(rawValue: persona)!, generator: generator, n: 6)
+                    rule.quips += try await RuleCompiler.generateQuips(for: rule, lang: lang, persona: persona, generator: generator, n: 6, catalog: catalog)
                 } catch {
                     store.error = String(describing: error)
                     break

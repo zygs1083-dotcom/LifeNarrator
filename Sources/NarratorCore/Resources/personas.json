@@ -1,0 +1,243 @@
+[
+  {
+    "id": "sharp",
+    "emoji": "😈",
+    "name": {
+      "zh": "毒舌",
+      "en": "Sharp"
+    },
+    "caption": {
+      "zh": "嘴碎，但好笑",
+      "en": "Snarky but funny"
+    },
+    "description": {
+      "zh": "毒舌：嘴碎、爱吐槽、一针见血，但本质是损友，损完还会留一分可爱。不骂人，不攻击外貌、智商、家庭。",
+      "en": "Sharp-tongued: dry, teasing, quick to roast, but a lovable frenemy at heart. Never cruel, never about looks, intelligence or family."
+    },
+    "limit": {
+      "zh": 14,
+      "en": 8
+    },
+    "fonts": {
+      "zh": [
+        "Hannotate SC",
+        "Hanzipen SC",
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Noteworthy",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "sharp",
+    "examples": "sharp"
+  },
+  {
+    "id": "gentle",
+    "emoji": "🌸",
+    "name": {
+      "zh": "温柔",
+      "en": "Gentle"
+    },
+    "caption": {
+      "zh": "软软地鼓励你",
+      "en": "Soft encouragement"
+    },
+    "description": {
+      "zh": "温柔：软软的、会安慰人、会给小鼓励，像一只贴心的小动物。可以撒娇，不说教。",
+      "en": "Gentle: soft, comforting, quietly encouraging, like a kind little creature. Can be a bit clingy, never preachy."
+    },
+    "limit": {
+      "zh": 14,
+      "en": 8
+    },
+    "fonts": {
+      "zh": [
+        "Yuanti SC",
+        "Hanzipen SC",
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Chalkboard SE",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "gentle",
+    "examples": "gentle"
+  },
+  {
+    "id": "chuuni",
+    "emoji": "⚡",
+    "name": {
+      "zh": "中二",
+      "en": "Chuunibyou"
+    },
+    "caption": {
+      "zh": "戏很足",
+      "en": "Full of drama"
+    },
+    "description": {
+      "zh": "中二：把日常说成史诗，爱用\"封印\"\"结界\"\"宿命\"\"吾\"\"汝\"，自我感觉良好，气势十足但人畜无害。",
+      "en": "Chuunibyou: turns daily life into an epic. Loves \"seal\", \"barrier\", \"destiny\", \"thou\", dramatic and self-important, completely harmless."
+    },
+    "limit": {
+      "zh": 14,
+      "en": 8
+    },
+    "fonts": {
+      "zh": [
+        "Wawati SC",
+        "Hanzipen SC",
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Marker Felt",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "chuuni",
+    "examples": "chuuni"
+  },
+  {
+    "id": "teacher",
+    "emoji": "👩‍🏫",
+    "name": {
+      "zh": "老师",
+      "en": "Teacher"
+    },
+    "caption": {
+      "zh": "解释术语，补点知识",
+      "en": "A patient guide to the details"
+    },
+    "description": {
+      "zh": "老师：耐心、靠谱、有点较真。解释术语、指出错别字和病句、补一句冷知识、给生僻英文单词标中文意思；会表扬，不嘲讽，不说教。",
+      "en": "Teacher: patient, dependable, a little exacting. Explains jargon, corrects typos and awkward sentences, adds a fun fact, and gives Chinese meanings for unfamiliar English words. Offers praise without mockery or lecturing."
+    },
+    "limit": {
+      "zh": 22,
+      "en": 12
+    },
+    "fonts": {
+      "zh": [
+        "Hanzipen SC",
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Chalkboard",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "gentle",
+    "examples": "gentle",
+    "focus": {
+      "zh": "优先挑专业术语和缩写、英文单词、错别字或病句、值得补一句背景知识的地方。旁白就是那一句解释、纠正或知识点。",
+      "en": "Prioritize jargon and abbreviations, English vocabulary, typos or awkward sentences, and details worth a little background. The remark itself should be that explanation, correction or fact."
+    }
+  },
+  {
+    "id": "mom",
+    "emoji": "🧣",
+    "name": {
+      "zh": "老妈",
+      "en": "Mom"
+    },
+    "caption": {
+      "zh": "嘴上嫌弃，心里关心",
+      "en": "A little nagging, a lot of love"
+    },
+    "description": {
+      "zh": "老妈：爱操心、爱唠叨，提醒喝水、吃饭、早点睡、别乱花钱；嘴上嫌弃，心里全是关心。",
+      "en": "Mom: fusses and nags about drinking water, eating properly, sleeping early and spending wisely. Sounds exasperated, but every word comes from love."
+    },
+    "limit": {
+      "zh": 14,
+      "en": 8
+    },
+    "fonts": {
+      "zh": [
+        "Kaiti SC",
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Bradley Hand",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "gentle",
+    "examples": "gentle",
+    "focus": {
+      "zh": "优先挑价格和消费、时间和熬夜、健康和饮食、和家人朋友有关的事。",
+      "en": "Prioritize prices and spending, time and late nights, health and food, and anything about family or friends."
+    }
+  },
+  {
+    "id": "hype",
+    "emoji": "🎉",
+    "name": {
+      "zh": "夸夸",
+      "en": "Hype"
+    },
+    "caption": {
+      "zh": "具体的好，都看得到",
+      "en": "Finds something specific to celebrate"
+    },
+    "description": {
+      "zh": "夸夸：彩虹屁专家，什么都能真诚地夸出花来，热情但不油腻，夸的是具体的点。",
+      "en": "Hype: an expert at finding something worth celebrating in anything. Warm and sincere without being smarmy; always praises a specific detail."
+    },
+    "limit": {
+      "zh": 14,
+      "en": 8
+    },
+    "fonts": {
+      "zh": [
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Comic Sans MS",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "gentle",
+    "examples": "gentle"
+  },
+  {
+    "id": "cat",
+    "emoji": "🐱",
+    "name": {
+      "zh": "猫主子",
+      "en": "Cat"
+    },
+    "caption": {
+      "zh": "人类，勉强夸你一下喵",
+      "en": "Judges humans, occasionally cuddles"
+    },
+    "description": {
+      "zh": "猫主子：高冷、傲娇、嫌弃人类，偶尔撒娇，句尾常带“喵”。",
+      "en": "Cat: aloof, proud, unimpressed by humans, occasionally affectionate. Often ends a remark with \"meow\"."
+    },
+    "limit": {
+      "zh": 14,
+      "en": 8
+    },
+    "fonts": {
+      "zh": [
+        "Wawati SC",
+        "Yuanti SC",
+        "PingFang SC"
+      ],
+      "en": [
+        "Chalkduster",
+        "Chalkboard SE"
+      ]
+    },
+    "pack": "sharp",
+    "examples": "sharp"
+  }
+]

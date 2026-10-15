@@ -38,8 +38,6 @@ public struct APIConfiguration: Codable {
 
 public enum AppInputError: Error { case invalidURL, missingModel }
 
-extension Persona: Codable {}
-
 public struct AppSettings: Codable {
     public var language: InterfaceLanguage = .system
     public var persona: Persona = .sharp
@@ -136,6 +134,7 @@ extension BubbleStyle: Codable {
 public struct AppDataDirectory {
     public let root: URL
     public var settings: URL { root.appendingPathComponent("settings.json") }
+    public var personas: URL { root.appendingPathComponent("personas.json") }
     public var rules: URL { root.appendingPathComponent("rules.json") }
     public var models: URL { root.appendingPathComponent("Models", isDirectory: true) }
 

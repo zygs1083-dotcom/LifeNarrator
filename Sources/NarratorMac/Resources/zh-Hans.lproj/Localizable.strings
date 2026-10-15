@@ -151,3 +151,15 @@
 "screenRecording.body" = "聊天、终端这类应用拿不到文字的精确位置，开启后小精灵会截一眼窗口来找准位置（只在本机处理，不保存截图）。";
 "screenRecording.open" = "去开启";
 "screenRecording.relaunch" = "开启后重新打开";
+
+"persona.custom.add" = "＋ 自定义";
+"persona.custom.hint" = "用一句话，创造你的人设";
+"persona.custom.placeholder" = "比如：说话像东北大哥的程序员";
+"persona.custom.description" = "一句话描述";
+"persona.custom.generate" = "生成人设";
+"persona.custom.generating" = "正在生成人设…";
+"persona.custom.cancel" = "取消";
+"persona.custom.delete" = "删除人设";
+"persona.custom.noModel" = "请先在“模型”中选择模型。";
+"persona.custom.downloadModel" = "请先下载内置模型，或配置 API 模型。";
+"persona.custom.configureModel" = "请先在“模型”中填写有效的 API 地址和模型名称。";

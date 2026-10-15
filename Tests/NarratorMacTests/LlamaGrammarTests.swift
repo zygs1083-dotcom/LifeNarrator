@@ -18,6 +18,9 @@ final class LlamaGrammarTests: XCTestCase {
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.quipsSchema), LlamaGrammar.quips)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.spriteMarksSchema), LlamaGrammar.spriteMarks)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.compiledRuleSchema), LlamaGrammar.compiledRule)
+        XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.spriteMarksLongSchema), LlamaGrammar.spriteMarksLong)
+        XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.quipsLongSchema), LlamaGrammar.quipsLong)
+        XCTAssertEqual(try LlamaGrammar.grammar(for: PersonaGenerator.schema), LlamaGrammar.persona)
         XCTAssertThrowsError(try LlamaGrammar.grammar(for: "{}"))
     }
 
@@ -61,6 +64,18 @@ final class LlamaGrammarTests: XCTestCase {
         XCTAssertTrue(grammar.contains("qchar{2,32}"))
         XCTAssertTrue(grammar.contains("「」%.A-Za-z0-9 "))
         XCTAssertTrue(grammar.contains("…()%-]"))
+    }
+
+    func testTeacherAndCustomPersonaGrammars() {
+        XCTAssertEqual(bound(LlamaGrammar.spriteMarksLong, rule: "zh"), 28)
+        XCTAssertEqual(bound(LlamaGrammar.spriteMarksLong, rule: "en"), 80)
+        XCTAssertEqual(bound(LlamaGrammar.quipsLong, rule: "zh"), 22)
+        XCTAssertEqual(bound(LlamaGrammar.quipsLong, rule: "en"), 60)
+        for voice in ["sharp", "gentle", "chuuni"] {
+            XCTAssertTrue(LlamaGrammar.persona.contains("\"\\\"\(voice)\\\"\""))
+        }
+        XCTAssertTrue(LlamaGrammar.persona.contains("focus"))
+        XCTAssertTrue(LlamaGrammar.persona.contains("label)?"))
     }
 
     func testCompiledRuleGrammarCoversSchemaEnumsAndArrayLimits() {

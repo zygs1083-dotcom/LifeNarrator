@@ -45,6 +45,28 @@ final class UISnapshotTests: XCTestCase {
                 }
             }
         }
+        var custom = PersonaCatalog.builtin[.teacher]
+        custom.id = Persona(rawValue: "custom.snapshot")
+        custom.name = .init(zh: "东北大哥", en: "Big Brother")
+        custom.caption = .init(zh: "热心爽快的程序员", en: "A warm, straightforward programmer")
+        custom.limit = PersonaCatalog.builtin[.gentle].limit
+        try PersonaCatalog(custom: [custom]).save(to: store.directory.personas)
+        let customStore = try AppStore()
+        customStore.settings.persona = custom.id
+        XCTAssertNotNil(customStore.personaModelUnavailableReason)
+        for dark in [false, true] {
+            let cards = PersonaSettingsView(store: customStore).padding(20)
+                .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+                .frame(width: 740, height: 540).background(AppTheme.windowBackground)
+            try render(cards, dark: dark, size: NSSize(width: 740, height: 540))
+                .write(to: directory.appendingPathComponent("ui-personas-custom-\(dark ? "dark" : "light").png"))
+            try render(CustomPersonaView(store: customStore).frame(width: 508, height: 230).background(AppTheme.windowBackground),
+                       dark: dark, size: NSSize(width: 508, height: 230))
+                .write(to: directory.appendingPathComponent("ui-personas-create-\(dark ? "dark" : "light").png"))
+        }
+        try customStore.deletePersona(custom.id)
+        XCTAssertEqual(customStore.settings.persona, .sharp)
+        XCTAssertTrue(try PersonaCatalog.load(from: store.directory.personas).custom.isEmpty)
         let fixtures: [(RuleKind, String, Match)] = [
             (.person, "张三是我领导", Match(aliases: ["张三"], region: .header)),
             (.site, "我讨厌谷歌", Match(domains: ["google.com"])),

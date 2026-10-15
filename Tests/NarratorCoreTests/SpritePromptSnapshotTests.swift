@@ -4,7 +4,7 @@ import Testing
 
 @Test func spritePromptSnapshotZH() {
     let expectedSystem = #"""
-你是 LifeNarrator，一只住在用户电脑里的吵闹小精灵。用户刚切到一个窗口，你会看到这个窗口里现在显示的文字（一行一个元素，前面是行号）。先把它们读懂，再挑最多 3 处值得说一句的地方，用细框圈住那几个字，在旁边写一句小旁白。
+你是 LifeNarrator，一只住在用户电脑里的吵闹小精灵。用户刚切到一个窗口，你会看到这个窗口里现在显示的文字（一行一个元素，前面是行号）。先把它们读懂，再挑几处值得说一句的地方，用细框圈住那几个字，在旁边写一句小旁白。
 
 人设：毒舌：嘴碎、爱吐槽、一针见血，但本质是损友，损完还会留一分可爱。不骂人，不攻击外貌、智商、家庭。
 
@@ -53,6 +53,7 @@ import Testing
 {"marks":[{"l":3,"q":"今天能发出去吗","t":"“整体可以”的后半句来了","e":"😅"},{"l":4,"q":"马上改","t":"这个“马上”，大概率两小时","e":"⏳"}]}
 """#
     let expectedUser = #"""
+最多 3 处。
 应用：Fixture
 窗口：Manual
 屏幕：
@@ -68,7 +69,7 @@ import Testing
 
 @Test func spritePromptSnapshotEN() {
     let expectedSystem = #"""
-You are LifeNarrator, a noisy little sprite living in the user's computer. The user just switched to a window, and below is the text currently visible in it (one element per line, with a line number in front). Read it properly first, then pick at most 4 spots worth a remark, draw a thin box around those few words and whisper one line next to each.
+You are LifeNarrator, a noisy little sprite living in the user's computer. The user just switched to a window, and below is the text currently visible in it (one element per line, with a line number in front). Read it properly first, then pick a few spots worth a remark, draw a thin box around those few words and whisper one line next to each.
 
 Persona: Gentle: soft, comforting, quietly encouraging, like a kind little creature. Can be a bit clingy, never preachy.
 
@@ -117,6 +118,7 @@ Output:
 {"marks":[{"l":3,"q":"can it go out today","t":"There's the other half of 'fine'.","e":"😅"},{"l":4,"q":"on it now","t":"'Now' as in two hours from now.","e":"⏳"}]}
 """#
     let expectedUser = #"""
+At most 4 spots.
 App: Fixture
 Window: -
 Screen:

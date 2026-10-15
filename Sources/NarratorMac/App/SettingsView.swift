@@ -150,9 +150,7 @@ private struct SpriteSettingsView: View {
                           format: { String(format: store.text("format.count"), $0) }, hue: hue)
             } label: { CardHeading(title: store.text("pace"), symbol: "metronome", hue: hue, caption: store.text("pace.hint")) }
             GroupBox {
-                ChoiceCards(options: zip(Persona.allCases, ["😈", "🌸", "⚡"]).map {
-                    (value: $0.0, emoji: $0.1, title: store.text("persona.\($0.0.rawValue)"), caption: store.text("persona.\($0.0.rawValue).hint"))
-                }, selection: $store.settings.persona, hue: hue)
+                PersonaSettingsView(store: store)
             } label: { CardHeading(title: store.text("persona"), symbol: "person.fill", hue: hue, caption: store.text("persona.hint")) }
         }
     }
@@ -310,7 +308,7 @@ private struct AppearanceSettingsView: View {
     private var preview: some View {
         let style = store.settings.bubbleStyle
         let font = BubbleFonts.font(choice: style.font, persona: store.settings.persona,
-                                    language: store.settings.language.lang.rawValue, size: style.size.fontSize)
+                                    language: store.settings.language.lang.rawValue, size: style.size.fontSize, catalog: store.personas)
         let group = style.theme == .random ? ColorSelection.randomGroup(baseHue: 160, index: 0) : style.theme.palette[0]
         var appearance = BubbleAppearance.make(shape: style.shape, size: style.size, theme: style.theme, group: group,
             effects: style.textEffects, font: font, text: store.text("preview.text"),

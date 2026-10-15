@@ -3,7 +3,18 @@ import Foundation
 import CoreGraphics
 #endif
 
-public enum Persona: String, Codable, CaseIterable, Sendable { case sharp, gentle, chuuni }
+public struct Persona: RawRepresentable, Codable, Hashable, Sendable {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+
+    public static let sharp = Persona(rawValue: "sharp")
+    public static let gentle = Persona(rawValue: "gentle")
+    public static let chuuni = Persona(rawValue: "chuuni")
+    public static let teacher = Persona(rawValue: "teacher")
+    public static let mom = Persona(rawValue: "mom")
+    public static let hype = Persona(rawValue: "hype")
+    public static let cat = Persona(rawValue: "cat")
+}
 public enum Lang: String, Codable, CaseIterable, Sendable { case zh, en }
 public enum RuleKind: String, Codable, Sendable { case app, site, person, topic, time }
 public enum Sentiment: String, Codable, Sendable { case dislike, like, neutral }
