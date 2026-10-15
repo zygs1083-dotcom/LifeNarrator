@@ -41,7 +41,8 @@ internal static class CompanionChecks
         var locked = growth with { State = numbers with { Level = 1, Unlocked = [] } };
         if (settings.ActiveShape(locked) != "automatic" || settings.ActiveTheme(locked) != "random" || settings.ActiveEmoji(["😺"], locked)[0] != "😺")
             throw new Exception("Locked appearance leaked into overlay");
-        var window = new SettingsWindow(settings, () => Task.CompletedTask, () => Task.FromResult(1d), companion);
+        using var updater = new Updater();
+        var window = new SettingsWindow(settings, () => Task.CompletedTask, () => Task.FromResult(1d), updater, () => Task.CompletedTask, companion);
         window.Show();
         foreach (var variant in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         {

@@ -17,6 +17,7 @@ internal sealed class BrainClient : IAsyncDisposable
     long nextID;
     volatile bool stopping;
     volatile Exception? failure;
+    internal int ProcessID => process.Id;
 
     public BrainClient(string executable, string logPath, Func<string, JsonElement, Task<object?>> port,
         Action<string> failed)

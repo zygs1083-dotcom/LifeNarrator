@@ -35,6 +35,7 @@ Name: "{group}\LifeNarrator"; Filename: "{app}\LifeNarrator.exe"
 
 [Run]
 Filename: "{app}\LifeNarrator.exe"; Description: "{cm:LaunchProgram,LifeNarrator}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\LifeNarrator.exe"; Flags: nowait skipifnotsilent; Check: IsUpdate
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: none; ValueName: "LifeNarrator"; Flags: uninsdeletevalue
@@ -45,6 +46,11 @@ Filename: "{app}\LifeNarrator.exe"; Parameters: "--delete-user-data"; Flags: run
 [Code]
 var
   RemoveData: Boolean;
+
+function IsUpdate(): Boolean;
+begin
+  Result := ExpandConstant('{param:UPDATE|0}') <> '0';
+end;
 
 function InitializeUninstall(): Boolean;
 begin

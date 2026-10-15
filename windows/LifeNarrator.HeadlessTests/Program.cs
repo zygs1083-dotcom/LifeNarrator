@@ -6,7 +6,9 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using LifeNarrator.Windows;
 
+if (args.SequenceEqual(new[] { "--updates-only" })) { UpdateChecks.Run().GetAwaiter().GetResult(); return; }
 SettingsChecks.Run();
+if (args.Length == 0) UpdateChecks.Run().GetAwaiter().GetResult();
 if (args.Length > 0) BrainChecks.Run(args[0]).GetAwaiter().GetResult();
 var map = new DisplayMap(new PixelRect(-1920, 120, 1920, 1080), new PixelRect(-1920, 120, 1920, 1040), 1.5);
 var physical = new Box(-1770, 270, 300, 60);

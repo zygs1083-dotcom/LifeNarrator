@@ -138,5 +138,14 @@
   "bubble.shape": "Bubble shape",
   "bubble.theme": "Bubble theme",
   "memory.rule.delete": "Delete rule",
-  "memory.confirm.delete": "Delete this memory?"
+  "memory.confirm.delete": "Delete this memory?",
+  "updates.title": "Updates",
+  "updates.automatic": "Automatically check for updates",
+  "updates.check": "Check for updates",
+  "updates.checking": "Checking for updates…",
+  "updates.latest": "You’re up to date",
+  "updates.available": "New version available: %@",
+  "updates.install": "Update now",
+  "updates.downloading": "Downloading update… %d%%",
+  "updates.installFailed": "Update installation failed; view installation log"
 }

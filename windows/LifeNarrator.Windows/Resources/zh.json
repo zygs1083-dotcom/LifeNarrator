@@ -138,5 +138,14 @@
   "bubble.shape": "气泡形状",
   "bubble.theme": "气泡配色",
   "memory.rule.delete": "删除规则",
-  "memory.confirm.delete": "删除这条记忆？"
+  "memory.confirm.delete": "删除这条记忆？",
+  "updates.title": "更新",
+  "updates.automatic": "自动检查更新",
+  "updates.check": "检查更新",
+  "updates.checking": "正在检查更新…",
+  "updates.latest": "已是最新版本",
+  "updates.available": "有新版本 %@",
+  "updates.install": "立即更新",
+  "updates.downloading": "正在下载更新… %d%%",
+  "updates.installFailed": "更新安装失败，查看安装日志"
 }

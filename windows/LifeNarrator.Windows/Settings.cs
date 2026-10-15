@@ -15,6 +15,7 @@ internal sealed class Settings
     public string Language { get; set; } = "system";
     public bool OnboardingCompleted { get; set; }
     public bool LaunchAtLogin { get; set; } = true;
+    public bool AutomaticUpdates { get; set; } = true;
     [JsonIgnore] public string EffectiveLanguage => Language == "system"
         ? (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh" ? "zh" : "en") : Language;
     public bool Paused { get; set; }

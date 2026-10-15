@@ -8,6 +8,7 @@ namespace LifeNarrator.Windows;
 internal static class Program
 {
     internal static bool VerifyUI, VerifyCompanion;
+    internal static bool VerifyUpdate, VerifyUpdateResult;
     [STAThread]
     public static int Main(string[] args)
     {
@@ -19,7 +20,10 @@ internal static class Program
         }
         VerifyUI = args.SequenceEqual(new[] { "--verify-ui" });
         VerifyCompanion = args.SequenceEqual(new[] { "--verify-companion" });
-        if (args.Length == 0 || VerifyUI || VerifyCompanion)
+        VerifyUpdate = args.SequenceEqual(new[] { "--verify-update" });
+        VerifyUpdateResult = args.Length == 0 && Environment.GetEnvironmentVariable("LIFENARRATOR_VERIFY_UPDATE_RESULT") == "1";
+        if (VerifyUpdate || VerifyUpdateResult) Directory.SetCurrentDirectory(Environment.GetEnvironmentVariable("LIFENARRATOR_UPDATE_WORKSPACE")!);
+        if (args.Length == 0 || VerifyUI || VerifyCompanion || VerifyUpdate)
         {
             using var single = new Mutex(true, "Local\\LifeNarrator.Windows", out var first);
             if (!first) return 0;
