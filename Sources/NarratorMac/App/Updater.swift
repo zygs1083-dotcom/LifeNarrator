@@ -38,15 +38,11 @@ public final class Updater: NSObject, ObservableObject, URLSessionDownloadDelega
         guard !isBusy else { return }
         state = .checking
         do {
-            let url = URL(string: "https://api.github.com/repos/zygs1083-dotcom/LifeNarrator/releases/latest")!
-            let (data, response) = try await session.data(from: url)
+            let (data, response) = try await session.data(from: AppRelease.latestVersionURL)
             try Self.checkResponse(response)
-            let release = try AppRelease.parse(data)
-            if try SemanticVersion(release.tag) > SemanticVersion(NarratorCore.version) {
-                _ = try release.assetURL(named: "LifeNarrator.zip")
-                _ = try release.assetURL(named: "checksums.txt")
-                state = .available(release)
-            } else { state = .upToDate }
+            guard let text = String(data: data, encoding: .utf8) else { throw Self.failure("version.txt is not UTF-8.") }
+            let release = try AppRelease(versionText: text)
+            state = try SemanticVersion(release.tag) > SemanticVersion(NarratorCore.version) ? .available(release) : .upToDate
         } catch { state = .failed(String(describing: error)) }
     }
 

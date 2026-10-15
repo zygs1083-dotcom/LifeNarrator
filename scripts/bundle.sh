@@ -58,4 +58,5 @@ cp -R "$APP" "$DMG_ROOT/"
 ln -s /Applications "$DMG_ROOT/Applications"
 hdiutil create -volname LifeNarrator -srcfolder "$DMG_ROOT" -format UDZO -ov dist/LifeNarrator.dmg
 (cd dist && shasum -a 256 LifeNarrator.dmg LifeNarrator.zip > checksums.txt)
-echo "dist/LifeNarrator.app  dist/LifeNarrator.zip  dist/LifeNarrator.dmg  dist/checksums.txt"
+echo "$VERSION" > dist/version.txt
+echo "dist/LifeNarrator.app  dist/LifeNarrator.zip  dist/LifeNarrator.dmg  dist/checksums.txt  dist/version.txt"

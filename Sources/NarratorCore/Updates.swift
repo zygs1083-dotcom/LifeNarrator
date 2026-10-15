@@ -62,14 +62,12 @@ public struct SemanticVersion: Comparable, Sendable {
 }
 
 public enum UpdateMetadataError: Error, CustomStringConvertible {
-    case invalidVersion(String), invalidChecksum(String), missingAsset(String), invalidURL(String)
+    case invalidVersion(String), invalidChecksum(String)
 
     public var description: String {
         switch self {
         case .invalidVersion(let value): "Invalid semantic version: \(value)"
         case .invalidChecksum(let value): "Invalid or missing SHA-256 checksum: \(value)"
-        case .missingAsset(let value): "Release is missing \(value)"
-        case .invalidURL(let value): "Invalid release URL: \(value)"
         }
     }
 }
@@ -96,33 +94,22 @@ public enum ReleaseChecksums {
     }
 }
 
-public struct AppRelease: Decodable, Sendable {
+/// A release on GitHub, found through `releases/latest/download/version.txt` rather than the REST API:
+/// the API's anonymous rate limit is shared by everyone behind the same proxy exit and often answers 403.
+public struct AppRelease: Sendable {
     public let tag: String
-    public let pageURL: URL
-    public let assets: [Asset]
-    public struct Asset: Decodable, Sendable {
-        public let name: String
-        public let url: URL
-        private enum CodingKeys: String, CodingKey { case name, url = "browser_download_url" }
-    }
-    private enum CodingKeys: String, CodingKey { case tag = "tag_name", pageURL = "html_url", assets }
 
-    public static func parse(_ data: Data) throws -> AppRelease {
-        let release = try JSONDecoder().decode(Self.self, from: data)
-        _ = try SemanticVersion(release.tag)
-        try validate(release.pageURL, prefix: "/zygs1083-dotcom/LifeNarrator/releases/")
-        return release
+    public init(versionText: String) throws {
+        let version = versionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        _ = try SemanticVersion(version)
+        tag = version.hasPrefix("v") ? version : "v" + version
     }
 
-    public func assetURL(named name: String) throws -> URL {
-        guard let asset = assets.first(where: { $0.name == name }) else { throw UpdateMetadataError.missingAsset(name) }
-        try Self.validate(asset.url, prefix: "/zygs1083-dotcom/LifeNarrator/releases/download/")
-        return asset.url
-    }
+    public static let latestVersionURL = URL(string: "https://github.com/zygs1083-dotcom/LifeNarrator/releases/latest/download/version.txt")!
 
-    private static func validate(_ url: URL, prefix: String) throws {
-        guard url.scheme == "https", url.host == "github.com", url.path.hasPrefix(prefix) else {
-            throw UpdateMetadataError.invalidURL(url.absoluteString)
-        }
+    public var pageURL: URL { URL(string: "https://github.com/zygs1083-dotcom/LifeNarrator/releases/tag/\(tag)")! }
+
+    public func assetURL(named name: String) -> URL {
+        URL(string: "https://github.com/zygs1083-dotcom/LifeNarrator/releases/download/\(tag)/\(name)")!
     }
 }
