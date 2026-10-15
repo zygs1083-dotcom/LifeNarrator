@@ -194,9 +194,23 @@ final class UISnapshotTests: XCTestCase {
                 }
                 try data.saveSettings(settings)
                 let store = try AppStore()
+                let chatModel = ChatPanelModel(turns: [ChatTurn(
+                    user: zh ? "你记得我什么" : "What do you remember?",
+                    reply: filled ? (zh ? "你喜欢茉莉花茶，我记着呢。" : "You enjoy jasmine tea. I remember.")
+                                  : (zh ? "还没记住你的事，聊聊吧。" : "Tell me a little about yourself."))])
+                let chat = ChatPanelView(store: store, model: chatModel)
+                let personaName = store.personas[store.settings.persona].name[language.lang]
+                XCTAssertEqual(chat.displayName, filled ? settings.spriteName : personaName)
+                if filled {
+                    store.settings.spriteName = "   "
+                    XCTAssertEqual(chat.displayName, personaName)
+                    store.settings.spriteName = settings.spriteName
+                }
                 for dark in [false, true] {
                     let mode = dark ? "dark" : "light"
                     let state = filled ? "filled" : "empty"
+                    try render(chat, dark: dark, size: NSSize(width: 400, height: 520))
+                        .write(to: directory.appendingPathComponent("ui-chat-lv\(growth.level)-\(lang)-\(mode).png"))
                     let memory = AppSettingsView(store: store, tab: .memory)
                     try render(memory, dark: dark)
                         .write(to: directory.appendingPathComponent("ui-memory-\(state)-\(lang)-\(mode).png"))
