@@ -57,15 +57,17 @@ public struct AppSettings: Codable {
     public var systemOne: APIConfiguration?
     public var inputShortcut: KeyboardShortcuts.Shortcut? = .init(.n, modifiers: [.option, .shift])
     public var pauseShortcut: KeyboardShortcuts.Shortcut? = .init(.p, modifiers: [.option, .shift])
+    public var automaticUpdates = true
     public var onboardingCompleted = false
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap
+        case language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        automaticUpdates = try c.decodeIfPresent(Bool.self, forKey: .automaticUpdates) ?? true
         liveliness = try c.decodeIfPresent(Liveliness.self, forKey: .liveliness) ?? .lively
         markGap = try c.decodeIfPresent(Double.self, forKey: .markGap) ?? 2
         language = try c.decode(InterfaceLanguage.self, forKey: .language)

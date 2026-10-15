@@ -24,6 +24,7 @@ public struct MenuBarView: View {
                     store.settings.paused = !$0
                 })).labelsHidden().frame(maxWidth: .infinity, alignment: .trailing)
             }.frame(minHeight: 28)
+            MenuUpdateRow(store: store, updater: store.updater)
             Rectangle().fill(AppTheme.cardStroke).frame(height: 1)
             Button { store.showInput() } label: {
                 row("input.open", symbol: "square.and.pencil", shortcut: store.settings.inputShortcut?.description)

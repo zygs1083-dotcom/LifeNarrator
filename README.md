@@ -12,7 +12,7 @@ LifeNarrator is a small macOS menu bar app with a noisy little sprite living in 
 
 ![A boxed name and a "Pig Boss" line on a test chat window](docs/images/boss-bubble.png)
 
-> **Status:** v0.7 preview. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
+> **Status:** v0.7 preview. Download `LifeNarrator.dmg` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases).
 
 ## Features
 
@@ -39,20 +39,28 @@ LifeNarrator is a small macOS menu bar app with a noisy little sprite living in 
 
 ## Install
 
-1. Download `LifeNarrator.zip` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases), unzip it and move `LifeNarrator.app` to Applications.
-2. The app is not signed with an Apple Developer ID. On macOS 14, right-click it and choose **Open**. On macOS 15 or later, open it once, then click **Open Anyway** in **System Settings → Privacy & Security**.
-3. Pick a model in the welcome window and grant Accessibility permission.
+**Option 1 — DMG:** Download `LifeNarrator.dmg` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases), open it, and drag `LifeNarrator.app` onto Applications. The app uses a self-signed certificate and is not notarized: on macOS 14, right-click it and choose **Open**; on macOS 15 or later, open it once, then click **Open Anyway** in **System Settings → Privacy & Security**.
+
+**Option 2 — One command:** Run this in Terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/zygs1083-dotcom/LifeNarrator/main/scripts/install.sh | bash
+```
+
+The installer downloads the latest release, verifies its SHA-256 checksum, asks the running app to quit, installs it in `/Applications` (or `~/Applications` if that folder is not writable), removes the quarantine attribute, and opens it. You do not need to allow it in System Settings. To install a specific release, replace the last `bash` with `LIFENARRATOR_VERSION=vX.Y.Z bash`.
+
+Pick a model in the welcome window and grant Accessibility permission. Screen Recording is optional; if its switch is on but access still fails, remove LifeNarrator from the permission list and add it again, or copy the reset command from the app’s permission card and run it in Terminal.
 
 LifeNarrator lives in the menu bar and has no Dock icon. **⌥⇧N** adds a rule, **⌥⇧P** pauses the sprite. If the menu bar is too full to show the icon (common on MacBooks with a notch), open LifeNarrator again from Applications or Spotlight to bring up its settings.
 
-Releases are signed with the same self-signed certificate since v0.1.4, so the Accessibility permission survives updates. Coming from an older version, remove LifeNarrator from **Privacy & Security → Accessibility** and add it again once.
+**Updates:** In **Settings → General**, choose **Check for updates → Update now**. Automatic checks run at launch and every 24 hours by default; you can turn them off there. The app verifies the download checksum and requires the new app to satisfy the running app’s designated signing requirement before replacing it and restarting. Releases use the same certificate, so Accessibility and Screen Recording permissions are preserved. When updating from releases before v0.1.4, remove LifeNarrator from the permission lists and add it again once.
 
 ## Build from source
 
 ```sh
 swift build
 swift test
-scripts/bundle.sh   # needs Xcode; builds dist/LifeNarrator.app and dist/LifeNarrator.zip
+scripts/bundle.sh   # needs Xcode; builds app, ZIP, DMG and checksums in dist/
 ```
 
 ## License

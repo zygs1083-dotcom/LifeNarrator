@@ -163,6 +163,7 @@ struct ScreenRecordingReminder: View {
 
     var body: some View {
         GroupBox {
+            ScreenRecordingRepair(store: store)
             Text(store.text("screenRecording.body"))
                 .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -174,6 +175,20 @@ struct ScreenRecordingReminder: View {
             }
         } label: {
             CardHeading(title: store.text("screenRecording.title"), symbol: "record.circle", hue: hue)
+        }
+    }
+}
+
+struct ScreenRecordingRepair: View {
+    @ObservedObject var store: AppStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(store.text("screenRecording.repair"))
+                .font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(store.text("screenRecording.copyCommand")) { store.copyScreenRecordingResetCommand() }
+                .buttonStyle(AppTheme.CapsuleButton(hue: AppTheme.hue(42), filled: false))
         }
     }
 }
@@ -191,6 +206,7 @@ struct GeneralSettingsView: View {
                     }
                 }.pickerStyle(.menu).frame(minHeight: 28)
             } label: { CardHeading(title: store.text("language"), symbol: "globe", hue: hue) }
+            UpdateSettingsView(store: store, updater: store.updater)
             GroupBox {
                 LabeledContent(store.text("shortcut.pause")) {
                     KeyboardShortcuts.Recorder("", shortcut: $store.settings.pauseShortcut)

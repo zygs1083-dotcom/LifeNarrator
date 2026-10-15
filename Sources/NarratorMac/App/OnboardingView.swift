@@ -53,13 +53,20 @@ public struct OnboardingView: View {
                         ] as CFDictionary)
                     }
                     .buttonStyle(AppTheme.CapsuleButton())
+                    Button(store.text("onboarding.accessibility.open")) { store.openAccessibilitySettings() }
+                        .buttonStyle(AppTheme.CapsuleButton(filled: false))
                     permissionStatus(accessibilityGranted)
                 default:
-                    Text(store.text("onboarding.screen")).font(AppTheme.font(.pageTitle))
-                    Text(store.text("onboarding.screen.hint"))
-                    Button(store.text("onboarding.screen.request")) { screenGranted = CGRequestScreenCaptureAccess() }
-                        .buttonStyle(AppTheme.CapsuleButton())
-                    permissionStatus(screenGranted)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text(store.text("onboarding.screen")).font(AppTheme.font(.pageTitle))
+                            Text(store.text("onboarding.screen.hint"))
+                            Button(store.text("onboarding.screen.request")) { screenGranted = CGRequestScreenCaptureAccess() }
+                                .buttonStyle(AppTheme.CapsuleButton())
+                            permissionStatus(screenGranted)
+                            ScreenRecordingRepair(store: store)
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             .id(step)

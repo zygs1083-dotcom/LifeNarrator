@@ -20,6 +20,7 @@ public final class AppStore: ObservableObject {
                 downloadFonts()
             }
             if oldValue.persona != settings.persona || oldValue.language != settings.language { pregenerator.schedule() }
+            if oldValue.automaticUpdates != settings.automaticUpdates { updater.configure(automatic: settings.automaticUpdates) }
             engine?.configure()
         }
     }
@@ -30,6 +31,7 @@ public final class AppStore: ObservableObject {
     public var said: SaidHistory
     public let builtin: QuipPack
     public let directory: AppDataDirectory
+    public let updater = Updater()
     public let downloader: ModelDownloader
     private var shortcutTasks: [Task<Void, Never>] = []
     private var onboardingWindow: NSWindow?
@@ -66,6 +68,7 @@ public final class AppStore: ObservableObject {
     }
 
     public func start() {
+        updater.configure(automatic: settings.automaticUpdates)
         refreshScreenRecordingPermission()
         registerShortcuts()
         downloadFonts()
@@ -139,6 +142,15 @@ public final class AppStore: ObservableObject {
         if ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1" {
             FileHandle.standardError.write(Data("[sprite] screen-recording granted=\(screenRecordingGranted)\n".utf8))
         }
+    }
+
+    func openAccessibilitySettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+
+    func copyScreenRecordingResetCommand() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("tccutil reset ScreenCapture dev.lifenarrator.app", forType: .string)
     }
 
     func openScreenRecordingSettings() {

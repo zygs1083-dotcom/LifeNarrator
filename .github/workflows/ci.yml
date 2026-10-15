@@ -40,4 +40,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: LifeNarrator-app
-          path: dist/LifeNarrator.zip
+          path: |
+            dist/LifeNarrator.zip
+            dist/LifeNarrator.dmg
+            dist/checksums.txt
+          if-no-files-found: error

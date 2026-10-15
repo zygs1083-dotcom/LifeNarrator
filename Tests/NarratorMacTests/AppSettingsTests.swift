@@ -14,6 +14,17 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(custom)).persona, custom.persona)
     }
 
+    func testAutomaticUpdatesDefaultAndPersistence() throws {
+        var original = AppSettings()
+        XCTAssertTrue(original.automaticUpdates)
+        original.automaticUpdates = false
+        let data = try JSONEncoder().encode(original)
+        XCTAssertFalse(try JSONDecoder().decode(AppSettings.self, from: data).automaticUpdates)
+        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        json.removeValue(forKey: "automaticUpdates")
+        XCTAssertTrue(try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json)).automaticUpdates)
+    }
+
     func testEffectiveDwellExtendsForMoreThanThreeMarksWithoutChangingSettings() {
         var style = BubbleStyle()
         for (count, seconds, expected) in [(1, 3.0, 3.0), (3, 3, 3), (4, 3, 10),
