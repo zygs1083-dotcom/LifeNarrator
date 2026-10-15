@@ -4,7 +4,7 @@ import NarratorCore
 @testable import narrator_brain
 
 private func response(_ json: String) throws -> [String: Any] {
-    try JSONSerialization.jsonObject(with: #require(BrainRPC.handle(Data(json.utf8)))) as! [String: Any]
+    try JSONSerialization.jsonObject(with: #require(try BrainRPC.handle(Data(json.utf8)))) as! [String: Any]
 }
 
 @Test func pingAndProtocolErrors() throws {
@@ -36,7 +36,7 @@ private func response(_ json: String) throws -> [String: Any] {
             "rules": try JSONSerialization.jsonObject(with: encoder.encode([rule]))]
         let data = try JSONSerialization.data(withJSONObject: ["jsonrpc": "2.0", "id": 1,
             "method": "matchRules", "params": params])
-        return try JSONSerialization.jsonObject(with: #require(BrainRPC.handle(data))) as! [String: Any]
+        return try JSONSerialization.jsonObject(with: #require(try BrainRPC.handle(data))) as! [String: Any]
     }
     let candidates = try call()["result"] as! [[String: Any]]
     #expect(candidates.count == 1)

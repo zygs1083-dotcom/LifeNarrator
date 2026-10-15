@@ -17,3 +17,8 @@ AGENTS.md
 CLAUDE.md
 docs/*
 !docs/images/
+
+# Windows spike build outputs
+windows/**/bin/
+windows/**/obj/
+artifacts/
