@@ -52,7 +52,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .dev-data/models
-          key: qwen35-08b-q4km-bd258782
+          key: qwen3-17b-q8-061b54da
       - run: windows/scripts/setup-test-model.ps1
       - run: swift --version
       - name: Windows updater checks

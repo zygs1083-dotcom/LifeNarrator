@@ -156,4 +156,4 @@ Windows x64 构建前运行 `windows/scripts/setup-llama.ps1`。脚本校验官�
 
 `windows/scripts/package-brain.ps1` 收集实际 PE 导入闭包，并显式包含动态 CPU 变体、Vulkan 后端及 OpenMP 许可证。brain 目录可独立运行；没有 Vulkan 设备时使用 CPU。模型不打进 brain 目录，通过 configure 的 `generator: {kind:"builtin", modelPath:"绝对路径"}` 指定。
 
-CI 缓存并校验固定 revision 的 Qwen3.5-0.8B Q4_K_M，执行 `python windows/scripts/check-builtin-model.py artifacts/brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL`。该检查仅用打包目录的 DLL，通过 RPC 配置、snapshot、传感器回复和真实 overlay.show 验证标记，`artifacts/builtin-model-test/` 保存协议、stderr 和首条 / 整批毫秒指标。
+CI 缓存并校验固定 revision 的 Qwen3-1.7B Q8_0，执行 `python windows/scripts/check-builtin-model.py artifacts/brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL`。该检查仅用打包目录的 DLL，通过 RPC 配置、snapshot、传感器回复和真实 overlay.show 验证标记，`artifacts/builtin-model-test/` 保存协议、stderr 和首条 / 整批毫秒指标。
