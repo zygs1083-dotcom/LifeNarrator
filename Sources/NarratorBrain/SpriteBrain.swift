@@ -236,8 +236,9 @@ public final class SpriteBrain {
     }
 
     public func chatContext(snapshot: ContextSnapshot?, narration: String? = nil) async throws -> ChatContext {
-        guard let snapshot, !snapshot.secureFocused, !settings.blacklist.contains(snapshot.bundleId),
-              try await !sensor.isSecureFocused() else { return ChatContext(narration: narration) }
+        let secureFocused = try await sensor.isSecureFocused()
+        guard let snapshot, !snapshot.secureFocused, !secureFocused,
+              !settings.blacklist.contains(snapshot.bundleId) else { return ChatContext(narration: narration) }
         var title = snapshot.windowTitle ?? ""
         for range in SpritePrompt.privacyRanges(in: title).reversed() { title.replaceSubrange(range, with: "***") }
         return ChatContext(title: title, quotes: recentChatQuotes, narration: narration,

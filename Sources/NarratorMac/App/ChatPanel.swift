@@ -213,6 +213,8 @@ struct ChatPanelView: View {
 
 // The speech-bubble face from Assets/AppIcon.svg, in its original 1024-point coordinates.
 struct SpriteAvatar: View {
+    private let ink = Color(red: 43 / 255, green: 34 / 255, blue: 38 / 255)
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -226,20 +228,24 @@ struct SpriteAvatar: View {
                     p.addLine(to: CGPoint(x: 238, y: 449))
                     p.addCurve(to: CGPoint(x: 392, y: 306), control1: CGPoint(x: 238, y: 360), control2: CGPoint(x: 294, y: 306))
                     p.closeSubpath()
-                }.fill(AppTheme.accentDeep)
-                RoundedRectangle(cornerRadius: 33).fill(.white).frame(width: 66, height: 100).position(x: 394, y: 463)
-                RoundedRectangle(cornerRadius: 33).fill(.white).frame(width: 66, height: 100).position(x: 591, y: 463)
+                }.fill(Color(red: 1, green: 252 / 255, blue: 248 / 255))
+                RoundedRectangle(cornerRadius: 33).fill(ink).frame(width: 66, height: 100).position(x: 394, y: 463)
+                RoundedRectangle(cornerRadius: 33).fill(ink).frame(width: 66, height: 100).position(x: 591, y: 463)
                 Path { p in
                     p.move(to: CGPoint(x: 449, y: 554))
                     p.addCurve(to: CGPoint(x: 536, y: 554), control1: CGPoint(x: 449, y: 531), control2: CGPoint(x: 536, y: 531))
                     p.addLine(to: CGPoint(x: 536, y: 577))
                     p.addCurve(to: CGPoint(x: 449, y: 577), control1: CGPoint(x: 536, y: 637), control2: CGPoint(x: 449, y: 637))
                     p.closeSubpath()
-                }.fill(.white)
+                }.fill(ink)
             }
             .frame(width: 1024, height: 1024)
             .offset(x: -210, y: -230)
             .scaleEffect(geometry.size.width / 620, anchor: .topLeading)
         }
+        .background(LinearGradient(colors: [Color(red: 1, green: 199 / 255, blue: 236 / 255),
+                                            Color(red: 245 / 255, green: 93 / 255, blue: 194 / 255)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 10))
     }
 }
