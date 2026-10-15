@@ -23,6 +23,7 @@ APP=dist/LifeNarrator.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN_DIR/LifeNarrator" "$APP/Contents/MacOS/"
+cp Assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 find "$BIN_DIR" -maxdepth 1 -name '*.bundle' -exec cp -R {} "$APP/Contents/Resources/" \;
 find "$BIN_DIR" -maxdepth 1 -name '*.framework' -exec cp -R {} "$APP/Contents/Frameworks/" \;
 install_name_tool -add_rpath '@executable_path/../Frameworks' "$APP/Contents/MacOS/LifeNarrator"
@@ -36,6 +37,7 @@ cat > "$APP/Contents/Info.plist" <<EOF
   <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleName</key><string>LifeNarrator</string>
   <key>CFBundleDisplayName</key><string>LifeNarrator</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>

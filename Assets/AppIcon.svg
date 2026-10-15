@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="pink" x1="200" y1="100" x2="800" y2="924" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFC7EC"/>
+      <stop offset="0.6" stop-color="#F55DC2"/>
+      <stop offset="1" stop-color="#D83AA4"/>
+    </linearGradient>
+    <path id="tile" d="M 285 100 H 739 C 879 100 924 145 924 285 V 739 C 924 879 879 924 739 924 H 285 C 145 924 100 879 100 739 V 285 C 100 145 145 100 285 100 Z"/>
+    <path id="bubble" d="M 392 306 H 614 C 707 306 760 360 760 449 V 539 C 760 630 707 682 614 682 H 456 L 330 764 L 350 677 C 278 664 238 615 238 539 V 449 C 238 360 294 306 392 306 Z"/>
+  </defs>
+
+  <!-- Continuous corners keep the tile inside the 824 px macOS grid. -->
+  <use href="#tile" fill="#B22483" opacity="0.12" transform="translate(0 12)"/>
+  <use href="#tile" fill="url(#pink)"/>
+
+  <!-- The speech bubble is the sprite: bold features survive small sizes. -->
+  <use href="#bubble" fill="#B22483" opacity="0.2" transform="translate(0 16)"/>
+  <use href="#bubble" fill="#FFFCF8"/>
+  <g fill="#2B2226">
+    <rect x="361" y="413" width="66" height="100" rx="33"/>
+    <rect x="558" y="413" width="66" height="100" rx="33"/>
+    <path d="M 449 554 C 449 531 536 531 536 554 V 577 C 536 637 449 637 449 577 Z"/>
+  </g>
+  <path d="M 465 600 Q 492 580 520 600 Q 493 626 465 600 Z" fill="#F55DC2"/>
+
+  <!-- Two flashes add a little noise without competing with the face. -->
+  <path d="M 768 202 Q 779 254 830 266 Q 779 278 768 330 Q 756 278 705 266 Q 756 254 768 202 Z" fill="#FFFCF8"/>
+  <path d="M 756 685 Q 765 720 800 729 Q 765 738 756 773 Q 747 738 712 729 Q 747 720 756 685 Z" fill="#FFC7EC"/>
+</svg>
