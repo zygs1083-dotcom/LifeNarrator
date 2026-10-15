@@ -68,8 +68,8 @@ function Overlay-Records($path) {
     }
 }
 function Probe($name) {
-    & ./artifacts/shell/LifeNarrator.exe --spike follow-probe
-    if ($LASTEXITCODE -ne 0) { throw 'Independent UIA probe failed' }
+    $probe = Start-Process ./artifacts/shell/LifeNarrator.exe -ArgumentList '--spike', 'follow-probe' -Wait -PassThru -NoNewWindow -RedirectStandardOutput artifacts/e2e-probe.stdout.log -RedirectStandardError artifacts/e2e-probe.stderr.log
+    if ($probe.ExitCode -ne 0) { throw "Independent UIA probe failed: $($probe.ExitCode)" }
     Copy-Item artifacts/e2e-probe.json "artifacts/e2e-$name-text.json"
     return (Get-Content artifacts/e2e-probe.json -Raw | ConvertFrom-Json).rect
 }

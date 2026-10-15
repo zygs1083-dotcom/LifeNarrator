@@ -20,7 +20,7 @@ internal static class FollowProbe
             var rect = new Avalonia.Rect(rectangles[0], rectangles[1], rectangles[2], rectangles[3]);
             for (var j = 4; j < rectangles.Length; j += 4)
                 rect = rect.Union(new Avalonia.Rect(rectangles[j], rectangles[j + 1], rectangles[j + 2], rectangles[j + 3]));
-            Artifact.Write("e2e-probe.json", new { window = root.CurrentName, rect = Box.From(rect) });
+            Artifact.Write("e2e-probe.json", new { window = root.CurrentName, text = range.GetText(-1), rectangles, rect = Box.From(rect) });
             return;
         }
         throw new InvalidOperationException("The follow fixture text has no visible UIA range");
