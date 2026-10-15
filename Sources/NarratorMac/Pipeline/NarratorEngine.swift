@@ -80,6 +80,7 @@ public final class NarratorEngine {
     private var matcher = RuleMatcher(rules: [])
     private var scheduler = Scheduler()
     private var memory = SpriteMemory()
+    private var configuredPersona = Persona.sharp
     private var picker = QuipPicker()
     private var pickerRules: [SpriteMemory.Key: Set<String>] = [:]
     private var random = SystemRandomNumberGenerator()
@@ -143,6 +144,9 @@ public final class NarratorEngine {
     func configure() {
         let settings = store.settings
         let levelChanged = overlay.liveliness != settings.liveliness
+        let personaChanged = configuredPersona != settings.persona
+        configuredPersona = settings.persona
+        if personaChanged { memory = SpriteMemory(level: settings.liveliness) }
         matcher = makeMatcher()
         overlay.personas = store.personas
         overlay.style = settings.bubbleStyle
@@ -156,7 +160,7 @@ public final class NarratorEngine {
             modelBudget = SpriteModelBudget(perMinute: settings.liveliness == .rowdy ? 6 : 4)
             screenCount = 0
         }
-        if levelChanged || settings.paused {
+        if levelChanged || personaChanged || settings.paused {
             overlay.dismissAll()
             shownPlaces = []
         }
@@ -573,6 +577,7 @@ public final class NarratorEngine {
         let cache = Task {
             var ids: [UUID] = []
             for await mark in incoming {
+                guard request.persona == store.settings.persona else { continue }
                 let key = SpriteMemory.Key(bundleId: request.snapshot.bundleId, text: mark.quote)
                 let marked = memory.status(key: key, now: Date())?.isMarked == true
                 forget(memory.cache(key: key, quip: mark.quip, lineHint: mark.lineIndex, now: Date()))
