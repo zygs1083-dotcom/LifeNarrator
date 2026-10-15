@@ -65,9 +65,13 @@ public final class AppStore: ObservableObject {
         }
         downloaders = ModelCatalog.models.map { ModelDownloader(directory: directory, model: $0) }
         downloadSubscriptions = downloaders.map { downloader in
-            downloader.$state.dropFirst().receive(on: DispatchQueue.main).sink { [unowned self] state in
+            downloader.$state.dropFirst().receive(on: DispatchQueue.main).sink { [unowned self, unowned downloader] state in
                 self.objectWillChange.send()
-                self.engine?.configure()
+                switch state {
+                case .ready, .notDownloaded:
+                    if self.settings.provider == .builtin && self.downloader === downloader { self.engine?.configure() }
+                case .downloading, .verifying: break
+                }
                 if case .ready = state { self.pregenerator.schedule() }
             }
         }
