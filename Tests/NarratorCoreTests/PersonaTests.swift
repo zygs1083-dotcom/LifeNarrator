@@ -12,7 +12,7 @@ import Testing
             #expect(!profile.description[lang].isEmpty)
             #expect(!profile.fonts[lang].isEmpty)
         }
-        #expect([Persona.sharp, .gentle, .chuuni].contains(profile.pack))
+        #expect(profile.pack == profile.id)
         #expect(profile.examples == profile.id)
     }
     #expect(catalog[.sharp].fonts.zh == ["Hannotate SC", "Hanzipen SC", "Yuanti SC", "PingFang SC"])
@@ -107,7 +107,7 @@ private struct PersonaStub: TextGenerator {
         picker = QuipPicker()
         #expect(picker.pick(for: builtin, lang: .zh, persona: persona, pack: pack(), now: epoch,
             isRepeat: { $0 == "离线包台词" }, using: &random, catalog: catalog) == nil)
-        let generated = rule(quips: [quip("真正的人设", persona: persona), quip("不要借这个", persona: fallback)])
+        let generated = rule(quips: [quip("真正的人设", persona: persona), quip("不要借这个", persona: fallback == persona ? .sharp : fallback)])
         picker = QuipPicker()
         #expect(picker.pick(for: generated, lang: .zh, persona: persona, pack: pack(), now: epoch, using: &random, catalog: catalog)?.text == "真正的人设")
         picker = QuipPicker()
