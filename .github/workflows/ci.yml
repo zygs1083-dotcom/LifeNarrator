@@ -70,6 +70,18 @@ jobs:
         run: windows/scripts/build-installer.ps1
       - name: Verify installed app and uninstall
         run: windows/scripts/verify-installer.ps1
+      - name: Verify in-app update from an installed older version
+        run: windows/scripts/verify-updater.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-updater-e2e
+          path: |
+            artifacts/update-*.png
+            artifacts/update-*.json
+            artifacts/update-*.log
+            artifacts/update-logs/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:

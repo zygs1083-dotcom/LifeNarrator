@@ -16,7 +16,8 @@ internal static class UIChecks
         Application.Current!.Styles.Add(new AppTheme());
         var settings = new Settings { Language = "zh" };
         var configurations = 0;
-        var window = new SettingsWindow(settings, () => { configurations++; return Task.CompletedTask; }, () => Task.FromResult(15d));
+        using var updater = new Updater();
+        var window = new SettingsWindow(settings, () => { configurations++; return Task.CompletedTask; }, () => Task.FromResult(15d), updater, () => Task.CompletedTask);
         window.Show();
         var cat = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetAutomationId(b) == "choice-cat");
         cat.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -42,6 +43,13 @@ internal static class UIChecks
         var language = window.GetVisualDescendants().OfType<ComboBox>().Single(c => AutomationProperties.GetAutomationId(c) == "language");
         language.SelectedIndex = 2;
         if (settings.EffectiveLanguage != "en" || !window.Title!.Contains("Settings")) throw new Exception("Language change did not refresh UI");
+        window.UpdateLayout();
+        var automatic = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == "Automatically check for updates");
+        automatic.IsChecked = false;
+        automatic.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (settings.AutomaticUpdates) throw new Exception("Automatic update toggle did not change settings");
+        if (window.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetAutomationId(b) == "updates-check").Content?.ToString() != "Check for updates")
+            throw new Exception("Update check button was not localized");
         window.Close();
         var complete = false;
         var wizard = new OnboardingWindow(new Settings(), () => Task.CompletedTask, () => Task.FromResult(1d), () => complete = true);

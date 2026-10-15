@@ -13,13 +13,19 @@ internal sealed class SettingsWindow : Window
     readonly Texts text;
     readonly Func<Task> configure;
     readonly Func<Task<double>> testConnection;
+    readonly Updater updater;
+    readonly Func<Task> installUpdate;
+    StackPanel updateContent = new() { Spacing = 10 };
     readonly DockPanel root = new() { Margin = new Thickness(20) };
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
     int tab;
 
-    public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection)
+    public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Updater updater, Func<Task> installUpdate)
     {
         this.settings = settings; this.configure = configure; this.testConnection = testConnection;
+        this.updater = updater; this.installUpdate = installUpdate;
+        updater.Changed += RefreshUpdates;
+        Closed += (_, _) => updater.Changed -= RefreshUpdates;
         text = new Texts(settings);
         Width = 780; Height = 660; MinWidth = 640; MinHeight = 500;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -99,10 +105,41 @@ internal sealed class SettingsWindow : Window
         AutomationProperties.SetName(blacklist, text["blacklist"]); AutomationProperties.SetAutomationId(blacklist, "blacklist");
         blacklist.TextChanged += (_, _) => Run(async () =>
         { settings.Blacklist = (blacklist.Text ?? "").Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries); await configure(); });
+        updateContent = Views.Stack();
+        RefreshUpdates();
         return Views.Stack(Views.Card(text["language"], language, startup),
             Views.Card(text["blacklist"], Views.Caption(text["blacklist.hint"]), blacklist),
-            Views.Card(text["about"], Views.Label("LifeNarrator"), Views.Caption(text["version"] + " " + typeof(SettingsWindow).Assembly.GetName().Version!.ToString(3)),
+            Views.Card(text["updates.title"], updateContent),
+            Views.Card(text["about"], Views.Label("LifeNarrator"),
                 Views.Button(text["github"], () => Views.OpenURL("https://github.com/zygs1083-dotcom/LifeNarrator"))));
+    }
+
+    void RefreshUpdates()
+    {
+        updateContent.Children.Clear();
+        updateContent.Children.Add(Views.Caption(text["version"] + " " + AppRelease.CurrentVersion));
+        updateContent.Children.Add(Views.Toggle(text["updates.automatic"], settings.AutomaticUpdates, enabled => Run(async () =>
+        { settings.AutomaticUpdates = enabled; updater.Configure(enabled); await configure(); })));
+        var check = Views.Button(text["updates.check"], () => Run(updater.Check));
+        check.IsEnabled = !updater.IsBusy;
+        AutomationProperties.SetAutomationId(check, "updates-check");
+        updateContent.Children.Add(check);
+        var message = updater.State switch
+        {
+            UpdateState.Checking => text["updates.checking"],
+            UpdateState.UpToDate => text["updates.latest"],
+            UpdateState.Available => text["updates.available"].Replace("%@", updater.Release!.Tag),
+            UpdateState.Downloading => text["updates.downloading"].Replace("%d", updater.Progress.ToString()),
+            UpdateState.Failed => updater.Error!,
+            _ => ""
+        };
+        if (message.Length > 0) updateContent.Children.Add(Views.Label(message));
+        if (updater.State == UpdateState.Available)
+        {
+            var install = Views.Button(text["updates.install"], () => Run(installUpdate));
+            AutomationProperties.SetAutomationId(install, "updates-install");
+            updateContent.Children.Add(install);
+        }
     }
 
     async void Run(Func<Task> action)

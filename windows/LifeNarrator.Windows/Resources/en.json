@@ -76,5 +76,14 @@
   "testing": "Testing…",
   "version": "Version",
   "windows.privacy": "Screen text is never logged or saved. Input fields, emails, phone numbers and URLs are removed before the model sees them. Connecting a cloud API sends visible text to that service.",
-  "windows.reading": "LifeNarrator reads the active window title and visible text to match your rules, never password fields. Windows uses UI Automation to read text."
+  "windows.reading": "LifeNarrator reads the active window title and visible text to match your rules, never password fields. Windows uses UI Automation to read text.",
+  "updates.title": "Updates",
+  "updates.automatic": "Automatically check for updates",
+  "updates.check": "Check for updates",
+  "updates.checking": "Checking for updates…",
+  "updates.latest": "You’re up to date",
+  "updates.available": "New version available: %@",
+  "updates.install": "Update now",
+  "updates.downloading": "Downloading update… %d%%",
+  "updates.installFailed": "Update installation failed; view installation log"
 }

@@ -76,5 +76,14 @@
   "testing": "正在测试…",
   "version": "版本",
   "windows.privacy": "屏幕文字不写日志、不落盘；输入框内容、邮箱、电话、网址在交给模型前去掉。连接云端 API 时，可见文字会发送到该服务。",
-  "windows.reading": "人生旁白读取当前窗口标题和可见文字，以匹配你的规则，永不读取密码框。Windows 版通过 UI Automation 读屏。"
+  "windows.reading": "人生旁白读取当前窗口标题和可见文字，以匹配你的规则，永不读取密码框。Windows 版通过 UI Automation 读屏。",
+  "updates.title": "更新",
+  "updates.automatic": "自动检查更新",
+  "updates.check": "检查更新",
+  "updates.checking": "正在检查更新…",
+  "updates.latest": "已是最新版本",
+  "updates.available": "有新版本 %@",
+  "updates.install": "立即更新",
+  "updates.downloading": "正在下载更新… %d%%",
+  "updates.installFailed": "更新安装失败，查看安装日志"
 }

@@ -27,6 +27,9 @@ public sealed partial class ShellApp : Application
     OnboardingWindow? onboarding;
     readonly SemaphoreSlim configurationGate = new(1);
     Texts text = null!;
+    Updater updater = null!;
+    NativeMenuItem updateItem = null!, updateFailureItem = null!;
+    UpdateFailure? updateFailure;
     NativeMenuItem settingsItem = null!, quit = null!, levelHeader = null!, personaHeader = null!;
     public override void Initialize() => Styles.Add(new AppTheme());
     bool exiting;
@@ -39,6 +42,9 @@ public sealed partial class ShellApp : Application
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         settings = Settings.Load();
         text = new Texts(settings);
+        updater = new Updater(Program.VerifyUpdate ? new Uri(Environment.GetEnvironmentVariable("LIFENARRATOR_UPDATE_RELEASES")!) : null);
+        updateFailure = updater.PreviousFailure();
+        updater.Changed += UpdateTray;
         status = new NativeMenuItem { Header = "人生旁白", IsEnabled = false };
         details = new NativeMenuItem { Header = "错误详情", IsVisible = false };
         pause = Item("在岗", async () => { settings.Paused = !settings.Paused; await Configure(); settingsWindow?.Refresh(); });
@@ -66,7 +72,11 @@ public sealed partial class ShellApp : Application
         personaHeader = new NativeMenuItem("人格") { Menu = personaMenu }; menu.Items.Add(personaHeader);
         menu.Items.Add(restart); menu.Items.Add(new NativeMenuItemSeparator());
         settingsItem = Item("设置…", () => { ShowSettings(); return Task.CompletedTask; }); menu.Items.Add(settingsItem);
-        quit = Item("退出", async () => { exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown(); }); menu.Items.Add(quit);
+        updateItem = Item("", () => { ShowSettings(); settingsWindow?.SelectTab(2); return Task.CompletedTask; });
+        menu.Items.Add(updateItem);
+        updateFailureItem = Item("", () => { Views.OpenURL(updateFailure!.LogPath); return Task.CompletedTask; });
+        menu.Items.Add(updateFailureItem);
+        quit = Item("退出", Quit); menu.Items.Add(quit);
         tray = new TrayIcon { Menu = menu, ToolTipText = "人生旁白", Icon = MakeIcon(42, 166, 100), IsVisible = true };
         tray.Clicked += (_, _) => ShowSettings();
         TrayIcon.SetIcons(this, new TrayIcons { tray });
@@ -76,6 +86,7 @@ public sealed partial class ShellApp : Application
             {
                 Startup.SetEnabled(settings.LaunchAtLogin);
                 await Start();
+                updater.Configure(settings.AutomaticUpdates && !Program.VerifyUI && !Program.VerifyUpdate && !Program.VerifyUpdateResult);
                 if (!settings.OnboardingCompleted)
                 {
                     onboarding = new OnboardingWindow(settings, Configure, TestConnection, ShowSettings);
@@ -83,6 +94,8 @@ public sealed partial class ShellApp : Application
                     onboarding.Show();
                 }
                 if (Program.VerifyUI) await VerifyUI();
+                if (Program.VerifyUpdate) await VerifyUpdate();
+                if (Program.VerifyUpdateResult) await VerifyUpdateResult();
             }
             catch (Exception failure) { Report(failure.Message); if (Program.VerifyUI) desktop.Shutdown(1); }
         });
@@ -150,6 +163,7 @@ public sealed partial class ShellApp : Application
     async Task Configure()
     {
         settings.Save();
+        updater.Configure(settings.AutomaticUpdates && !Program.VerifyUI && !Program.VerifyUpdate && !Program.VerifyUpdateResult);
         UpdateTray();
         if (settings.Paused) overlay?.DismissAll();
         var configuration = settings.Configuration();
@@ -178,7 +192,7 @@ public sealed partial class ShellApp : Application
         if (onboarding != null && !settings.OnboardingCompleted) { onboarding.Activate(); return; }
         if (settingsWindow == null)
         {
-            settingsWindow = new SettingsWindow(settings, Configure, TestConnection);
+            settingsWindow = new SettingsWindow(settings, Configure, TestConnection, updater, () => updater.Install(Quit));
             settingsWindow.Closed += (_, _) => settingsWindow = null;
         }
         settingsWindow.Refresh(); settingsWindow.Show(); settingsWindow.Activate();
@@ -193,10 +207,15 @@ public sealed partial class ShellApp : Application
 
     void UpdateTray()
     {
+        updateItem.IsVisible = updater.State == UpdateState.Available;
+        updateItem.Header = text["updates.available"].Replace("%@", updater.Release?.Tag ?? "");
+        updateFailureItem.IsVisible = updateFailure != null;
+        updateFailureItem.Header = text["updates.installFailed"] + ": " + updateFailure?.LogPath;
         var paused = settings.Paused;
         status.Header = error == null ? (paused ? text["paused"] : text["sprite.onDuty"]) : text["app.error"];
-        tray.ToolTipText = error == null ? (string)status.Header! : text["app.error"] + ": " + error.Split('\n')[0];
-        tray.Icon = error != null ? MakeIcon(225, 55, 75) : paused ? MakeIcon(140, 140, 140) : MakeIcon(42, 166, 100);
+        tray.ToolTipText = updateFailure != null ? text["updates.installFailed"] + ": " + updateFailure.LogPath
+            : error == null ? (string)status.Header! : text["app.error"] + ": " + error.Split('\n')[0];
+        tray.Icon = error != null || updateFailure != null ? MakeIcon(225, 55, 75) : paused ? MakeIcon(140, 140, 140) : MakeIcon(42, 166, 100);
         details.IsVisible = error != null;
         var errors = new NativeMenu();
         foreach (var line in error?.Split('\n') ?? []) errors.Items.Add(new NativeMenuItem(line) { IsEnabled = false });
@@ -245,5 +264,12 @@ public sealed partial class ShellApp : Application
         if (eventPump != null) { await eventPump; eventPump = null; }
         sensor?.Dispose(); sensor = null;
         overlay?.Dispose(); overlay = null;
+    }
+
+    async Task Quit()
+    {
+        exiting = true;
+        await Stop();
+        updater.Dispose(); tray.Dispose(); desktop.Shutdown();
     }
 }
