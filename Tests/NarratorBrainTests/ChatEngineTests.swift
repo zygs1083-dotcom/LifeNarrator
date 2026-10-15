@@ -196,10 +196,12 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
         defer { try! FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("memory.json")
         let start = Date()
-        let entries = (0..<24).map { index in
-            Memory(id: UUID(), kind: .fact, text: String(repeating: String(UnicodeScalar(0x4E00 + index)!), count: 40),
-                source: .manual, createdAt: start.addingTimeInterval(Double(index)),
-                lastUsedAt: start.addingTimeInterval(Double(index)), uses: 0, pinned: index == 0)
+        var entries: [Memory] = []
+        for index in 0..<24 {
+            let text = String(repeating: String(UnicodeScalar(0x4E00 + index)!), count: 40)
+            let date = start.addingTimeInterval(Double(index))
+            entries.append(Memory(id: UUID(), kind: .fact, text: text, source: .manual,
+                                  createdAt: date, lastUsedAt: date, uses: 0, pinned: index == 0))
         }
         try JSONEncoder().encode(entries).write(to: url)
         var store = try MemoryStore(url: url)
