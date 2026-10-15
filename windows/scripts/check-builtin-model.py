@@ -54,7 +54,7 @@ builtin = json.loads((resources / 'quips.json').read_text(encoding='utf-8'))
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
 line = {'x': 100, 'y': 100, 'w': 700, 'h': 24}
 settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='sharp',
-                lang='zh', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=3, ownProcessID=999, memoryEnabled=False)
+                lang='zh', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=8, ownProcessID=999, memoryEnabled=False)
 call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
 started = time.monotonic()
