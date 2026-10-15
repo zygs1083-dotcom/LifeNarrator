@@ -1,14 +1,7 @@
 import AppKit
 import ApplicationServices
 import NarratorCore
-
-public struct ContextChange: Codable, Sendable {
-    public enum Reason: String, Codable, Sendable { case appChanged, windowChanged, hostChanged, contentChanged }
-    public let appChanged: Bool
-    public let windowChanged: Bool
-    public let hostChanged: Bool
-    public var reason: Reason { appChanged ? .appChanged : windowChanged ? .windowChanged : hostChanged ? .hostChanged : .contentChanged }
-}
+import NarratorBrain
 
 // The holder also tears down the run-loop source when the sensor is released.
 private final class SensorObservations {
@@ -137,8 +130,6 @@ public final class ContextSensor {
         visualTask = nil
         ocrLines = []
     }
-
-    public enum RectKind: String, Sendable { case bounds, estimated, ocr }
 
     public func markTrack(lineIndex: Int, kind: RectKind?) throws -> MarkTrack? {
         guard textSource == .ax else { return nil }

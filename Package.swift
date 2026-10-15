@@ -5,9 +5,10 @@ var dependencies: [Package.Dependency] = []
 
 var targets: [Target] = [
     .target(name: "NarratorCore", resources: [.process("Resources")]),
+    .target(name: "NarratorBrain", dependencies: ["NarratorCore"]),
     .testTarget(name: "NarratorCoreTests", dependencies: ["NarratorCore"]),
     .executableTarget(name: "narrator-brain", dependencies: ["NarratorCore"]),
-    .testTarget(name: "NarratorBrainTests", dependencies: ["narrator-brain", "NarratorCore"]),
+    .testTarget(name: "NarratorBrainTests", dependencies: ["narrator-brain", "NarratorCore", "NarratorBrain"]),
 ]
 
 // macOS-only targets are left out on Linux so NarratorCore can be built and tested there.
@@ -19,7 +20,7 @@ targets += [
         url: "https://github.com/ggml-org/llama.cpp/releases/download/b11429/llama-b11429-xcframework.zip",
         checksum: "e26a6a0a813f5760fe45834ce239d5b525e4e2442d4fd017221d9f0438383174"
     ),
-    .target(name: "NarratorMac", dependencies: ["NarratorCore", "LlamaFramework",
+    .target(name: "NarratorMac", dependencies: ["NarratorCore", "NarratorBrain", "LlamaFramework",
         .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts")], resources: [.process("Resources")]),
     .executableTarget(name: "narrator-bench", dependencies: ["NarratorMac"]),
     .executableTarget(name: "context-probe", dependencies: ["NarratorMac", "NarratorCore"], exclude: ["README.md"]),

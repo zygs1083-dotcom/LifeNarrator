@@ -44,6 +44,7 @@ jobs:
           dotnet-version: '8.0.x'
       - run: swift --version
       - run: swift build --target NarratorCore
+      - run: swift build --target NarratorBrain
       - run: swift test
       - run: swift build -c release --product narrator-brain
       - run: windows/scripts/package-brain.ps1

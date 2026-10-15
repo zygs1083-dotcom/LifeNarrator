@@ -135,7 +135,7 @@ struct APISettingsView: View {
         HStack {
             Button(store.text("api.saveKey")) {
                 store.perform {
-                    try KeychainStore.save(key, account: account)
+                    try store.saveAPIKey(key, account: account)
                     keySaved = true
                 }
             }.buttonStyle(AppTheme.CapsuleButton())

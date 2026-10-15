@@ -35,7 +35,6 @@ public final class AppStore: ObservableObject {
     @Published public private(set) var rules: [Rule]
     @Published public var error: String?
     @Published public private(set) var screenRecordingGranted = ContextPermissions.isGranted(.screenCapture)
-    public var said: SaidHistory
     public let builtin: QuipPack
     public let directory: AppDataDirectory
     public let updater = Updater()
@@ -58,8 +57,6 @@ public final class AppStore: ObservableObject {
         personas = try PersonaCatalog.load(from: directory.personas)
         try KeychainStore.migrateGenerationKey()
         builtin = try RuleLoader.loadBuiltin()
-        said = FileManager.default.fileExists(atPath: directory.said.path)
-            ? try JSONDecoder().decode(SaidHistory.self, from: Data(contentsOf: directory.said)) : SaidHistory()
         if FileManager.default.fileExists(atPath: directory.rules.path) {
             rules = try RuleLoader.load(from: directory.rules)
         } else {
@@ -68,16 +65,16 @@ public final class AppStore: ObservableObject {
         }
         downloaders = ModelCatalog.models.map { ModelDownloader(directory: directory, model: $0) }
         downloadSubscriptions = downloaders.map { downloader in
-            downloader.$state.dropFirst().sink { [unowned self] state in
+            downloader.$state.dropFirst().receive(on: DispatchQueue.main).sink { [unowned self, unowned downloader] state in
                 self.objectWillChange.send()
+                switch state {
+                case .ready, .notDownloaded:
+                    if self.settings.provider == .builtin && self.downloader === downloader { self.engine?.configure() }
+                case .downloading, .verifying: break
+                }
                 if case .ready = state { self.pregenerator.schedule() }
             }
         }
-    }
-
-    public func recordSaid(_ text: String, now: Date) throws {
-        said.record(text, now: now)
-        try JSONEncoder().encode(said).write(to: directory.said, options: .atomic)
     }
 
     public func start() {
@@ -214,6 +211,11 @@ public final class AppStore: ObservableObject {
         await llama?.close()
         await modelRelease?.value
         llama = nil
+    }
+
+    func saveAPIKey(_ key: String, account: String) throws {
+        try KeychainStore.save(key, account: account)
+        engine?.configure()
     }
 
     public func textGenerator() throws -> (any TextGenerator)? {

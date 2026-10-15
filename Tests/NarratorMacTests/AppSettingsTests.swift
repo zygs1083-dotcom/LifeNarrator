@@ -130,7 +130,8 @@ final class AppSettingsTests: XCTestCase {
         for level in [Liveliness.quiet, .lively, .rowdy] {
             store.settings.liveliness = level
             engine.configure()
-            let scheduler = Mirror(reflecting: engine).descendant("scheduler") as! Scheduler
+            let brain = try XCTUnwrap(Mirror(reflecting: engine).descendant("brain") as? SpriteBrain)
+            let scheduler = Mirror(reflecting: brain).descendant("scheduler") as! Scheduler
             XCTAssertEqual(scheduler.settings.minGap, 9)
             XCTAssertEqual(store.settings.markGap, 9)
             print("markGap=\(store.settings.markGap) scheduler.minGap=\(scheduler.settings.minGap) level=\(level.rawValue)")
@@ -138,7 +139,7 @@ final class AppSettingsTests: XCTestCase {
     }
 
     @MainActor
-    func testSaidHistoryStartsEmptyPersistsHashesAndExposesCorruptFiles() throws {
+    func testSaidPathIsPassedToBrainAndCorruptionIsExposed() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let previousDirectory = ProcessInfo.processInfo.environment["LIFENARRATOR_DATA_DIR"]
         setenv("LIFENARRATOR_DATA_DIR", root.path, 1)
@@ -148,17 +149,12 @@ final class AppSettingsTests: XCTestCase {
         }
         defer { try! FileManager.default.removeItem(at: root) }
         let store = try AppStore()
-        let now = Date()
-        XCTAssertTrue(store.said.recent(8).isEmpty)
         XCTAssertEqual(store.directory.said.lastPathComponent, "said.json")
-        try store.recordSaid("private screen remark", now: now)
-        XCTAssertEqual(store.said.recent(8), ["private screen remark"])
-        let restored = try AppStore()
-        XCTAssertTrue(restored.said.isRepeat("private screen remark", now: now))
-        XCTAssertTrue(restored.said.recent(8).isEmpty)
-        XCTAssertFalse(try String(contentsOf: store.directory.said, encoding: .utf8).contains("private"))
+        let engine = try NarratorEngine(store: store)
+        let brain = try XCTUnwrap(Mirror(reflecting: engine).descendant("brain") as? SpriteBrain)
+        XCTAssertEqual(Mirror(reflecting: brain).descendant("saidURL") as? URL, store.directory.said)
         try Data("invalid JSON".utf8).write(to: store.directory.said)
-        XCTAssertThrowsError(try AppStore())
+        XCTAssertThrowsError(try NarratorEngine(store: store))
     }
 
     func testSameAppWindowSwitchHasItsOwnReason() {

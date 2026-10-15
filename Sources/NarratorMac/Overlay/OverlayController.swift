@@ -1,3 +1,4 @@
+import NarratorBrain
 import AppKit
 import ApplicationServices
 import NarratorCore

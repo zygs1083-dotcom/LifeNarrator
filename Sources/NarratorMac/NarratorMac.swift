@@ -1,3 +1,4 @@
+@_exported import NarratorBrain
 import NarratorCore
 
 public enum NarratorMac {
