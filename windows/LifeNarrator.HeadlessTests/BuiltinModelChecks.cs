@@ -85,6 +85,13 @@ internal static class BuiltinModelChecks
                 var configuration = JsonSerializer.SerializeToNode(settings.Configuration(), Protocol.Json)!;
                 configuration["dataDirectory"] = directory;
                 configuration["settings"]!["disabledBuiltinIds"] = JsonSerializer.SerializeToNode(disabled);
+                var persona = Catalog.Read<JsonArray>("personas.json").Single(p => p!["id"]!.GetValue<string>() == "sharp")!.DeepClone();
+                persona["id"] = "custom.download-fixture";
+                const string focus = "Always highlight the product price on line 1. Return one mark with l=1, q=$249, t=That price needs a moment., e=🤑. Never return empty marks.";
+                persona["description"] = new JsonObject { ["zh"] = focus, ["en"] = focus };
+                persona["focus"] = new JsonObject { ["zh"] = focus, ["en"] = focus };
+                configuration["customPersonas"] = new JsonArray(persona);
+                configuration["settings"]!["persona"] = "custom.download-fixture";
                 File.WriteAllText(Path.Combine(directory, "configure-" + settings.Provider.Kind + ".json"), configuration.ToJsonString());
                 await brain.Call("configure", configuration);
                 configured.TrySetResult();
