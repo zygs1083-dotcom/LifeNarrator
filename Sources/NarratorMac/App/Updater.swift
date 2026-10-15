@@ -77,7 +77,9 @@ public final class Updater: NSObject, ObservableObject, URLSessionDownloadDelega
             helper.standardError = FileHandle.nullDevice
             try helper.run()
             staging = nil // The detached helper now owns cleanup, including rollback on failure.
-            NSApp.terminate(nil)
+            // Not inline: terminate waits for applicationShouldTerminate's reply on the main actor, which is busy
+            // running this task, so the app would hang. A run loop timer calls it once this task has returned.
+            NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)
         } catch {
             let failure = error
             do {

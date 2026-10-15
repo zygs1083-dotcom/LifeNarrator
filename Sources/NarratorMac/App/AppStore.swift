@@ -177,7 +177,9 @@ public final class AppStore: ObservableObject {
                 let configuration = NSWorkspace.OpenConfiguration()
                 configuration.createsNewApplicationInstance = true
                 _ = try await NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: configuration)
-                NSApp.terminate(nil)
+                // Not inline: terminate waits for applicationShouldTerminate's reply on the main actor, which is busy
+                // running this task, so the app would hang. A run loop timer calls it once this task has returned.
+                NSApp.perform(#selector(NSApplication.terminate(_:)), with: nil, afterDelay: 0)
             } catch { self.error = String(describing: error) }
         }
     }
