@@ -54,6 +54,19 @@ final class BubbleSnapshotTests: XCTestCase {
         }
     }
 
+    func testStarAndStarryOnLightAndDarkBackgrounds() throws {
+        for shape in [BubbleShape.star, .rounded] {
+            for theme in [ColorTheme.clear, .starry] {
+                let a = appearance(shape: shape, theme: theme, size: .medium, text: "一起看星星", language: "zh")
+                for dark in [false, true] {
+                    let view = BubbleBodyView(appearance: a).frame(width: 420, height: 320)
+                        .background(Color(PaletteColor(hex: dark ? 0x1C171B : 0xFFF9F6)))
+                    try render(view).write(to: directory.appendingPathComponent("unlock-\(shape.rawValue)-\(theme.rawValue)-\(dark ? "dark" : "light").png"))
+                }
+            }
+        }
+    }
+
     func testSpriteColorsOnLightAndDarkBackgrounds() throws {
         XCTAssertEqual(BubbleStyle().theme, .clear)
         let canvas = CGRect(x: 0, y: 0, width: 520, height: 220)

@@ -189,10 +189,8 @@ final class UISnapshotTests: XCTestCase {
                     let memory = AppSettingsView(store: store, tab: .memory)
                     try render(memory, dark: dark)
                         .write(to: directory.appendingPathComponent("ui-memory-\(state)-\(lang)-\(mode).png"))
-                    if filled {
-                        try render(memory, dark: dark, scrollToBottom: true)
-                            .write(to: directory.appendingPathComponent("ui-memory-filled-scrolled-\(lang)-\(mode).png"))
-                    }
+                    try render(memory, dark: dark, scrollToBottom: true)
+                        .write(to: directory.appendingPathComponent("ui-memory-\(state)-scrolled-\(lang)-\(mode).png"))
                     let card = GrowthCard(store: store).padding(20)
                         .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
                         .groupBoxStyle(.card).frame(width: 740, height: 340).background(AppTheme.windowBackground)

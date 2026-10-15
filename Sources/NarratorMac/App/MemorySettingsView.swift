@@ -5,7 +5,7 @@ struct MemorySettingsView: View {
     @ObservedObject var store: AppStore
     let showRules: () -> Void
     @State private var selected: Memory?
-    @State private var showEditor = false
+    @State private var adding = false
     @State private var confirmClear = false
     private let hue = AppTheme.hue(175)
     static let kinds: [Memory.Kind] = [.nickname, .fact, .preference, .episode]
@@ -19,7 +19,7 @@ struct MemorySettingsView: View {
                     Toggle(store.text("memory.enabled"), isOn: $store.settings.memoryEnabled).labelsHidden()
                 }.frame(minHeight: 28)
                 HStack {
-                    Button(store.text("memory.add")) { selected = nil; showEditor = true }
+                    Button(store.text("memory.add")) { adding = true }
                         .buttonStyle(AppTheme.CapsuleButton(hue: hue))
                         .disabled(!store.settings.memoryEnabled)
                     Spacer()
@@ -32,7 +32,8 @@ struct MemorySettingsView: View {
                 category(kind)
             }
         }
-        .sheet(isPresented: $showEditor) { MemoryEditor(store: store, memory: selected) }
+        .sheet(isPresented: $adding) { MemoryEditor(store: store, memory: nil) }
+        .sheet(item: $selected) { MemoryEditor(store: store, memory: $0) }
         .confirmationDialog(store.text("memory.clear.confirm"), isPresented: $confirmClear, titleVisibility: .visible) {
             Button(store.text("memory.clear"), role: .destructive) { store.perform { try store.clearMemories() } }
             Button(store.text("cancel"), role: .cancel) {}
@@ -55,7 +56,7 @@ struct MemorySettingsView: View {
                     }
                     .help(store.text(entry.pinned ? "memory.unpin" : "memory.pin"))
                     .accessibilityLabel(store.text(entry.pinned ? "memory.unpin" : "memory.pin"))
-                    Button { selected = entry; showEditor = true } label: { Image(systemName: "pencil") }
+                    Button { selected = entry } label: { Image(systemName: "pencil") }
                         .help(store.text("memory.edit")).accessibilityLabel(store.text("memory.edit"))
                     Button { store.perform { try store.deleteMemory(id: entry.id) } } label: { Image(systemName: "trash") }
                         .help(store.text("delete")).accessibilityLabel(store.text("delete"))
