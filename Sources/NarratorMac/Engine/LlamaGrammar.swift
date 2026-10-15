@@ -1,3 +1,4 @@
+import Foundation
 import NarratorCore
 
 /// Hand-written GBNF for the schemas `TextGenerator.generateJSON` receives.
@@ -8,7 +9,10 @@ public enum LlamaGrammar {
         switch schema {
         case GenerationPrompts.compiledRuleSchema: return compiledRule
         case GenerationPrompts.quipsSchema: return quips
+        case GenerationPrompts.quipsLongSchema: return quipsLong
+        case PersonaGenerator.schema: return persona
         case GenerationPrompts.spriteMarksSchema: return spriteMarks
+        case GenerationPrompts.spriteMarksLongSchema: return spriteMarksLong
         default: throw Failure.unsupportedSchema
         }
     }
@@ -36,6 +40,25 @@ public enum LlamaGrammar {
     text ::= "\"" (zh | en) "\""
     zh ::= [一-鿿，。！？、：；～—…《》“”「」%.A-Za-z0-9 ]{1,20}
     en ::= [A-Za-z0-9 ,.!?'’:;…()%-]{1,56}
+    emoji ::= "\"" ebase [️]? ([‍] ebase [️]?){0,3} "\""
+    ebase ::= [\U0001f300-\U0001faff☀-➿] [\U0001f3fb-\U0001f3ff]?
+    ws ::= [ \t\n\r]{0,4}
+    """#
+
+    public static let spriteMarksLong = spriteMarks
+        .replacingOccurrences(of: "{1,20}", with: "{1,28}")
+        .replacingOccurrences(of: "{1,56}", with: "{1,80}")
+
+    public static let quipsLong = quips
+        .replacingOccurrences(of: "{1,14}", with: "{1,22}")
+        .replacingOccurrences(of: "{1,40}", with: "{1,60}")
+
+    public static let persona = #"""
+    root ::= "{" ws "\"name\"" ws ":" ws label ws "," ws "\"emoji\"" ws ":" ws emoji ws "," ws "\"description\"" ws ":" ws label (ws "," ws "\"focus\"" ws ":" ws label)? ws "," ws "\"pack\"" ws ":" ws pack ws "}" ws
+    label ::= "{" ws "\"zh\"" ws ":" ws string ws "," ws "\"en\"" ws ":" ws string ws "}"
+    pack ::= "\"sharp\"" | "\"gentle\"" | "\"chuuni\""
+    string ::= "\"" char{1,500} "\""
+    char ::= [^"\\\x7f\x00-\x1f] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
     emoji ::= "\"" ebase [️]? ([‍] ebase [️]?){0,3} "\""
     ebase ::= [\U0001f300-\U0001faff☀-➿] [\U0001f3fb-\U0001f3ff]?
     ws ::= [ \t\n\r]{0,4}

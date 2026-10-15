@@ -37,17 +37,19 @@ public struct QuipPicker: Sendable {
 
     public mutating func pick<R: RandomNumberGenerator>(for rule: Rule, lang: Lang, persona: Persona,
         pack: QuipPack, disabledBuiltinIds: Set<String> = [], now: Date, calendar: Calendar = .current,
-        using random: inout R) -> Quip? {
+        using random: inout R, catalog: PersonaCatalog = .builtin) -> Quip? {
         let key = Key(ruleID: rule.id, lang: lang, persona: persona)
         let current = When.current(at: now, calendar: calendar)
-        let own = rule.quips.filter { $0.lang == lang && $0.persona == persona }
+        let packPersona = catalog[persona].pack
+        let ownPersona = rule.source == .builtin ? packPersona : persona
+        let own = rule.quips.filter { $0.lang == lang && $0.persona == ownPersona }
         let timedRule = pack.rules.first { $0.id == "builtin.time.\(current.rawValue)" && $0.enabled && !disabledBuiltinIds.contains($0.id) }
         let timed = current == .any ? [] : own.filter { $0.when == current }
-            + (timedRule?.quips.filter { $0.lang == lang && $0.persona == persona && $0.when == current } ?? [])
+            + (timedRule?.quips.filter { $0.lang == lang && $0.persona == packPersona && $0.when == current } ?? [])
         let preferTimed = !timed.isEmpty && Double.random(in: 0..<1, using: &random) < 0.7
         let pool = preferTimed ? timed : own.filter { $0.when == .any }
         if let quip = take(pool, key: key, selection: preferTimed ? .timed(current) : .normal, rule: rule, now: now, using: &random) { return quip }
-        let generic = (pack.generic[rule.sentiment.rawValue] ?? []).filter { $0.lang == lang && $0.persona == persona }
+        let generic = (pack.generic[rule.sentiment.rawValue] ?? []).filter { $0.lang == lang && $0.persona == packPersona }
         return take(generic, key: key, selection: .generic, rule: rule, now: now, using: &random)
     }
 
@@ -66,6 +68,7 @@ public struct QuipPicker: Sendable {
         var quip = queue.remove(at: index)
         queues[queueKey] = queue
         used[key, default: [:]][quip.text] = now
+        quip.persona = key.persona
         quip.text = Self.render(quip.text, rule: rule, lang: key.lang)!
         return quip
     }

@@ -24,9 +24,7 @@ public enum EmojiDensity: String, CaseIterable, Sendable {
     case none, moderate, many
 }
 
-public enum Persona: String, CaseIterable, Sendable {
-    case sharp, gentle, chuuni
-}
+public typealias Persona = NarratorCore.Persona
 
 /// The seven system fonts of visual-spec §5. PostScript names are the spec's; confirm on a Mac with
 /// `NSFontManager.shared.availableMembers(ofFontFamily:)`.

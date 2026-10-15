@@ -117,6 +117,7 @@ final class ScreenOverlay {
 
 @MainActor
 public final class OverlayController: NSObject {
+    public var personas: PersonaCatalog = .builtin
     public var style: BubbleStyle
     public var liveliness: Liveliness = .lively
 
@@ -483,7 +484,7 @@ public final class OverlayController: NSObject {
         }
         var appearance = BubbleAppearance.make(
             shape: style.shape, size: size, theme: style.theme, group: group, effects: style.textEffects,
-            font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: size.fontSize),
+            font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: size.fontSize, catalog: personas),
             text: n.text, emoji: emoji, quipID: n.quipID)
 
         if model.bubbles.count >= style.maxOnScreen {
@@ -503,7 +504,7 @@ public final class OverlayController: NSObject {
             let obstacles = n.obstacles.map(overlay.local)
             let narrow = BubbleAppearance.make(
                 shape: style.shape, size: .small, theme: style.theme, group: group, effects: style.textEffects,
-                font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: BubbleSize.small.fontSize),
+                font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: BubbleSize.small.fontSize, catalog: personas),
                 text: n.text, emoji: emoji, quipID: n.quipID, maxWidth: 160)
             guard let placement = BubblePlacement.anchoredSprite(size: appearance.outerSize, frame: box,
                 line: line, window: window, visibleFrame: overlay.visibleFrame, occupied: occupied,

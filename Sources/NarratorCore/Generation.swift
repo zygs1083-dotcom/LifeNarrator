@@ -26,7 +26,8 @@ public enum QuipValidator {
             || (scalars.contains { $0.value == 0x20E3 } && scalars.contains { (0x30...0x39).contains($0.value) || $0.value == 0x23 || $0.value == 0x2A })
     }
 
-    public static func validate(_ generated: [GeneratedQuip], rule: Rule, lang: Lang, persona: Persona) -> [Quip] {
+    public static func validate(_ generated: [GeneratedQuip], rule: Rule, lang: Lang, persona: Persona, catalog: PersonaCatalog = .builtin) -> [Quip] {
+        let limit = catalog[persona].limit
         var seen = Set(rule.quips.filter { $0.lang == lang && $0.persona == persona }.map { normalized($0.text) })
         var valid: [Quip] = []
         let placeholders = try! NSRegularExpression(pattern: "\\{([^{}]*)\\}")
@@ -34,7 +35,7 @@ public enum QuipValidator {
             var text = item.text.trimmingCharacters(in: .whitespacesAndNewlines)
             // A dangling comma reads like a cut-off sentence.
             while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
-            guard !text.isEmpty, text.count <= (lang == .zh ? 14 : 40), !text.contains(where: isEmoji),
+            guard !text.isEmpty, text.count <= (lang == .zh ? limit.zh : limit.en * 5), !text.contains(where: isEmoji),
                   (1...3).contains(item.emoji.count), item.emoji.allSatisfy({ $0.count == 1 && isEmoji($0.first!) }) else { continue }
             let matches = placeholders.matches(in: text, range: NSRange(text.startIndex..., in: text))
             guard matches.allSatisfy({ rule.variables?[String(text[Range($0.range(at: 1), in: text)!])] != nil }) else { continue }
@@ -76,12 +77,13 @@ public enum RuleCompiler {
     }
 
     public static func generateQuips(for rule: Rule, lang: Lang, persona: Persona,
-                                     generator: any TextGenerator, n: Int = 12, mood: String? = nil) async throws -> [Quip] {
+                                     generator: any TextGenerator, n: Int = 12, mood: String? = nil, catalog: PersonaCatalog = .builtin) async throws -> [Quip] {
         struct Batch: Decodable { var quips: [GeneratedQuip] }
         let json = try await generator.generateJSON(system: nil,
-            prompt: GenerationPrompts.quips(rule: rule, persona: persona, lang: lang, n: n, mood: mood), schema: GenerationPrompts.quipsSchema)
+            prompt: GenerationPrompts.quips(rule: rule, persona: persona, lang: lang, n: n, mood: mood, catalog: catalog),
+            schema: catalog[persona].limit.en > 8 ? GenerationPrompts.quipsLongSchema : GenerationPrompts.quipsSchema)
         let batch = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
-        return QuipValidator.validate(batch.quips, rule: rule, lang: lang, persona: persona)
+        return QuipValidator.validate(batch.quips, rule: rule, lang: lang, persona: persona, catalog: catalog)
     }
 
     public static func compileWithoutModel(input: String, pack: QuipPack, now: Date) throws -> Rule {
@@ -149,12 +151,14 @@ public struct SpriteMark: Sendable {
 
 public enum SpriteGenerator {
     public static let maxTokens = 900
-    /// The grammar allows a little more (20 / 56) so the model finishes its sentence; longer lines are dropped, never cut.
-    public static let spriteLimit = (zh: 18, en: 48)
+    public static func spriteLimit(persona: Persona, catalog: PersonaCatalog = .builtin) -> (zh: Int, en: Int) {
+        let limit = catalog[persona].limit
+        return (limit.zh + 4, limit.en * 6)
+    }
 
     public static func generate(screen: SpriteScreen, snapshot: ContextSnapshot, app: String, title: String,
                                 exclude: [String], persona: Persona, lang: Lang, k: Int,
-                                generator: any TextGenerator,
+                                generator: any TextGenerator, catalog: PersonaCatalog = .builtin,
                                 onMark: @escaping @Sendable (SpriteMark) -> Void) async throws -> [SpriteMark] {
         final class State: @unchecked Sendable {
             let lock = NSLock()
@@ -163,9 +167,10 @@ public enum SpriteGenerator {
             var error: (any Error)?
         }
         let state = State()
+        let limit = spriteLimit(persona: persona, catalog: catalog)
         let lines = screen.lines.map { snapshot.textLines[$0.lineIndex] }
         let prompt = GenerationPrompts.spriteMarks(app: app, title: title, screen: screen, exclude: exclude,
-                                                   persona: persona, lang: lang, k: k)
+                                                   persona: persona, lang: lang, k: k, catalog: catalog)
         let receive: @Sendable (String) -> Bool = { partial in
             let accepted = state.lock.withLock { () -> [SpriteMark] in
                 do {
@@ -174,7 +179,7 @@ public enum SpriteGenerator {
                         guard screen.lines.indices.contains(raw.l), (2...32).contains(raw.q.count) else { continue }
                         var text = raw.t.trimmingCharacters(in: .whitespacesAndNewlines)
                         while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
-                        guard !text.isEmpty, text.count <= (lang == .zh ? spriteLimit.zh : spriteLimit.en),
+                        guard !text.isEmpty, text.count <= (lang == .zh ? limit.zh : limit.en),
                               !text.contains(where: QuipValidator.isEmoji), raw.e.count == 1,
                               QuipValidator.isEmoji(raw.e.first!),
                               text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil,
@@ -205,7 +210,7 @@ public enum SpriteGenerator {
         let json: String
         do {
             json = try await generator.generateJSON(system: prompt.system, prompt: prompt.user,
-                schema: GenerationPrompts.spriteMarksSchema, maxTokens: maxTokens, partial: receive)
+                schema: catalog[persona].limit.en > 8 ? GenerationPrompts.spriteMarksLongSchema : GenerationPrompts.spriteMarksSchema, maxTokens: maxTokens, partial: receive)
         } catch {
             if let decodingError = state.lock.withLock({ state.error }) { throw decodingError }
             throw error

@@ -12,7 +12,7 @@ public enum GenerationPrompts {
         "properties": {
           "l": { "type": "integer", "minimum": 0, "maximum": 99 },
           "q": { "type": "string", "minLength": 2, "maxLength": 32 },
-          "t": { "type": "string", "maxLength": 40 },
+          "t": { "type": "string", "maxLength": 56 },
           "e": { "type": "string" }
         }
       }
@@ -21,14 +21,17 @@ public enum GenerationPrompts {
 }
 """#
 
+    public static let spriteMarksLongSchema = spriteMarksSchema.replacingOccurrences(of: "\"maxLength\": 56", with: "\"maxLength\": 80")
+    public static let quipsLongSchema = quipsSchema.replacingOccurrences(of: "\"maxLength\": 40", with: "\"maxLength\": 60")
+
     public static let spriteMarksZH = #"""
-你是 LifeNarrator，一只住在用户电脑里的吵闹小精灵。用户刚切到一个窗口，你会看到这个窗口里现在显示的文字（一行一个元素，前面是行号）。先把它们读懂，再挑最多 {{k}} 处值得说一句的地方，用细框圈住那几个字，在旁边写一句小旁白。
+你是 LifeNarrator，一只住在用户电脑里的吵闹小精灵。用户刚切到一个窗口，你会看到这个窗口里现在显示的文字（一行一个元素，前面是行号）。先把它们读懂，再挑几处值得说一句的地方，用细框圈住那几个字，在旁边写一句小旁白。
 
 人设：{{persona_desc}}
 
 怎么挑：
 - 挑的几处要分散在屏幕不同的位置和不同的话题上，不要都挑同一段、同一类数字。
-- 先弄清这一屏在干什么：技术说明、商品页、聊天、新闻、设置页，还是别的。旁白要配得上这个场景。
+{{focus}}- 先弄清这一屏在干什么：技术说明、商品页、聊天、新闻、设置页，还是别的。旁白要配得上这个场景。
 - 值得说的是具体的事：一个夸张的数字、两处自相矛盾、一句信誓旦旦的承诺、一个让人心疼的价格、聊天里藏着的情绪、作者偷偷给自己留的后路。
 - 技术说明里的“错误”“超时”“警告”“失败”是在描述机制，不是出了事，别当成报错大惊小怪。
 - 菜单、按钮名、导航、时间戳、文件名通常没话可说。
@@ -36,7 +39,7 @@ public enum GenerationPrompts {
 
 怎么写：
 - q：要圈的文字。逐字复制屏幕上某一行里连续的一段，2 到 12 个字最好，最多 32 个字；不改标点，不跨行，不要整行。l 是它所在的行号。
-- t：旁白，不超过 14 个汉字（标点算字，不含表情）。只说这一处的具体点，让人一眼知道你在说哪句、为什么有意思。不复述 q，不泛泛感叹（“真厉害”“数字真多”这类不算数）。
+- t：旁白，不超过 {{limit}} 个汉字（标点算字，不含表情）。只说这一处的具体点，让人一眼知道你在说哪句、为什么有意思。不复述 q，不泛泛感叹（“真厉害”“数字真多”这类不算数）。
 - 像朋友凑过来瞄一眼随口一句：可爱、好笑、有点意味深长；不是口号，不说教。
 - 不恶毒：不攻击外貌、智商、家庭、身份；不脏话；不涉及政治、宗教、色情、暴力；不编造屏幕上没有的事。
 - e：一个表情。
@@ -47,13 +50,13 @@ public enum GenerationPrompts {
 """#
 
     public static let spriteMarksEN = #"""
-You are LifeNarrator, a noisy little sprite living in the user's computer. The user just switched to a window, and below is the text currently visible in it (one element per line, with a line number in front). Read it properly first, then pick at most {{k}} spots worth a remark, draw a thin box around those few words and whisper one line next to each.
+You are LifeNarrator, a noisy little sprite living in the user's computer. The user just switched to a window, and below is the text currently visible in it (one element per line, with a line number in front). Read it properly first, then pick a few spots worth a remark, draw a thin box around those few words and whisper one line next to each.
 
 Persona: {{persona_desc}}
 
 How to pick:
 - Spread your picks across different parts of the screen and different topics; do not pick several spots from the same paragraph or the same kind of number.
-- Work out what this screen is: a technical note, a product page, a chat, news, a settings page, or something else. The remark has to fit the scene.
+{{focus}}- Work out what this screen is: a technical note, a product page, a chat, news, a settings page, or something else. The remark has to fit the scene.
 - Worth remarking on: a wild number, two lines that contradict each other, a bold promise, a price that hurts, the mood hiding in a chat, an escape hatch the author left for themselves.
 - In technical writing, "error", "timeout", "warning" and "failed" describe how something works; nothing has gone wrong, so do not react as if it has.
 - Menus, button labels, navigation, timestamps and file names rarely deserve a word.
@@ -61,7 +64,7 @@ How to pick:
 
 How to write:
 - q: the text to box. Copy it verbatim from one line on screen, a contiguous span, ideally 2 to 12 characters and at most 32; keep the punctuation, never cross a line, never the whole line. l is that line's number.
-- t: the remark, under 8 words, no emoji. Make one specific point about that spot so the reader instantly sees which line you mean and why it is interesting. Do not repeat q, do not gush ("impressive", "lots of numbers" do not count).
+- t: the remark, under {{limit}} words, no emoji. Make one specific point about that spot so the reader instantly sees which line you mean and why it is interesting. Do not repeat q, do not gush ("impressive", "lots of numbers" do not count).
 - Like a friend peeking over your shoulder: cute, funny, a little knowing. Not a slogan, never preachy.
 - Never mean: nothing about looks, intelligence, family or identity; no profanity; no politics, religion, sex or violence; do not invent facts that are not on screen.
 - e: exactly one emoji.
@@ -72,6 +75,7 @@ Examples:
 """#
 
     public static let spriteMarksUserZH = #"""
+最多 {{k}} 处。
 应用：{{app}}
 窗口：{{title}}
 屏幕：
@@ -79,6 +83,7 @@ Examples:
 """#
 
     public static let spriteMarksUserEN = #"""
+At most {{k}} spots.
 App: {{app}}
 Window: {{title}}
 Screen:
@@ -144,9 +149,11 @@ Output:
 """#
 
     public static func spriteMarks(app: String, title: String, screen: SpriteScreen, exclude: [String],
-                                   persona: Persona, lang: Lang, k: Int) -> (system: String, user: String) {
+                                   persona: Persona, lang: Lang, k: Int, catalog: PersonaCatalog = .builtin) -> (system: String, user: String) {
+        let profile = catalog[persona]
         let values = ["app": app, "title": title.isEmpty ? "-" : title, "screen": screen.text,
-                      "persona_desc": personaDescription(persona, lang: lang), "k": String(k),
+                      "persona_desc": profile.description[lang], "k": String(k),
+                      "limit": String(profile.limit[lang]), "focus": profile.focus.map { "- " + $0[lang] + "\n" } ?? "",
                       "examples": lang == .zh ? spriteExamplesZH : spriteExamplesEN]
         func fill(_ template: String) -> String {
             let placeholders = try! NSRegularExpression(pattern: "\\{\\{(\\w+)\\}\\}")
@@ -255,18 +262,12 @@ User's sentence: {{input}}
         String((lang == .zh ? compileZH : compileEN).dropLast("{{input}}".count)) + input
     }
 
-    public static func personaDescription(_ persona: Persona, lang: Lang) -> String {
-        switch (persona, lang) {
-        case (.sharp, .zh): return "毒舌：嘴碎、爱吐槽、一针见血，但本质是损友，损完还会留一分可爱。不骂人，不攻击外貌、智商、家庭。"
-        case (.gentle, .zh): return "温柔：软软的、会安慰人、会给小鼓励，像一只贴心的小动物。可以撒娇，不说教。"
-        case (.chuuni, .zh): return "中二：把日常说成史诗，爱用\"封印\"\"结界\"\"宿命\"\"吾\"\"汝\"，自我感觉良好，气势十足但人畜无害。"
-        case (.sharp, .en): return "Sharp-tongued: dry, teasing, quick to roast, but a lovable frenemy at heart. Never cruel, never about looks, intelligence or family."
-        case (.gentle, .en): return "Gentle: soft, comforting, quietly encouraging, like a kind little creature. Can be a bit clingy, never preachy."
-        case (.chuuni, .en): return "Chuunibyou: turns daily life into an epic. Loves \"seal\", \"barrier\", \"destiny\", \"thou\", dramatic and self-important, completely harmless."
-        }
+    public static func personaDescription(_ persona: Persona, lang: Lang, catalog: PersonaCatalog = .builtin) -> String {
+        catalog[persona].description[lang]
     }
 
-    public static func quips(rule: Rule, persona: Persona, lang: Lang, n: Int = 12, mood: String? = nil) -> String {
+    public static func quips(rule: Rule, persona: Persona, lang: Lang, n: Int = 12, mood: String? = nil, catalog: PersonaCatalog = .builtin) -> String {
+        let profile = catalog[persona]
         let variables = rule.variables ?? [:]
         let placeholders = variables.keys.sorted().map { "{\($0)}" }.joined(separator: ", ")
         if lang == .zh {
@@ -280,10 +281,10 @@ User's sentence: {{input}}
             if !variables.isEmpty { prompt += "\n可用占位符：\(placeholders)（例如 {name}、{nick}），渲染时会替换成真实值；最多一半的台词使用占位符。" }
             if let mood { prompt += "\n这次的语气：\(mood)（tease=调侃，cheer=打气，comfort=安慰，hype=燃）" }
             return prompt + "\n\n" + """
-            人设：\(personaDescription(persona, lang: lang))
+            人设：\(personaDescription(persona, lang: lang, catalog: catalog))
 
             要求：
-            - 每条不超过 14 个汉字（标点算字，不写表情）。
+            - 每条不超过 \(profile.limit.zh) 个汉字（标点算字，不写表情）。
             - 可爱、好笑、像朋友随口一句，不是口号。
             - 不恶毒：不攻击外貌、智商、家庭、身份；不脏话；不涉及政治、宗教、色情、暴力。
             - 每条配 1 到 3 个表情，放在 emoji 数组里，文字里不要出现表情。
@@ -301,10 +302,10 @@ User's sentence: {{input}}
         if !variables.isEmpty { prompt += "\nAvailable placeholders: \(placeholders) (e.g. {name}, {nick}); they are replaced with real values at render time. Use placeholders in at most half of the lines." }
         if let mood { prompt += "\nTone for this batch: \(mood) (tease = poke fun, cheer = encourage, comfort = sympathize, hype = dramatic excitement)" }
         return prompt + "\n\n" + """
-        Persona: \(personaDescription(persona, lang: lang))
+        Persona: \(personaDescription(persona, lang: lang, catalog: catalog))
 
         Requirements:
-        - At most 40 characters per line, punctuation included, no emoji in the text.
+        - Under \(profile.limit.en) words per line, punctuation included, no emoji in the text.
         - Cute and funny, like something a friend would blurt out, not a slogan.
         - Never mean: nothing about looks, intelligence, family or identity; no profanity; no politics, religion, sex or violence.
         - Give each line 1 to 3 emoji in the emoji array, none inside the text.

@@ -151,3 +151,15 @@
 "screenRecording.body" = "Chat apps and terminals don't report where their text is. With Screen Recording on, the sprite takes a quick look at the window to find it (processed on your Mac, never saved).";
 "screenRecording.open" = "Open Settings";
 "screenRecording.relaunch" = "Relaunch";
+
+"persona.custom.add" = "+ Custom";
+"persona.custom.hint" = "Create a persona from one sentence";
+"persona.custom.placeholder" = "For example: a programmer who talks like a big brother";
+"persona.custom.description" = "Describe your persona";
+"persona.custom.generate" = "Create persona";
+"persona.custom.generating" = "Creating persona…";
+"persona.custom.cancel" = "Cancel";
+"persona.custom.delete" = "Delete persona";
+"persona.custom.noModel" = "Choose a model in Models first.";
+"persona.custom.downloadModel" = "Download the built-in model or configure an API model first.";
+"persona.custom.configureModel" = "Enter a valid API URL and model name in Models first.";

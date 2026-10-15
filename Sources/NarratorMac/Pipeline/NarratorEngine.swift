@@ -114,7 +114,8 @@ public final class NarratorEngine {
         let windowID: CGWindowID
         let generation: Int
         let lang: Lang
-        let persona: String
+        let persona: Persona
+        let catalog: PersonaCatalog
         let level: Liveliness
         let exclude: [String]
         let generator: any TextGenerator
@@ -143,6 +144,7 @@ public final class NarratorEngine {
         let settings = store.settings
         let levelChanged = overlay.liveliness != settings.liveliness
         matcher = makeMatcher()
+        overlay.personas = store.personas
         overlay.style = settings.bubbleStyle
         overlay.liveliness = settings.liveliness
         scheduler.settings = .init(level: settings.liveliness)
@@ -347,7 +349,7 @@ public final class NarratorEngine {
             log(snapshot, kind, source: "model", shown: false, reason: "waiting-model")
             enqueueModel(ModelRequest(snapshot: snapshot, screen: screen, key: screenKey, windowID: windowID!,
                 generation: generation, lang: store.settings.language.lang,
-                persona: store.settings.persona.rawValue, level: level,
+                persona: store.settings.persona, catalog: store.personas, level: level,
                 exclude: memory.shownQuotes(bundleId: snapshot.bundleId, now: now), generator: generator))
         } else {
             let local = attempts.filter { $0.target != nil && $0.target?.category != .rule }
@@ -397,9 +399,9 @@ public final class NarratorEngine {
         let rule = target.candidate?.rule ?? quips.rule(for: target.category.rawValue, text: target.text,
             app: snapshot.appName, title: snapshot.windowTitle ?? "", lang: lang)
         var nextPicker = picker
-        let chosen = nextPicker.pick(for: rule, lang: lang, persona: .init(rawValue: store.settings.persona.rawValue)!,
+        let chosen = nextPicker.pick(for: rule, lang: lang, persona: store.settings.persona,
             pack: target.category == .rule ? store.builtin : .init(version: 1, rules: [], generic: [:]),
-            disabledBuiltinIds: store.settings.disabledBuiltinIds, now: Date(), using: &random)
+            disabledBuiltinIds: store.settings.disabledBuiltinIds, now: Date(), using: &random, catalog: store.personas)
         guard let chosen else { return false }
         let source = target.category == .rule ? "rule" : target.category == .revisit ? "revisit" : "local"
         let shown = try await display(quote: target.text, lineIndex: target.lineIndex, range: target.range,
@@ -489,7 +491,7 @@ public final class NarratorEngine {
         let narrationID = UUID().uuidString
         let shown = overlay.show(Narration(id: narrationID, quipID: quip.text, ruleID: ruleID,
             sequence: screenCount, text: quip.text, emoji: quip.emoji, language: quip.lang.rawValue,
-            persona: .init(rawValue: quip.persona.rawValue)!, anchor: anchor, windowID: windowID,
+            persona: quip.persona, anchor: anchor, windowID: windowID,
             window: WindowGeometry(frame: snapshot.windowFrame, chromeHeight: chromeHeight),
             framed: rect != nil, line: line, obstacles: obstacles), track: track)
         if shown {
@@ -617,14 +619,14 @@ public final class NarratorEngine {
         do {
             _ = try await SpriteGenerator.generate(screen: request.screen, snapshot: request.snapshot,
                 app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "", exclude: request.exclude,
-                persona: .init(rawValue: request.persona)!, lang: request.lang, k: k,
+                persona: request.persona, lang: request.lang, k: k,
                 generator: SpriteRequestGenerator(base: request.generator, progress: progress,
                     lines: request.screen.lines.map { request.snapshot.textLines[$0.lineIndex] },
                     lineIndices: request.screen.lines.map(\.lineIndex), onMissing: { index in
                         Task { @MainActor in
                             self.log(request.snapshot, .mark, pick: index, source: "model", shown: false, reason: "quote-missing")
                         }
-                    })) { mark in
+                    }), catalog: request.catalog) { mark in
                     progress.accepted()
                     continuation.yield(mark)
                 }

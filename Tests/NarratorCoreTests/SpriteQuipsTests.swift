@@ -8,7 +8,7 @@ import Testing
     #expect(Set(pack.categories.keys) == ["money", "deadline", "name", "action", "revisit"])
     for (_, quips) in pack.categories {
         for lang in Lang.allCases {
-            for persona in Persona.allCases {
+            for persona in Set(PersonaCatalog.builtin.profiles.map(\.pack)) {
                 let pool = quips.filter { $0.lang == lang && $0.persona == persona }
                 #expect(pool.count >= 2)
                 #expect(pool.filter { $0.text.contains("{text}") }.count * 3 <= pool.count)

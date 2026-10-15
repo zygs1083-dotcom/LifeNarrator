@@ -23,6 +23,7 @@ public final class AppStore: ObservableObject {
             engine?.configure()
         }
     }
+    @Published public private(set) var personas: PersonaCatalog
     @Published public private(set) var rules: [Rule]
     @Published public var error: String?
     @Published public private(set) var screenRecordingGranted = ContextPermissions.isGranted(.screenCapture)
@@ -41,6 +42,7 @@ public final class AppStore: ObservableObject {
     public init() throws {
         directory = try AppDataDirectory()
         settings = try directory.loadSettings()
+        personas = try PersonaCatalog.load(from: directory.personas)
         builtin = try RuleLoader.loadBuiltin()
         if FileManager.default.fileExists(atPath: directory.rules.path) {
             rules = try RuleLoader.load(from: directory.rules)
@@ -50,6 +52,7 @@ public final class AppStore: ObservableObject {
         }
         downloader = ModelDownloader(directory: directory)
         downloadSubscription = downloader.$state.dropFirst().sink { [unowned self] state in
+            self.objectWillChange.send()
             if case .ready = state { self.pregenerator.schedule() }
         }
     }
@@ -191,6 +194,40 @@ public final class AppStore: ObservableObject {
         }
     }
 
+    public var personaModelUnavailableReason: String? {
+        switch settings.provider {
+        case .none: return text("persona.custom.noModel")
+        case .builtin:
+            if case .ready = downloader.state { return nil }
+            return text("persona.custom.downloadModel")
+        case .openAICompatible:
+            do {
+                _ = try settings.generationAPI.validatedURL()
+                guard !settings.generationAPI.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    return text("persona.custom.configureModel")
+                }
+                return nil
+            } catch { return text("persona.custom.configureModel") }
+        }
+    }
+
+    public func createPersona(_ input: String) async throws {
+        guard let generator = try textGenerator() else { throw AppInputError.missingModel }
+        let profile = try await PersonaGenerator.generate(input: input, generator: generator)
+        let updated = PersonaCatalog(custom: personas.custom + [profile])
+        try updated.save(to: directory.personas)
+        personas = updated
+        settings.persona = profile.id
+    }
+
+    public func deletePersona(_ id: Persona) throws {
+        if settings.persona == id { settings.persona = .sharp }
+        let updated = PersonaCatalog(custom: personas.custom.filter { $0.id != id })
+        try updated.save(to: directory.personas)
+        personas = updated
+        engine?.configure()
+    }
+
     public func compile(_ input: String, generator: (any TextGenerator)?) async throws -> Rule {
         let rule: Rule
         if let generator {
@@ -225,7 +262,7 @@ public final class AppStore: ObservableObject {
 
     private func downloadFonts() {
         BubbleFonts.requestDownload(choice: settings.bubbleStyle.font,
-                                    persona: settings.persona)
+                                    persona: settings.persona, catalog: personas)
     }
 
     nonisolated private static func resolveBundleIds(_ names: [String]) throws -> [String] {
