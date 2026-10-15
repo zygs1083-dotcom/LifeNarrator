@@ -82,11 +82,19 @@ internal static class UpdateChecks
                 var messages = new List<string>();
                 UpdateSignature.Check(Environment.ProcessPath!, Environment.ProcessPath!, messages.Add);
                 if (!messages.Single().Contains("unsigned")) throw new Exception("Unsigned installer skip not logged");
-                var signed = File.ReadAllBytes(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell/v1.0/powershell.exe"));
-                signed[0x200] ^= 1;
-                var tampered = Path.Combine(work, "tampered.exe");
-                File.WriteAllBytes(tampered, signed);
-                Reject(() => UpdateSignature.Check(tampered, Environment.ProcessPath!, _ => { }));
+                var image = File.ReadAllBytes(Environment.ProcessPath!);
+                var optionalHeader = BitConverter.ToInt32(image, 0x3c) + 24;
+                var certificateDirectory = optionalHeader + (BitConverter.ToUInt16(image, optionalHeader) == 0x20b ? 112 : 96) + 4 * 8;
+                var certificateOffset = (image.Length + 7) & ~7;
+                Array.Resize(ref image, certificateOffset + 16);
+                BitConverter.GetBytes(certificateOffset).CopyTo(image, certificateDirectory);
+                BitConverter.GetBytes(16).CopyTo(image, certificateDirectory + 4);
+                BitConverter.GetBytes(16).CopyTo(image, certificateOffset);
+                BitConverter.GetBytes((ushort)0x200).CopyTo(image, certificateOffset + 4);
+                BitConverter.GetBytes((ushort)2).CopyTo(image, certificateOffset + 6);
+                var malformed = Path.Combine(work, "malformed-signature.exe");
+                File.WriteAllBytes(malformed, image);
+                Reject(() => UpdateSignature.Check(malformed, Environment.ProcessPath!, _ => { }));
             }
         }
         finally { if (Directory.Exists(work)) Directory.Delete(work, true); }

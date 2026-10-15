@@ -43,6 +43,8 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - run: swift --version
+      - name: Windows updater checks
+        run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- --updates-only
       - run: swift build --target NarratorCore
       - run: swift build --target NarratorBrain
       - name: Isolated brain RPC scenario
