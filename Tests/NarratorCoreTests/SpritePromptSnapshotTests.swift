@@ -176,8 +176,8 @@ Output:
     custom.examples = .chuuni
     let catalog = PersonaCatalog(custom: [custom])
     for lang in Lang.allCases {
-        for (persona, voice) in [(Persona.teacher, Persona.gentle), (.mom, .gentle), (.hype, .gentle),
-                                  (.cat, .sharp), (custom.id, .chuuni)] {
+        for (persona, voice) in [(Persona.teacher, Persona.teacher), (.mom, .mom), (.hype, .hype),
+                                  (.cat, .cat), (custom.id, .chuuni)] {
             let screen = SpriteScreen(lines: [(0, "current screen")], tokens: 10)
             var random = SeededRandom(seed: 15)
             let prompt = GenerationPrompts.spriteMarks(app: "A", title: "T", screen: screen, exclude: [],
@@ -187,8 +187,12 @@ Output:
                 persona: voice, lang: lang, k: 3, recent: ["recent remark"], using: &expectedRandom)
             #expect(prompt.user == expected.user)
             for scene in SpriteExample.pool {
-                #expect(scene.prompt(lang: lang, persona: persona, catalog: catalog)
-                    == scene.prompt(lang: lang, persona: voice))
+                let rendered = scene.prompt(lang: lang, persona: persona, catalog: catalog)
+                #expect(rendered == scene.prompt(lang: lang, persona: voice))
+                let screen = lang == .zh ? scene.zh : scene.en
+                for mark in screen.marks {
+                    #expect(rendered.contains(mark.voices[voice.rawValue]!.t))
+                }
             }
         }
     }

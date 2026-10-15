@@ -50,6 +50,7 @@ final class UISnapshotTests: XCTestCase {
         custom.name = .init(zh: "东北大哥", en: "Big Brother")
         custom.caption = .init(zh: "热心爽快的程序员", en: "A warm, straightforward programmer")
         custom.limit = PersonaCatalog.builtin[.gentle].limit
+        custom.examples = custom.pack
         try PersonaCatalog(custom: [custom]).save(to: store.directory.personas)
         let customStore = try AppStore()
         customStore.settings.persona = custom.id
