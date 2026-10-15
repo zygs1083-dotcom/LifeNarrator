@@ -35,6 +35,42 @@ import Testing
     }
 }
 
+@Test func spriteExamplePoolLimitsRepeatedPhrasesAndOpeningsAcrossScenes() throws {
+    let englishWords = try NSRegularExpression(pattern: "[a-z]+(?:['’][a-z]+)*")
+    for lang in Lang.allCases {
+        for persona in Persona.allCases {
+            var phrases: [String: Int] = [:]
+            var openings: [String: Int] = [:]
+            for scene in SpriteExample.pool {
+                let screen = lang == .zh ? scene.zh : scene.en
+                for mark in screen.marks {
+                    let text = mark.voices[persona.rawValue]!.t.lowercased()
+                    let fragments: Set<String>
+                    let opening: String
+                    if lang == .zh {
+                        let han = Array(text.replacingOccurrences(of: "[^\\p{Han}]", with: "", options: .regularExpression))
+                        fragments = Set(han.indices.dropLast().map { String(han[$0...($0 + 1)]) })
+                        opening = String(han.prefix(2))
+                    } else {
+                        let words = englishWords.matches(in: text, range: NSRange(text.startIndex..., in: text))
+                            .map { String(text[Range($0.range, in: text)!]) }
+                        fragments = Set(words.filter { $0.count > 3 })
+                        opening = words.first!
+                    }
+                    for fragment in fragments { phrases[fragment, default: 0] += 1 }
+                    openings[opening, default: 0] += 1
+                }
+            }
+            for (phrase, count) in phrases {
+                #expect(count <= 2, "\(lang.rawValue)/\(persona.rawValue): \(phrase) appears in \(count) lines")
+            }
+            for (opening, count) in openings {
+                #expect(count <= 2, "\(lang.rawValue)/\(persona.rawValue): \(opening) starts \(count) lines")
+            }
+        }
+    }
+}
+
 @Test func spriteLocatorFoldsAndPrefersHintThenShortestLine() throws {
     let lines = [line("long ＨＥＬＬＯ   World suffix"), line("hello world"), line("Other text")]
     let hint = try #require(SpriteLocator.locate(quote: "hello world", lineHint: 0, in: lines))

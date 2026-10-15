@@ -102,7 +102,7 @@ Screen:
 2| Residents donated old desks for the bookshelves
 3| Free book repairs on opening day
 Output:
-{"marks":[{"e":"🚉","l":1,"q":"becomes a library","t":"A new story for the station."},{"e":"🌱","l":2,"q":"old desks","t":"Those wooden friends get another story."}]}
+{"marks":[{"e":"🚉","l":1,"q":"becomes a library","t":"Once a station, now a storybook."},{"e":"🌱","l":2,"q":"old desks","t":"Those wooden friends get another story."}]}
 
 Screen:
 0| Slow bread for beginners
@@ -110,7 +110,7 @@ Screen:
 2| Chill the dough for 16 hours
 3| Creator: Easy even for first timers
 Output:
-{"marks":[{"e":"🍞","l":2,"q":"16 hours","t":"Let that little dough dream."},{"e":"🧑‍🍳","l":3,"q":"Easy even","t":"Your first loaf can take time."}]}
+{"marks":[{"e":"🍞","l":2,"q":"16 hours","t":"Let that dough dream in peace."},{"e":"🧑‍🍳","l":3,"q":"Easy even","t":"First loaves can take time."}]}
 """#
     let screen = SpriteScreen(lines: [(0, "first phrase"), (1, "second phrase")], tokens: 10)
     var random = SeededRandom(seed: 15)

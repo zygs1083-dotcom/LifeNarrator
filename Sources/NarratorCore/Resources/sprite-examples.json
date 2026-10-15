@@ -23,7 +23,7 @@
               "e": "😬"
             },
             "chuuni": {
-              "t": "结界只剩十秒",
+              "t": "沙漏只剩十秒",
               "e": "😬"
             }
           }
@@ -181,7 +181,7 @@
               "e": "🔋"
             },
             "gentle": {
-              "t": "A little rest, more music.",
+              "t": "Soon those songs can keep you company.",
               "e": "🔋"
             },
             "chuuni": {
@@ -282,7 +282,7 @@
               "e": "⏳"
             },
             "chuuni": {
-              "t": "The time spell needs casting.",
+              "t": "Time magic requires a longer incantation.",
               "e": "⏳"
             }
           }
@@ -355,7 +355,7 @@
               "e": "☕"
             },
             "gentle": {
-              "t": "Blink, and your work is ready.",
+              "t": "Blink, and the build is ready.",
               "e": "☕"
             },
             "chuuni": {
@@ -377,7 +377,7 @@
               "e": "🫥"
             },
             "chuuni": {
-              "t": "One adventurer awaits the next quest.",
+              "t": "One adventurer rests beside the campfire.",
               "e": "🫥"
             }
           }
@@ -454,7 +454,7 @@
               "e": "🥾"
             },
             "chuuni": {
-              "t": "The stamina bar files a complaint!",
+              "t": "Stamina files a formal complaint!",
               "e": "🥾"
             }
           }
@@ -545,11 +545,11 @@
               "e": "🚉"
             },
             "gentle": {
-              "t": "A new story for the station.",
+              "t": "Once a station, now a storybook.",
               "e": "🚉"
             },
             "chuuni": {
-              "t": "The knowledge train approaches!",
+              "t": "Knowledge rails lead to distant worlds.",
               "e": "🚉"
             }
           }
@@ -598,7 +598,7 @@
               "e": "📥"
             },
             "chuuni": {
-              "t": "离线结界守住心血",
+              "t": "离线护盾守住心血",
               "e": "📥"
             }
           }
@@ -640,11 +640,11 @@
               "e": "📥"
             },
             "gentle": {
-              "t": "Your work has somewhere to wait.",
+              "t": "Your edits have somewhere to wait.",
               "e": "📥"
             },
             "chuuni": {
-              "t": "The offline ward protects your progress.",
+              "t": "Offline wards protect unfinished masterpieces.",
               "e": "📥"
             }
           }
@@ -731,7 +731,7 @@
           "q": "favorite contacts",
           "voices": {
             "sharp": {
-              "t": "A tiny VIP entrance remains.",
+              "t": "VIP entrance survives focus mode.",
               "e": "🚪"
             },
             "gentle": {
@@ -757,7 +757,7 @@
               "e": "🔕"
             },
             "chuuni": {
-              "t": "The rest sprite has been muted.",
+              "t": "Hush, someone muted our rest sprite.",
               "e": "🔕"
             }
           }
@@ -830,7 +830,7 @@
               "e": "🍞"
             },
             "gentle": {
-              "t": "Let that little dough dream.",
+              "t": "Let that dough dream in peace.",
               "e": "🍞"
             },
             "chuuni": {
@@ -848,7 +848,7 @@
               "e": "🧑‍🍳"
             },
             "gentle": {
-              "t": "Your first loaf can take time.",
+              "t": "First loaves can take time.",
               "e": "🧑‍🍳"
             },
             "chuuni": {
@@ -921,11 +921,11 @@
           "q": "actual 240",
           "voices": {
             "sharp": {
-              "t": "The balloons have expensive ambitions.",
+              "t": "Balloons have expensive ambitions.",
               "e": "🎈"
             },
             "gentle": {
-              "t": "The ribbons got a little excited.",
+              "t": "Ribbons seem rather excited today.",
               "e": "🎈"
             },
             "chuuni": {
@@ -943,11 +943,11 @@
               "e": "🍃"
             },
             "gentle": {
-              "t": "A little room for next time.",
+              "t": "Next time, a cushion might help.",
               "e": "🍃"
             },
             "chuuni": {
-              "t": "The reserve shield needs recharging.",
+              "t": "Reserve shields request an energy refill.",
               "e": "🍃"
             }
           }
@@ -1020,11 +1020,11 @@
               "e": "🥪"
             },
             "gentle": {
-              "t": "A warm welcome after the work.",
+              "t": "Lunch awaits after all that work.",
               "e": "🥪"
             },
             "chuuni": {
-              "t": "Provisions await at the quest finish!",
+              "t": "Provisions await beside the flower beds!",
               "e": "🥪"
             }
           }
@@ -1038,11 +1038,11 @@
               "e": "🌧️"
             },
             "gentle": {
-              "t": "Rain leaves room for little sprouts.",
+              "t": "Rain brings the seedlings under shelter.",
               "e": "🌧️"
             },
             "chuuni": {
-              "t": "Rain unlocks the seedling side quest.",
+              "t": "Rain unlocks a seedling side mission.",
               "e": "🌧️"
             }
           }
