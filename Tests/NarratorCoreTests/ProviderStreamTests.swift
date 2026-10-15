@@ -39,7 +39,7 @@ private final class FixtureProtocol: URLProtocol {
     override func startLoading() {
         let fixture = Self.registry.lock.withLock { Self.registry.fixtures.removeValue(forKey: request.url!.host!)! }
         self.fixture = fixture
-        client!.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: fixture.status, httpVersion: "HTTP/1.1", headerFields: nil)!, cacheStoragePolicy: .notAllowed)
+        client!.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: fixture.status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "text/event-stream"])!, cacheStoragePolicy: .notAllowed)
         for chunk in fixture.chunks { client!.urlProtocol(self, didLoad: chunk) }
         if fixture.finish { client!.urlProtocolDidFinishLoading(self) }
     }
