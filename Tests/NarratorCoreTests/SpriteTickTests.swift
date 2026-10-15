@@ -156,7 +156,7 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
 }
 
 @Test func spriteAPIRequestCarriesTokenLimitAndSystemUserMessages() throws {
-    let request = try OpenAICompatibleClient(baseURL: URL(string: "https://example.test")!, model: "fixture")
+    let request = try OpenAIChatClient(baseURL: URL(string: "https://example.test")!, path: "v1/chat/completions", model: "fixture")
         .makeRequest(system: "system", prompt: "screen", schema: GenerationPrompts.spriteMarksSchema, maxTokens: SpriteGenerator.maxTokens)
     let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
     #expect(body["max_tokens"] as? Int == 900)

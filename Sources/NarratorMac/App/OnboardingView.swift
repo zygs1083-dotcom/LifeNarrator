@@ -43,7 +43,7 @@ public struct OnboardingView: View {
                 switch step {
                 case 0:
                     Text(store.text("onboarding.model")).font(AppTheme.font(.pageTitle))
-                    GroupBox { ProviderSettingsView(store: store) } label: { EmptyView() }
+                    ScrollView { GroupBox { ProviderSettingsView(store: store) } label: { EmptyView() } }
                 case 1:
                     Text(store.text("onboarding.accessibility")).font(AppTheme.font(.pageTitle))
                     Text(store.text("onboarding.accessibility.hint"))
@@ -87,7 +87,7 @@ public struct OnboardingView: View {
                             if store.settings.provider == .builtin, case .notDownloaded = store.downloader.state {
                                 try store.downloader.start(source: .huggingFace)
                             }
-                            if store.settings.provider == .openAICompatible {
+                            if store.settings.provider == .api {
                                 _ = try store.settings.generationAPI.validatedURL()
                                 guard !store.settings.generationAPI.model.isEmpty else { throw AppInputError.missingModel }
                             }

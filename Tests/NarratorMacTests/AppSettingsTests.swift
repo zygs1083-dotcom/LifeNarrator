@@ -25,6 +25,26 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json)).automaticUpdates)
     }
 
+    func testLegacyProviderAndBuiltinModelMigration() throws {
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as! [String: Any]
+        json["provider"] = "openAICompatible"
+        json["generationAPI"] = ["baseURL": "https://legacy.test", "model": "old-model"]
+        json.removeValue(forKey: "builtinModel")
+        let settings = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(settings.provider, .api)
+        XCTAssertEqual(settings.generationAPI.presetID, "custom-openai")
+        XCTAssertEqual(settings.generationAPI.baseURL, "https://legacy.test/v1")
+        XCTAssertEqual(settings.generationAPI.model, "old-model")
+        XCTAssertEqual(settings.builtinModel, ModelCatalog.models[0].name)
+        var updated = settings
+        updated.builtinModel = ModelCatalog.models[1].name
+        updated.generationAPI = ProviderConfiguration(presetID: "anthropic", model: "fixture")
+        let restored = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(updated))
+        XCTAssertEqual(restored.builtinModel, ModelCatalog.models[1].name)
+        XCTAssertEqual(restored.generationAPI.presetID, "anthropic")
+        XCTAssertNil(restored.generationAPI.baseURL)
+    }
+
     func testEffectiveDwellExtendsForMoreThanThreeMarksWithoutChangingSettings() {
         var style = BubbleStyle()
         for (count, seconds, expected) in [(1, 3.0, 3.0), (3, 3, 3), (4, 3, 10),

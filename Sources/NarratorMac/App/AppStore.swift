@@ -21,6 +21,13 @@ public final class AppStore: ObservableObject {
             }
             if oldValue.persona != settings.persona || oldValue.language != settings.language { pregenerator.schedule() }
             if oldValue.automaticUpdates != settings.automaticUpdates { updater.configure(automatic: settings.automaticUpdates) }
+            if oldValue.builtinModel != settings.builtinModel || oldValue.provider != settings.provider {
+                if let previous = llama {
+                    let pending = modelRelease
+                    modelRelease = Task { await pending?.value; await previous.close() }
+                }
+                llama = nil
+            }
             engine?.configure()
         }
     }
@@ -32,20 +39,23 @@ public final class AppStore: ObservableObject {
     public let builtin: QuipPack
     public let directory: AppDataDirectory
     public let updater = Updater()
-    public let downloader: ModelDownloader
+    public let downloaders: [ModelDownloader]
+    public var downloader: ModelDownloader { downloaders.first { $0.model.name == settings.builtinModel }! }
     private var shortcutTasks: [Task<Void, Never>] = []
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
     private var inputPanel: InputPanelController?
     private var engine: NarratorEngine?
-    private var downloadSubscription: AnyCancellable?
+    private var downloadSubscriptions: [AnyCancellable] = []
     private lazy var pregenerator = QuipPregenerator(store: self)
-    private lazy var llama = LlamaGenerator(modelPath: downloader.destination.path)
+    private var llama: LlamaGenerator?
+    private var modelRelease: Task<Void, Never>?
 
     public init() throws {
         directory = try AppDataDirectory()
         settings = try directory.loadSettings()
         personas = try PersonaCatalog.load(from: directory.personas)
+        try KeychainStore.migrateGenerationKey()
         builtin = try RuleLoader.loadBuiltin()
         said = FileManager.default.fileExists(atPath: directory.said.path)
             ? try JSONDecoder().decode(SaidHistory.self, from: Data(contentsOf: directory.said)) : SaidHistory()
@@ -55,10 +65,12 @@ public final class AppStore: ObservableObject {
             rules = []
             try RuleLoader.save([], to: directory.rules)
         }
-        downloader = ModelDownloader(directory: directory)
-        downloadSubscription = downloader.$state.dropFirst().sink { [unowned self] state in
-            self.objectWillChange.send()
-            if case .ready = state { self.pregenerator.schedule() }
+        downloaders = ModelCatalog.models.map { ModelDownloader(directory: directory, model: $0) }
+        downloadSubscriptions = downloaders.map { downloader in
+            downloader.$state.dropFirst().sink { [unowned self] state in
+                self.objectWillChange.send()
+                if case .ready = state { self.pregenerator.schedule() }
+            }
         }
     }
 
@@ -196,21 +208,23 @@ public final class AppStore: ObservableObject {
     }
 
     public func releaseModel() async {
-        await llama.close()
+        await llama?.close()
+        await modelRelease?.value
+        llama = nil
     }
 
     public func textGenerator() throws -> (any TextGenerator)? {
         switch settings.provider {
         case .none: return nil
         case .builtin:
-            if case .ready = downloader.state { return llama }
+            if case .ready = downloader.state {
+                if llama == nil { llama = LlamaGenerator(modelPath: downloader.destination.path, waitForRelease: modelRelease) }
+                return llama
+            }
             return nil
-        case .openAICompatible:
+        case .api:
             let configuration = settings.generationAPI
-            let url = try configuration.validatedURL()
-            guard !configuration.model.trimmingCharacters(in: .whitespaces).isEmpty else { throw AppInputError.missingModel }
-            return OpenAICompatibleClient(baseURL: url, model: configuration.model,
-                                          key: try KeychainStore.read(account: "generation"))
+            return try configuration.generator(key: KeychainStore.read(account: configuration.account))
         }
     }
 
@@ -220,7 +234,7 @@ public final class AppStore: ObservableObject {
         case .builtin:
             if case .ready = downloader.state { return nil }
             return text("persona.custom.downloadModel")
-        case .openAICompatible:
+        case .api:
             do {
                 _ = try settings.generationAPI.validatedURL()
                 guard !settings.generationAPI.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

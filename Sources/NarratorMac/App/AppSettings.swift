@@ -14,10 +14,6 @@ public enum InterfaceLanguage: String, Codable, CaseIterable {
     }
 }
 
-public enum ModelProvider: String, Codable, CaseIterable {
-    case builtin, openAICompatible, none
-}
-
 public struct APIConfiguration: Codable {
     public var baseURL = ""
     public var model = ""
@@ -36,7 +32,7 @@ public struct APIConfiguration: Codable {
     }
 }
 
-public enum AppInputError: Error { case invalidURL, missingModel }
+public enum AppInputError: Error { case invalidURL, missingModel, unknownBuiltinModel(String) }
 
 public struct AppSettings: Codable {
     public var language: InterfaceLanguage = .system
@@ -53,7 +49,8 @@ public struct AppSettings: Codable {
     ]
     public var disabledBuiltinIds: Set<String> = []
     public var provider: ModelProvider = .builtin
-    public var generationAPI = APIConfiguration()
+    public var generationAPI = ProviderConfiguration()
+    public var builtinModel = ModelCatalog.models[0].name
     public var systemOne: APIConfiguration?
     public var inputShortcut: KeyboardShortcuts.Shortcut? = .init(.n, modifiers: [.option, .shift])
     public var pauseShortcut: KeyboardShortcuts.Shortcut? = .init(.p, modifiers: [.option, .shift])
@@ -62,7 +59,7 @@ public struct AppSettings: Codable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
+        case builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
     }
 
     public init(from decoder: any Decoder) throws {
@@ -77,7 +74,9 @@ public struct AppSettings: Codable {
         blacklist = try c.decode([String].self, forKey: .blacklist)
         disabledBuiltinIds = try c.decode(Set<String>.self, forKey: .disabledBuiltinIds)
         provider = try c.decode(ModelProvider.self, forKey: .provider)
-        generationAPI = try c.decode(APIConfiguration.self, forKey: .generationAPI)
+        generationAPI = try c.decode(ProviderConfiguration.self, forKey: .generationAPI)
+        builtinModel = try c.decodeIfPresent(String.self, forKey: .builtinModel) ?? ModelCatalog.models[0].name
+        guard ModelCatalog.models.contains(where: { $0.name == builtinModel }) else { throw AppInputError.unknownBuiltinModel(builtinModel) }
         systemOne = try c.decodeIfPresent(APIConfiguration.self, forKey: .systemOne)
         inputShortcut = try c.decodeIfPresent(KeyboardShortcuts.Shortcut.self, forKey: .inputShortcut)
         pauseShortcut = try c.decodeIfPresent(KeyboardShortcuts.Shortcut.self, forKey: .pauseShortcut)

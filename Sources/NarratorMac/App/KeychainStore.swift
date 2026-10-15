@@ -2,6 +2,16 @@ import Foundation
 import Security
 
 public enum KeychainStore {
+    public static func migrateGenerationKey() throws {
+        let legacy = try read(account: "generation")
+        if !legacy.isEmpty {
+            if try read(account: "provider.custom-openai").isEmpty {
+                try save(legacy, account: "provider.custom-openai")
+            }
+            try save("", account: "generation")
+        }
+    }
+
     public static func read(account: String) throws -> String {
         var query = query(account)
         query[kSecReturnData as String] = true

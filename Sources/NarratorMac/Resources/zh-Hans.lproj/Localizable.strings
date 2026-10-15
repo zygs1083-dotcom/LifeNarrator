@@ -75,7 +75,7 @@
 "kind.time" = "时间";
 "provider" = "生成模型";
 "provider.builtin" = "内置模型";
-"provider.openAICompatible" = "OpenAI 兼容 API";
+
 "provider.none" = "暂不使用模型";
 "provider.none.hint" = "不用模型也有关键词规则和离线台词。";
 "model.notDownloaded" = "未下载";
@@ -137,7 +137,7 @@
 "appearance.motion" = "动静";
 "preview.hint" = "改动会立刻在这里重新冒出来。";
 "provider.builtin.hint" = "下载到本机，离线可用";
-"provider.openAICompatible.hint" = "云端或本地服务";
+
 "shortcuts" = "快捷键";
 "rules.empty.title" = "还没有规则";
 "rules.empty.body" = "告诉我一件事，比如\"我讨厌开会\"\"张三是我领导\"，我会记住，遇到就说。";
@@ -174,3 +174,23 @@
 "onboarding.accessibility.open" = "打开辅助功能设置";
 "screenRecording.repair" = "开关已经打开但还是提示？系统里留着旧版本的记录。在列表里选中人生旁白点「−」删掉，再点「+」加回来；或者在终端运行下面这行：tccutil reset ScreenCapture dev.lifenarrator.app";
 "screenRecording.copyCommand" = "复制命令";
+
+"provider.api" = "模型 API";
+"provider.api.hint" = "云端或本地服务";
+"api.provider" = "供应商";
+"api.group.cn" = "国内";
+"api.group.global" = "海外";
+"api.group.local" = "本地";
+"api.group.custom" = "自定义";
+"api.suggestions" = "建议模型";
+"api.fetchModels" = "获取模型列表";
+"api.getKey" = "去获取";
+"api.advanced" = "高级";
+"api.structured" = "结构化方式";
+"api.default" = "供应商默认";
+"api.test" = "测试连接";
+"api.testSuccess" = "连接成功";
+"model.standard" = "标准";
+"model.fast" = "快速";
+"model.standard.hint" = "4B · 效果更好";
+"model.fast.hint" = "2B · 响应更快、内存更少";

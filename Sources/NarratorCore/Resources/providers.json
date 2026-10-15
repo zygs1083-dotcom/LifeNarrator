@@ -1,0 +1,385 @@
+[
+  {
+    "id": "openai",
+    "name": {
+      "zh": "OpenAI",
+      "en": "OpenAI"
+    },
+    "group": "global",
+    "api": "openai",
+    "baseURL": "https://api.openai.com/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://platform.openai.com/api-keys",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "gpt-4o-mini"
+    ]
+  },
+  {
+    "id": "anthropic",
+    "name": {
+      "zh": "Anthropic",
+      "en": "Anthropic"
+    },
+    "group": "global",
+    "api": "anthropic",
+    "baseURL": "https://api.anthropic.com/v1",
+    "path": "messages",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://platform.claude.com/settings/keys",
+    "modelsEndpoint": false,
+    "suggestedModels": [
+      "claude-haiku-5-5"
+    ]
+  },
+  {
+    "id": "gemini",
+    "name": {
+      "zh": "Google Gemini",
+      "en": "Google Gemini"
+    },
+    "group": "global",
+    "api": "openai",
+    "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://aistudio.google.com/apikey",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "gemini-3.8-flash"
+    ]
+  },
+  {
+    "id": "xai",
+    "name": {
+      "zh": "xAI",
+      "en": "xAI"
+    },
+    "group": "global",
+    "api": "openai",
+    "baseURL": "https://api.x.ai/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://console.x.ai",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "grok-4.7"
+    ]
+  },
+  {
+    "id": "mistral",
+    "name": {
+      "zh": "Mistral",
+      "en": "Mistral"
+    },
+    "group": "global",
+    "api": "openai",
+    "baseURL": "https://api.mistral.ai/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://console.mistral.ai/api-keys",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "mistral-small-latest"
+    ]
+  },
+  {
+    "id": "groq",
+    "name": {
+      "zh": "Groq",
+      "en": "Groq"
+    },
+    "group": "global",
+    "api": "openai",
+    "baseURL": "https://api.groq.com/openai/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": false,
+    "keyRequired": true,
+    "keyURL": "https://console.groq.com/keys",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "openai/gpt-oss-20b"
+    ]
+  },
+  {
+    "id": "openrouter",
+    "name": {
+      "zh": "OpenRouter",
+      "en": "OpenRouter"
+    },
+    "group": "global",
+    "api": "openai",
+    "baseURL": "https://openrouter.ai/api/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://openrouter.ai/settings/keys",
+    "modelsEndpoint": true,
+    "suggestedModels": []
+  },
+  {
+    "id": "deepseek",
+    "name": {
+      "zh": "DeepSeek",
+      "en": "DeepSeek"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://api.deepseek.com",
+    "path": "chat/completions",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://platform.deepseek.com/api_keys",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "deepseek-chat"
+    ]
+  },
+  {
+    "id": "bailian",
+    "name": {
+      "zh": "阿里云百炼（通义千问）",
+      "en": "Alibaba Cloud Bailian"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://bailian.console.aliyun.com",
+    "modelsEndpoint": true,
+    "suggestedModels": []
+  },
+  {
+    "id": "kimi",
+    "name": {
+      "zh": "月之暗面 Kimi",
+      "en": "Moonshot Kimi"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://api.moonshot.cn/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://platform.moonshot.cn/console/api-keys",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "kimi-k3"
+    ]
+  },
+  {
+    "id": "zhipu",
+    "name": {
+      "zh": "智谱 GLM",
+      "en": "Zhipu GLM"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+    "path": "chat/completions",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys",
+    "modelsEndpoint": false,
+    "suggestedModels": [
+      "glm-5.2"
+    ]
+  },
+  {
+    "id": "volcengine",
+    "name": {
+      "zh": "火山方舟（豆包）",
+      "en": "Volcano Ark (Doubao)"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://ark.cn-beijing.volces.com/api/v3",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://console.volcengine.com/ark/region:cn-beijing/apikey",
+    "modelsEndpoint": false,
+    "suggestedModels": []
+  },
+  {
+    "id": "siliconflow",
+    "name": {
+      "zh": "硅基流动",
+      "en": "SiliconFlow"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://api.siliconflow.cn/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://cloud.siliconflow.cn/account/ak",
+    "modelsEndpoint": true,
+    "suggestedModels": []
+  },
+  {
+    "id": "hunyuan",
+    "name": {
+      "zh": "腾讯混元",
+      "en": "Tencent Hunyuan"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://api.hunyuan.cloud.tencent.com/v1",
+    "path": "chat/completions",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://console.cloud.tencent.com/hunyuan/api-key",
+    "modelsEndpoint": false,
+    "suggestedModels": [
+      "hunyuan-turbos-latest"
+    ]
+  },
+  {
+    "id": "qianfan",
+    "name": {
+      "zh": "百度千帆",
+      "en": "Baidu Qianfan"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://qianfan.baidubce.com/v2",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://console.bce.baidu.com/qianfan/ais/console/apiKey",
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "deepseek-v3.1-250821"
+    ]
+  },
+  {
+    "id": "minimax",
+    "name": {
+      "zh": "MiniMax",
+      "en": "MiniMax"
+    },
+    "group": "cn",
+    "api": "openai",
+    "baseURL": "https://api.minimax.io/v1",
+    "path": "chat/completions",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": true,
+    "keyURL": "https://platform.minimax.io/user-center/basic-information/interface-key",
+    "modelsEndpoint": false,
+    "suggestedModels": [
+      "MiniMax-M2.7"
+    ]
+  },
+  {
+    "id": "ollama",
+    "name": {
+      "zh": "Ollama",
+      "en": "Ollama"
+    },
+    "group": "local",
+    "api": "openai",
+    "baseURL": "http://localhost:11434/v1",
+    "path": "chat/completions",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": false,
+    "keyURL": null,
+    "modelsEndpoint": true,
+    "suggestedModels": [
+      "gpt-oss:20b"
+    ]
+  },
+  {
+    "id": "lm-studio",
+    "name": {
+      "zh": "LM Studio",
+      "en": "LM Studio"
+    },
+    "group": "local",
+    "api": "openai",
+    "baseURL": "http://localhost:1234/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": false,
+    "keyURL": null,
+    "modelsEndpoint": true,
+    "suggestedModels": []
+  },
+  {
+    "id": "llama-cpp",
+    "name": {
+      "zh": "llama.cpp server",
+      "en": "llama.cpp server"
+    },
+    "group": "local",
+    "api": "openai",
+    "baseURL": "http://localhost:8080/v1",
+    "path": "chat/completions",
+    "structured": "json_schema",
+    "stream": true,
+    "keyRequired": false,
+    "keyURL": null,
+    "modelsEndpoint": true,
+    "suggestedModels": []
+  },
+  {
+    "id": "custom-openai",
+    "name": {
+      "zh": "自定义 OpenAI 兼容",
+      "en": "Custom OpenAI-compatible"
+    },
+    "group": "custom",
+    "api": "openai",
+    "baseURL": "http://localhost:8080/v1",
+    "path": "chat/completions",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": false,
+    "keyURL": null,
+    "modelsEndpoint": true,
+    "suggestedModels": []
+  },
+  {
+    "id": "custom-anthropic",
+    "name": {
+      "zh": "自定义 Anthropic 兼容",
+      "en": "Custom Anthropic-compatible"
+    },
+    "group": "custom",
+    "api": "anthropic",
+    "baseURL": "http://localhost:8080/v1",
+    "path": "messages",
+    "structured": "json_object",
+    "stream": true,
+    "keyRequired": false,
+    "keyURL": null,
+    "modelsEndpoint": false,
+    "suggestedModels": []
+  }
+]
