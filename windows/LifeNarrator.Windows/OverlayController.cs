@@ -77,12 +77,14 @@ internal sealed class OverlayController : IDisposable
         var tier = tierResult.GetString()!;
         var surface = surfaces.FirstOrDefault(x => x.Map.Logical(x.Map.Bounds).Rect.Contains(narration.Window.Frame.Rect.Center)) ?? surfaces[0];
         var rounded = !narration.Framed;
+        var fillOpacity = 1d;
         var visual = MakeVisual(rounded, false);
         var narrow = MakeVisual(rounded, true);
         Placement? placement = await Place(visual, narrow);
         if (placement?.Covered == true && !rounded)
         {
             rounded = true;
+            fillOpacity = .92;
             visual = MakeVisual(true, false); narrow = MakeVisual(true, true);
             placement = await Place(visual, narrow);
         }
@@ -113,7 +115,7 @@ internal sealed class OverlayController : IDisposable
         Position(bubble);
         return new { shown = true, placement = placement.PlacementName };
 
-        BubbleVisual MakeVisual(bool round, bool small) => new(narration.Id, narration.Text, narration.Emoji, narration.Language, tier, round, small);
+        BubbleVisual MakeVisual(bool round, bool small) => new(narration.Id, narration.Text, narration.Emoji, narration.Language, tier, round, small, fillOpacity);
         async Task<Placement?> Place(BubbleVisual normal, BubbleVisual small)
         {
             var existing = bubbles.Where(x => x.Dismissed == null && x.Narration.WindowID == narration.WindowID).ToArray();

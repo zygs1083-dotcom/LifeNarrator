@@ -65,10 +65,22 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
+          name: windows-shell-e2e
+          path: |
+            artifacts/e2e-*.png
+            artifacts/e2e*.json
+            artifacts/e2e*.log
+            artifacts/shell.*.log
+            artifacts/stub.*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: windows-spike
           path: |
             artifacts/
             !artifacts/fixtures/edge-profile/**
+            !artifacts/fixtures/e2e-edge-profile/**
           if-no-files-found: warn
 
   macos:

@@ -14,7 +14,7 @@ class Handler(BaseHTTPRequestHandler):
         assert self.path.endswith("/chat/completions"), self.path
         assert request["stream"] is True
         marks = {"marks": [
-            {"l": 0, "q": "LifeNarrator visible English paragraph", "t": "A little company", "e": "✨"},
+            {"l": 0, "q": "visible English paragraph", "t": "有我陪你呀", "e": "✨"},
             {"l": 1, "q": "又要上班了", "t": "辛苦啦，慢慢来", "e": "😺"},
         ]}
         self.send_response(200)

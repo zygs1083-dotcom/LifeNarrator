@@ -93,6 +93,7 @@ internal static class CredentialStore
         try
         {
             var value = Marshal.PtrToStructure<Credential>(pointer);
+            if (value.CredentialBlobSize == 0) return "";
             return Marshal.PtrToStringUni(value.CredentialBlob, (int)value.CredentialBlobSize / 2)!;
         }
         finally { CredFree(pointer); }

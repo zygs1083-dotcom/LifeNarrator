@@ -25,6 +25,8 @@ internal static class SettingsChecks
         {
             CredentialStore.Write(provider, key);
             if (CredentialStore.Read(provider) != key) throw new Exception("Credential round trip failed");
+            CredentialStore.Write(provider, "");
+            if (CredentialStore.Read(provider) != "") throw new Exception("Empty credential round trip failed");
         }
         finally { if (!CredDeleteW("LifeNarrator/" + provider, 1, 0)) throw new Win32Exception(); }
         Console.WriteLine("PASS: settings round trip and Unicode Windows credential round trip; no plaintext key in settings");

@@ -10,13 +10,14 @@ public sealed class BubbleVisual : Control
     readonly FormattedText text, emoji;
     readonly bool rounded;
     readonly IBrush soft, ink, stroke;
-    public BubbleVisual(string id, string caption, string[] emojis, string language, string tier, bool rounded, bool narrow)
+    public BubbleVisual(string id, string caption, string[] emojis, string language, string tier, bool rounded, bool narrow, double fillOpacity = 1)
     {
         this.rounded = rounded;
         uint hash = 2166136261;
         foreach (var c in id) hash = (hash ^ c) * 16777619;
         var hue = hash % 360;
         soft = Hue(hue, .22, 1);
+        ((SolidColorBrush)soft).Opacity = fillOpacity;
         ink = Hue(hue, .78, .40);
         stroke = Hue(hue, .62, .96);
         var size = tier switch { "small" => 20, "medium" => 26, _ => 32 };
