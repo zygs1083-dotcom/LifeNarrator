@@ -80,15 +80,32 @@ public enum SpriteTick: String, Sendable {
     }
 
     public static func followupDelay(level: Liveliness) -> TimeInterval {
-        switch level { case .quiet: 0; case .lively: 20; case .rowdy: 10 }
+        switch level { case .quiet: 0; case .lively: 12; case .rowdy: 0 }
     }
 
     public static func requestsPerScreen(level: Liveliness) -> Int {
-        switch level { case .quiet: 0; case .lively: 2; case .rowdy: 3 }
+        switch level { case .quiet: 0; case .lively: 3; case .rowdy: 8 }
     }
 
     public static func windowRequestInterval(level: Liveliness) -> TimeInterval {
-        switch level { case .quiet: 0; case .lively: 8; case .rowdy: 5 }
+        switch level { case .quiet: 0; case .lively: 6; case .rowdy: 1.5 }
+    }
+
+    public static func prefetchAllowed(level: Liveliness, succeeded: Bool, located: Int,
+                                       queued: Int, requests: Int, budgetAllowed: Bool) -> Bool {
+        level == .rowdy && succeeded && located > 0 && queued < 3
+            && requests < requestsPerScreen(level: level) && budgetAllowed
+    }
+
+    public static func ambientAllowed(level: Liveliness, dwell: TimeInterval, sinceLast: TimeInterval,
+                                      exhausted: Bool, typing: Bool, hasModel: Bool) -> Bool {
+        level != .quiet && dwell >= 8 && sinceLast >= (level == .rowdy ? 10 : 30)
+            && exhausted && !typing && hasModel
+    }
+
+    public static func openerAllowed(level: Liveliness, kind: RuleKind, last: Date?, now: Date) -> Bool {
+        level == .rowdy && (kind == .app || kind == .site)
+            && last.map { now.timeIntervalSince($0) >= 600 } != false
     }
 
     public static func localBurst(level: Liveliness) -> [TimeInterval] {
@@ -96,11 +113,11 @@ public enum SpriteTick: String, Sendable {
     }
 
     public static func requestCount(level: Liveliness, maxOnScreen: Int) -> Int {
-        min(max(level == .rowdy ? 4 : 3, maxOnScreen), 8)
+        level == .rowdy ? 5 : min(max(3, maxOnScreen), 8)
     }
 
     public static func screenLimit(level: Liveliness, maxOnScreen: Int) -> Int {
-        let limit = switch level { case .quiet: 0; case .lively: 8; case .rowdy: 14 }
+        let limit = switch level { case .quiet: 0; case .lively: 8; case .rowdy: 40 }
         return max(limit, maxOnScreen)
     }
 }
@@ -109,6 +126,14 @@ public struct SpriteModelBudget: Sendable {
     private var requests: [Date] = []
     private let perMinute: Int
     public init(perMinute: Int) { self.perMinute = perMinute }
+
+    public init(level: Liveliness) {
+        perMinute = switch level { case .quiet: 0; case .lively: 6; case .rowdy: 15 }
+    }
+
+    public func allows(now: Date) -> Bool {
+        requests.filter { now.timeIntervalSince($0) < 60 }.count < perMinute
+    }
 
     @discardableResult
     public mutating func begin(now: Date) -> Bool {

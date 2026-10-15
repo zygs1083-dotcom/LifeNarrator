@@ -12,6 +12,8 @@ public actor LlamaGenerator: TextGenerator {
     private let modelPath: String
     private var engine: LlamaEngine?
     private var unload: Task<Void, Never>?
+    private nonisolated let generating = OSAllocatedUnfairLock(initialState: false)
+    public nonisolated var isBusy: Bool { generating.withLock { $0 } }
     private nonisolated let closed = OSAllocatedUnfairLock(initialState: false)
 
     public init(modelPath: String) { self.modelPath = modelPath }
@@ -30,7 +32,11 @@ public actor LlamaGenerator: TextGenerator {
         try Task.checkCancellation()
         if closed.withLock({ $0 }) { throw CancellationError() }
         unload?.cancel()
-        defer { scheduleUnload() }
+        generating.withLock { $0 = true }
+        defer {
+            generating.withLock { $0 = false }
+            scheduleUnload()
+        }
         let grammar = try LlamaGrammar.grammar(for: schema)
         if engine == nil { engine = try LlamaEngine(modelPath: modelPath) }
         let cachePrefix = system.map { "<|im_start|>system\n\($0)<|im_end|>\n" }

@@ -11,7 +11,7 @@ public struct Scheduler: Sendable {
             switch level {
             case .quiet: break
             case .lively: ruleCooldown = 120; globalPerMinute = 10
-            case .rowdy: ruleCooldown = 60; globalPerMinute = 20
+            case .rowdy: ruleCooldown = 60; globalPerMinute = 30
             }
         }
     }
@@ -21,8 +21,8 @@ public struct Scheduler: Sendable {
 
     public init(settings: Settings = Settings()) { self.settings = settings }
 
-    public func canShow(ruleID: String?, now: Date) -> Bool {
-        if let last = recent.last, now < last.addingTimeInterval(settings.minGap) { return false }
+    public func canShow(ruleID: String?, now: Date, ignoringGap: Bool = false) -> Bool {
+        if !ignoringGap, let last = recent.last, now < last.addingTimeInterval(settings.minGap) { return false }
         if recent.filter({ now.timeIntervalSince($0) < 60 }).count >= settings.globalPerMinute { return false }
         if let ruleID {
             if let last = lastByRule[ruleID], now.timeIntervalSince(last) < settings.ruleCooldown { return false }

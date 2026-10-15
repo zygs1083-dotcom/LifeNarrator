@@ -58,7 +58,7 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
 }
 
 @Test func tickRequestCountsRespectBothScreenLimits() {
-    for (level, limit) in [(Liveliness.lively, 2), (.rowdy, 3)] {
+    for (level, limit) in [(Liveliness.lively, 3), (.rowdy, 8)] {
         var memory = SpriteMemory(level: level)
         for _ in 0..<limit {
             #expect(tickAttempts(memory: memory, level: level).first?.reason == "request")
@@ -123,7 +123,7 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
 @Test func tickTimingAndCapsFollowLiveliness() {
     for (level, followup, requests, interval, burst, screen) in [
         (Liveliness.quiet, 0.0, 0, 0.0, [Double](), 0),
-        (.lively, 20, 2, 8, [3], 8), (.rowdy, 10, 3, 5, [1.5, 3], 14)
+        (.lively, 12, 3, 6, [3], 8), (.rowdy, 0, 8, 1.5, [1.5, 3], 40)
     ] {
         #expect(SpriteTick.followupDelay(level: level) == followup)
         #expect(SpriteTick.requestsPerScreen(level: level) == requests)
@@ -135,13 +135,13 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
 
 @Test func spriteRequestCountFollowsOnScreenLimitUpToEight() {
     for (level, counts) in [(Liveliness.lively, [3, 3, 3, 4, 5, 6, 7, 8, 8, 8]),
-                            (.rowdy, [4, 4, 4, 4, 5, 6, 7, 8, 8, 8])] {
+                            (.rowdy, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5])] {
         for (index, expected) in counts.enumerated() {
             #expect(SpriteTick.requestCount(level: level, maxOnScreen: index + 1) == expected)
         }
     }
     #expect(SpriteTick.screenLimit(level: .lively, maxOnScreen: 10) == 10)
-    #expect(SpriteTick.screenLimit(level: .rowdy, maxOnScreen: 10) == 14)
+    #expect(SpriteTick.screenLimit(level: .rowdy, maxOnScreen: 10) == 40)
 }
 
 @Test func spriteModelBudgetUsesSlidingWindowAndConfiguredLimit() {

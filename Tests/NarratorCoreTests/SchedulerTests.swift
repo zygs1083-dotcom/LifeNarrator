@@ -36,7 +36,7 @@ import Testing
 }
 
 @Test func schedulerLivelinessPresets() {
-    for (level, gap, limit, cooldown) in [(Liveliness.quiet, 2.0, 3, 600.0), (.lively, 2, 10, 120.0), (.rowdy, 2, 20, 60.0)] {
+    for (level, gap, limit, cooldown) in [(Liveliness.quiet, 2.0, 3, 600.0), (.lively, 2, 10, 120.0), (.rowdy, 2, 30, 60.0)] {
         let settings = Scheduler.Settings(level: level)
         #expect(settings.minGap == gap)
         #expect(settings.globalPerMinute == limit)

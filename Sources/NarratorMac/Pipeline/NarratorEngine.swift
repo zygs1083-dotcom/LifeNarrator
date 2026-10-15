@@ -105,7 +105,21 @@ public final class NarratorEngine {
     private var requestPending = false
     private var emptyScreens: Set<UInt64> = []
     private var windowRequests: [CGWindowID: Date] = [:]
-    private var modelBudget = SpriteModelBudget(perMinute: 4)
+    private var modelBudget = SpriteModelBudget(level: .lively)
+    private var locatedByScreen: [UInt64: Int] = [:]
+    private var cadence: Task<Void, Never>?
+    private var ambientTask: Task<Void, Never>?
+    private var ambientCache = SpriteAmbientCache()
+    private var configuredLanguage: Lang?
+    private var openerShown: [String: Date] = [:]
+    private var enteredWindowAt = Date()
+    private var appSeconds: [String: TimeInterval] = [:]
+    private var activityApp: String?
+    private var activitySince = Date()
+    private var activityDay = Calendar.current.startOfDay(for: Date())
+    private var windowSwitches: [Date] = []
+    private var minuteStats = SpriteMinuteStats(now: Date())
+    private var statsTask: Task<Void, Never>?
     private let debug = ProcessInfo.processInfo.environment["LIFENARRATOR_DEBUG"] == "1"
 
     private struct ModelRequest {
@@ -139,12 +153,25 @@ public final class NarratorEngine {
     func start() throws {
         configure()
         try sensor.start()
+        if debug {
+            statsTask = Task {
+                do {
+                    while true {
+                        try await Task.sleep(for: .seconds(60))
+                        FileHandle.standardError.write(Data((minuteStats.line(now: Date()) + "\n").utf8))
+                    }
+                } catch is CancellationError { return }
+                catch { report(error) }
+            }
+        }
     }
 
     func configure() {
         let settings = store.settings
         let levelChanged = overlay.liveliness != settings.liveliness
         let personaChanged = configuredPersona != settings.persona
+        if personaChanged || configuredLanguage != settings.language.lang { ambientCache = SpriteAmbientCache() }
+        configuredLanguage = settings.language.lang
         configuredPersona = settings.persona
         if personaChanged { memory = SpriteMemory(level: settings.liveliness) }
         matcher = makeMatcher()
@@ -157,7 +184,7 @@ public final class NarratorEngine {
         cancelScreen()
         if modelTask != nil { requestPending = true }
         if levelChanged {
-            modelBudget = SpriteModelBudget(perMinute: settings.liveliness == .rowdy ? 6 : 4)
+            modelBudget = SpriteModelBudget(level: settings.liveliness)
             screenCount = 0
         }
         if levelChanged || personaChanged || settings.paused {
@@ -167,6 +194,7 @@ public final class NarratorEngine {
         guard let snapshot else { return }
         candidates = matcher.candidates(in: snapshot, now: Date(), appChanged: true, hostChanged: true)
         runTick(.snapshot, switching: false)
+        startCadence()
     }
 
     private func makeMatcher() -> RuleMatcher {
@@ -276,6 +304,12 @@ public final class NarratorEngine {
         }
         if switching {
             let now = snapshot.capturedAt
+            updateActivity(now: now)
+            activityApp = snapshot.bundleId
+            enteredWindowAt = now
+            windowSwitches = windowSwitches.filter { now.timeIntervalSince($0) < 600 }
+            windowSwitches.append(now)
+            startCadence()
             visits = visits.filter { now.timeIntervalSince($0.value) < 120 }
             revisits = revisits.filter { now.timeIntervalSince($0.value) < 600 }
             revisitAllowed = SpriteTick.revisitAllowed(lastVisit: visits[id], lastRevisit: revisits[id], now: now)
@@ -309,9 +343,8 @@ public final class NarratorEngine {
 
     private func requestAllowed(now: Date) -> Bool {
         guard modelTask == nil, let windowID, let screenKey, !emptyScreens.contains(screenKey) else { return false }
-        var budget = modelBudget
         return now.timeIntervalSince(windowRequests[windowID] ?? .distantPast) >= SpriteTick.windowRequestInterval(level: store.settings.liveliness)
-            && budget.begin(now: now)
+            && modelBudget.allows(now: now)
     }
 
     private func tick(_ kind: SpriteTick, switching: Bool, generation: Int) async throws {
@@ -338,24 +371,36 @@ public final class NarratorEngine {
             return
         }
         let level = store.settings.liveliness
+        if level == .rowdy && kind == .followup && !rowdyPrefetchAllowed(now: now) { return }
         let generator = level != .quiet && !ProcessInfo.processInfo.isLowPowerModeEnabled ? try store.textGenerator() : nil
         let screen = SpritePrompt.screen(in: snapshot)
-        let attempts = SpriteTick.attempts(in: snapshot, candidates: candidates, memory: memory,
+        if switching { try showOpener(snapshot, now: now) }
+        let attempts = SpriteTick.attempts(in: snapshot, candidates: candidates.filter {
+            !(level == .rowdy && $0.rule.source == .builtin && ($0.rule.kind == .app || $0.rule.kind == .site))
+        }, memory: memory,
             level: level, switching: switching, scheduler: scheduler, revisitAllowed: revisitAllowed,
             screen: screen, screenKey: screenKey, hasModel: generator != nil,
             requestAllowed: requestAllowed(now: now), now: now)
         releaseTargets(attempts.filter { $0.target?.category == .rule }, tick: kind, generation: generation)
         guard generation == self.generation else { return }
-        let marks = attempts.filter { $0.mark != nil }
-        if !marks.isEmpty {
-            replay(marks, generation: generation)
-        } else if attempts.contains(where: { $0.reason == "request" }), let generator {
+        let marks = attempts.filter { attempt in
+            guard let mark = attempt.mark else { return false }
+            return !queuedPlaces.values.contains { normalized($0.quote) == normalized(mark.quote) }
+        }
+        if !marks.isEmpty { replay(marks, generation: generation) }
+        let prefetch = SpriteTick.prefetchAllowed(level: level, succeeded: true,
+            located: locatedByScreen[screenKey] ?? 0, queued: queuedPlaces.count,
+            requests: memory.screenStatus(key: screenKey, now: now)?.requests ?? 0,
+            budgetAllowed: requestAllowed(now: now))
+        if (marks.isEmpty && attempts.contains(where: { $0.reason == "request" }) || prefetch), let generator {
             log(snapshot, kind, source: "model", shown: false, reason: "waiting-model")
             enqueueModel(ModelRequest(snapshot: snapshot, screen: screen, key: screenKey, windowID: windowID!,
                 generation: generation, lang: store.settings.language.lang,
                 persona: store.settings.persona, catalog: store.personas, level: level,
-                exclude: memory.shownQuotes(bundleId: snapshot.bundleId, now: now), generator: generator))
-        } else {
+                exclude: level == .rowdy
+                    ? memory.requestQuotes(bundleId: snapshot.bundleId, queued: queuedPlaces.values.map(\.quote), now: now)
+                    : memory.shownQuotes(bundleId: snapshot.bundleId, now: now), generator: generator))
+        } else if marks.isEmpty {
             let local = attempts.filter { $0.target != nil && $0.target?.category != .rule }
             releaseTargets(local, tick: kind, generation: generation)
             if generator == nil && kind == .snapshot { scheduleLocalMarks(generation: generation) }
@@ -571,7 +616,12 @@ public final class NarratorEngine {
         if modelTask != nil { requestPending = true; return }
         let now = Date()
         guard request.generation == generation, requestAllowed(now: now), modelBudget.begin(now: now) else { return }
-        if let evicted = memory.recordRequest(key: request.key, now: now) { emptyScreens.remove(evicted) }
+        ambientTask?.cancel()
+        if let evicted = memory.recordRequest(key: request.key, now: now) {
+            emptyScreens.remove(evicted)
+            locatedByScreen.removeValue(forKey: evicted)
+        }
+        minuteStats.begin(now: now)
         windowRequests = windowRequests.filter { now.timeIntervalSince($0.value) < 60 }
         windowRequests[request.windowID] = now
         modelTask = Task { await generate(request, started: now) }
@@ -611,6 +661,7 @@ public final class NarratorEngine {
                     guard request.generation == generation else { throw CancellationError() }
                     try await waitForGap(generation: request.generation)
                     _ = try await showMark(mark, id: id, source: "model", reason: "ok", generation: request.generation)
+                    if rowdyPrefetchAllowed(now: Date()) { runTick(.followup) }
                 }
             } catch is CancellationError { return }
             catch { report(error) }
@@ -649,6 +700,7 @@ public final class NarratorEngine {
             else { reason = "error"; report(error) }
         }
         let finished = Date()
+        minuteStats.end(now: finished, wasCancelled: reason == "cancelled")
         timeout.cancel()
         continuation.finish()
         let queuedIDs = await cache.value
@@ -659,13 +711,20 @@ public final class NarratorEngine {
             let first = metrics.first.map { Int($0.timeIntervalSince(started) * 1000) } ?? -1
             FileHandle.standardError.write(Data("[sprite] model request k=\(k) lines=\(request.screen.lines.count) tokens≈\(Int(request.screen.tokens)) prefill=\(Int(prefill * 1000)) first=\(first) total=\(Int(finished.timeIntervalSince(started) * 1000)) marks=\(metrics.marks) located=\(metrics.located) reason=\(reason) exclude=\(request.exclude.count) started=\(Int(started.timeIntervalSince1970 * 1000))\n".utf8))
         }
-        if reason == "ok" && metrics.located == 0 { emptyScreens.insert(request.key) }
+        if reason == "ok" {
+            locatedByScreen[request.key] = metrics.located
+            if metrics.located == 0 { emptyScreens.insert(request.key) }
+        }
         modelTask = nil
+        if request.level == .rowdy && reason == "ok" && metrics.located > 0
+            && request.generation == generation && request.key == screenKey {
+            runTick(.followup)
+        }
         let followupAllowed = reason == "ok" && metrics.located > 0
         Task {
             await reader.value
             for id in queuedIDs { queuedPlaces.removeValue(forKey: id) }
-            if followupAllowed && request.generation == generation && request.key == screenKey {
+            if request.level != .rowdy && followupAllowed && request.generation == generation && request.key == screenKey {
                 scheduleFollowup(generation: request.generation)
             }
         }
@@ -703,11 +762,144 @@ public final class NarratorEngine {
         }
     }
 
+    private func rowdyPrefetchAllowed(now: Date) -> Bool {
+        guard let screenKey else { return false }
+        return SpriteTick.prefetchAllowed(level: store.settings.liveliness, succeeded: true,
+            located: locatedByScreen[screenKey] ?? 0, queued: queuedPlaces.count,
+            requests: memory.screenStatus(key: screenKey, now: now)?.requests ?? 0,
+            budgetAllowed: requestAllowed(now: now))
+    }
+
+    private func startCadence() {
+        cadence?.cancel()
+        guard store.settings.liveliness != .quiet else { return }
+        let generation = generation
+        cadence = Task {
+            do {
+                while true {
+                    try await Task.sleep(for: .seconds(1))
+                    try Task.checkCancellation()
+                    guard generation == self.generation else { return }
+                    if rowdyPrefetchAllowed(now: Date()) {
+                        try await tick(.followup, switching: false, generation: generation)
+                    }
+                    try ambientPulse()
+                }
+            } catch is CancellationError { return }
+            catch { report(error) }
+        }
+    }
+
+    private func updateActivity(now: Date) {
+        let day = Calendar.current.startOfDay(for: now)
+        if activityDay != day {
+            appSeconds = [:]
+            activityDay = day
+            activitySince = max(activitySince, day)
+        }
+        if let activityApp { appSeconds[activityApp, default: 0] += now.timeIntervalSince(activitySince) }
+        activitySince = now
+    }
+
+    private func ambientPulse() throws {
+        guard let snapshot, let screenKey, try quietReason(snapshot, now: Date()) == nil else { return }
+        let now = Date()
+        let settings = store.settings
+        let exhausted = locatedByScreen[screenKey] == 0 || emptyScreens.contains(screenKey)
+            || (memory.screenStatus(key: screenKey, now: now)?.requests ?? 0) >= SpriteTick.requestsPerScreen(level: settings.liveliness)
+        guard SpriteTick.ambientAllowed(level: settings.liveliness, dwell: now.timeIntervalSince(enteredWindowAt),
+            sinceLast: now.timeIntervalSince(lastShownAt ?? enteredWindowAt), exhausted: exhausted,
+            typing: try sensor.isTyping(now: now), hasModel: !ProcessInfo.processInfo.isLowPowerModeEnabled),
+            queuedPlaces.isEmpty, modelTask == nil, !requestPending,
+            let generator = try store.textGenerator() else { return }
+        guard scheduler.canShow(ruleID: nil, now: now) else { return }
+        if let llama = generator as? LlamaGenerator, llama.isBusy { return }
+        if let quip = ambientCache.take(app: snapshot.bundleId, now: now,
+            isRepeat: { store.said.isRepeat($0, now: now) }) {
+            _ = try displayCorner(quip, ruleID: "sprite-ambient", source: "ambient")
+            return
+        }
+        guard ambientTask == nil, !ambientCache.contains(app: snapshot.bundleId, now: now),
+              modelBudget.begin(now: now) else { return }
+        updateActivity(now: now)
+        windowSwitches.removeAll { now.timeIntervalSince($0) >= 600 }
+        let time = Calendar.current.dateComponents([.hour, .minute], from: now)
+        let signals = SpriteAmbientSignals(app: snapshot.appName, title: snapshot.windowTitle ?? "",
+            minutes: Int(appSeconds[snapshot.bundleId, default: 0] / 60), hour: time.hour!, minute: time.minute!,
+            switches: windowSwitches.count, typedRecently: now.timeIntervalSince(sensor.lastTypedAt) < 60)
+        let recent = store.said.recent(8)
+        let catalog = store.personas
+        let generation = generation
+        minuteStats.begin(now: now)
+        ambientTask = Task {
+            defer {
+                ambientTask = nil
+                minuteStats.end(now: Date(), wasCancelled: Task.isCancelled)
+            }
+            do {
+                let lines = try await SpriteAmbient.generate(signals: signals, persona: settings.persona,
+                    lang: settings.language.lang, recent: recent, generator: generator, catalog: catalog)
+                try Task.checkCancellation()
+                guard generation == self.generation else { return }
+                ambientCache.store(lines, app: snapshot.bundleId, now: Date())
+                try ambientPulse()
+            } catch is CancellationError { return }
+            catch { report(error) }
+        }
+    }
+
+    private func showOpener(_ snapshot: ContextSnapshot, now: Date) throws {
+        guard store.settings.liveliness == .rowdy else { return }
+        let rules = store.builtin.rules.filter { $0.kind == .app || $0.kind == .site }
+        let matches = RuleMatcher(rules: rules, disabledBuiltinIds: store.settings.disabledBuiltinIds)
+            .candidates(in: snapshot, now: now, appChanged: true, hostChanged: true)
+        for candidate in matches {
+            let rule = candidate.rule
+            guard SpriteTick.openerAllowed(level: store.settings.liveliness, kind: rule.kind,
+                last: openerShown[rule.id], now: now) else { continue }
+            var nextPicker = picker
+            guard let quip = nextPicker.pick(for: rule, lang: store.settings.language.lang,
+                persona: store.settings.persona, pack: .init(version: 1, rules: [], generic: [:]), now: now,
+                isRepeat: { store.said.isRepeat($0, now: now) }, using: &random, catalog: store.personas) else { continue }
+            if try displayCorner(quip, ruleID: rule.id, source: "opener") {
+                picker = nextPicker
+                openerShown[rule.id] = now
+                break
+            }
+        }
+    }
+
+    @discardableResult
+    private func displayCorner(_ quip: Quip, ruleID: String, source: String) throws -> Bool {
+        let now = Date()
+        guard let snapshot, let windowID, try quietReason(snapshot, now: now) == nil,
+              try !sensor.isTyping(now: now),
+              scheduler.canShow(ruleID: nil, now: now, ignoringGap: source == "opener") else { return false }
+        if store.said.isRepeat(quip.text, now: now) {
+            log(snapshot, .mark, source: source, shown: false, reason: "repeat")
+            return false
+        }
+        let shown = overlay.show(Narration(id: UUID().uuidString, quipID: quip.text, ruleID: ruleID,
+            sequence: screenCount, text: quip.text, emoji: quip.emoji, language: quip.lang.rawValue,
+            persona: quip.persona, anchor: nil, windowID: windowID,
+            window: WindowGeometry(frame: snapshot.windowFrame, chromeHeight: chromeHeight), framed: false))
+        if shown {
+            scheduler.recordShown(ruleID: nil, now: now)
+            lastShownAt = now
+        }
+        log(snapshot, .mark, source: source, shown: shown, reason: shown ? "ok" : "placement",
+            quipHash: shown ? SaidHistory.textHash(quip.text) : nil)
+        if shown { try store.recordSaid(quip.text, now: now) }
+        return shown
+    }
+
     private func cancelScreen() {
         generation += 1
         releases.values.forEach { $0.cancel() }
         releases = [:]
         followup?.cancel()
+        cadence?.cancel()
+        ambientTask?.cancel()
         ocr?.cancel()
         modelTask?.cancel()
         requestPending = false
@@ -743,6 +935,8 @@ public final class NarratorEngine {
     }
 
     private func windowChanged() {
+        updateActivity(now: Date())
+        activityApp = nil
         cancelScreen()
         overlay.dismissAll()
         snapshot = nil
@@ -757,6 +951,7 @@ public final class NarratorEngine {
                      source: String = "local", place: String = "corner", shown: Bool, reason: String,
                      quipHash: UInt32? = nil) {
         guard debug else { return }
+        minuteStats.record(source: source, shown: shown, repeatRejected: reason == "repeat")
         let elapsed = Int(Date().timeIntervalSince(snapshot.capturedAt) * 1000)
         let hash = quipHash.map { " qh=" + String(format: "%08x", $0) } ?? ""
         FileHandle.standardError.write(Data("[sprite] \(snapshot.bundleId) tick=\(tick.rawValue) pick=\(pick) rect=\(rect) source=\(source) place=\(place) show=\(shown) reason=\(reason) \(elapsed)ms\(hash)\n".utf8))

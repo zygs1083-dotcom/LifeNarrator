@@ -10,6 +10,8 @@ public enum LlamaGrammar {
         case GenerationPrompts.compiledRuleSchema: return compiledRule
         case GenerationPrompts.quipsSchema: return quips
         case GenerationPrompts.quipsLongSchema: return quipsLong
+        case SpriteAmbient.schema: return ambient
+        case SpriteAmbient.longSchema: return ambientLong
         case PersonaGenerator.schema: return persona
         case GenerationPrompts.spriteMarksSchema: return spriteMarks
         case GenerationPrompts.spriteMarksLongSchema: return spriteMarksLong
@@ -45,7 +47,18 @@ public enum LlamaGrammar {
     ws ::= [ \t\n\r]{0,4}
     """#
 
+    public static let ambient = #"""
+    root ::= "{" ws "\"lines\"" ws ":" ws "[" ws aside (ws "," ws aside){2,5} ws "]" ws "}" ws
+    aside ::= "{" ws "\"t\"" ws ":" ws text ws "," ws "\"e\"" ws ":" ws emoji ws "}"
+    """# + "\n" + spriteMarks.split(separator: "\n").filter {
+        line in ["text ::=", "zh ::=", "en ::=", "emoji ::=", "ebase ::=", "ws ::="].contains { line.hasPrefix($0) }
+    }.joined(separator: "\n")
+
     public static let spriteMarksLong = spriteMarks
+        .replacingOccurrences(of: "{1,20}", with: "{1,28}")
+        .replacingOccurrences(of: "{1,56}", with: "{1,80}")
+
+    public static let ambientLong = ambient
         .replacingOccurrences(of: "{1,20}", with: "{1,28}")
         .replacingOccurrences(of: "{1,56}", with: "{1,80}")
 
