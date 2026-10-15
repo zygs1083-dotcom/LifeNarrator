@@ -21,7 +21,7 @@ internal static class UiaSpike
         var textFile = Path.Combine(fixture, "T19-notepad.txt");
         File.WriteAllText(textFile, $"{English}\r\nSecond English line\r\n{Chinese}\r\n这是中文第二行。", new UTF8Encoding(true));
         var html = Path.Combine(fixture, "T19-edge.html");
-        File.WriteAllText(html, $"<!doctype html><html lang='zh'><meta charset='utf-8'><title>T19 Edge fixture</title>"
+        File.WriteAllText(html, $"<!doctype html><html lang='en'><meta charset='utf-8'><title>T19 Edge fixture</title>"
             + $"<body style='margin:40px;font:24px/40px sans-serif'><p>{English}</p><p>{Chinese}</p>"
             + "<p>Third visible line</p><a href='#test'>Fixture link</a><button>Fixture button</button></body></html>");
         var automation = new CUIAutomation();
@@ -72,6 +72,7 @@ internal static class UiaSpike
             if (Native.GetForegroundWindow() != handle) throw new Exception($"Foreground is not {title}");
             var segments = new List<Segment>();
             var errors = new List<string>();
+            var patterns = new List<object>();
             var elements = target.FindAll(TreeScope.TreeScope_Subtree, condition);
             for (var i = 0; i < elements.Length; i++)
             {
@@ -82,7 +83,16 @@ internal static class UiaSpike
                     var role = $"{element.CurrentControlType}:{element.CurrentLocalizedControlType}";
                     var text = element.CurrentName;
                     if (!string.IsNullOrWhiteSpace(text)) segments.Add(new("element", role, text, [Rect(element.CurrentBoundingRectangle)]));
-                    if (!(bool)element.GetCurrentPropertyValue(30040)) continue; // UIA_IsTextPatternAvailablePropertyId
+                    var hasText = (bool)element.GetCurrentPropertyValue(30040);
+                    var hasValue = (bool)element.GetCurrentPropertyValue(30043);
+                    if (element.CurrentControlType is 50004 or 50030)
+                        patterns.Add(new { role, name = text, textPattern = hasText, valuePattern = hasValue });
+                    if (hasValue)
+                    {
+                        var value = (IUIAutomationValuePattern)element.GetCurrentPattern(10002);
+                        segments.Add(new("ValuePattern.fullValue", role, value.CurrentValue, [Rect(element.CurrentBoundingRectangle)]));
+                    }
+                    if (!hasText) continue;
                     var pattern = (IUIAutomationTextPattern)element.GetCurrentPattern(10014);
                     var ranges = pattern.GetVisibleRanges();
                     for (var r = 0; r < ranges.Length; r++)
@@ -103,7 +113,7 @@ internal static class UiaSpike
                 && r.X >= bounds.X && r.Y >= bounds.Y && r.X + r.Width <= bounds.X + bounds.Width + 1
                 && r.Y + r.Height <= bounds.Y + bounds.Height + 1);
             Native.CaptureScreen(Artifact.PathFor($"uia-{name}.png"), new PixelRect(0, 0, Native.GetSystemMetrics(0), Native.GetSystemMetrics(1)));
-            results.Add(new { name, title = target.CurrentName, window = bounds, foreground = true, segments, errors,
+            results.Add(new { name, title = target.CurrentName, window = bounds, foreground = true, segments, patterns, errors,
                 englishReadable = body.Any(x => x.Text.Contains(English)), chineseReadable = body.Any(x => x.Text.Contains(Chinese)),
                 bodyRectanglesInWindow = rectanglesInWindow, bodySegments = body.Length });
         }

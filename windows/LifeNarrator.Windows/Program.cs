@@ -40,6 +40,8 @@ public sealed class OverlayApp : Application
             Topmost = true, CanResize = false, Background = Brushes.Transparent,
             TransparencyLevelHint = [WindowTransparencyLevel.Transparent], Content = new BubbleSample()
         };
+        // Avalonia recomputes extended styles when showing or changing window properties.
+        Win32Properties.AddWindowStylesCallback(window, (style, extended) => (style, extended | Native.OverlayExtendedStyles));
         var screen = window.Screens.Primary!;
         window.Position = screen.Bounds.Position;
         window.Width = screen.Bounds.Width / screen.Scaling;
@@ -49,6 +51,7 @@ public sealed class OverlayApp : Application
         var foreground = Native.GetForegroundWindow();
         window.Opened += async (_, _) =>
         {
+            Native.EnableLayeredWindow(handle);
             await Task.Delay(1500);
             var styles = Native.OverlayStyles(handle);
             Native.CaptureScreen(Artifact.PathFor("overlay.png"), screen.Bounds);

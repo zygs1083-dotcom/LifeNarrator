@@ -10,6 +10,12 @@ internal static class Native
 {
     const int ExStyle = -20;
     const long Layered = 0x80000, Transparent = 0x20, Topmost = 0x8, ToolWindow = 0x80, NoActivate = 0x8000000;
+    public const uint OverlayExtendedStyles = (uint)(Layered | Transparent | ToolWindow | NoActivate);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool SetLayeredWindowAttributes(nint window, uint key, byte alpha, uint flags);
+    public static void EnableLayeredWindow(nint window)
+    {
+        if (!SetLayeredWindowAttributes(window, 0, 255, 2)) throw new Win32Exception();
+    }
     [DllImport("user32.dll")] public static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(nint window);
@@ -38,7 +44,7 @@ internal static class Native
     {
         Marshal.SetLastPInvokeError(0);
         if (SetWindowLongPtrW(window, ExStyle, (nint)(GetWindowLongPtrW(window, ExStyle).ToInt64()
-                | Layered | Transparent | ToolWindow | NoActivate)) == 0 && Marshal.GetLastPInvokeError() != 0)
+                | OverlayExtendedStyles)) == 0 && Marshal.GetLastPInvokeError() != 0)
             throw new Win32Exception();
         if (!SetWindowPos(window, -1, 0, 0, 0, 0, 0x1 | 0x2 | 0x10 | 0x20)) throw new Win32Exception();
     }
