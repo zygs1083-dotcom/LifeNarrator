@@ -41,24 +41,32 @@ public final class NarratorEngine {
     }
 
     func start() throws {
-        try configure()
+        configure()
         try sensor.start()
         brain.start()
     }
 
-    func configure() throws {
+    func configure() {
         overlay.personas = store.personas
         overlay.style = store.settings.bubbleStyle
         overlay.liveliness = store.settings.liveliness
         let settings = store.settings
-        let systemOne = try settings.systemOne.map {
-            BrainSettings.SystemOne(url: try $0.validatedURL(), model: $0.model, key: try KeychainStore.read(account: "systemOne"))
+        let systemOne = settings.systemOne.map { configuration in
+            BrainSettings.SystemOne(model: configuration.model, connection: Result {
+                (url: try configuration.validatedURL(), key: try KeychainStore.read(account: "systemOne"))
+            })
         }
-        let generator = try store.textGenerator()
+        let available: Bool
+        switch settings.provider {
+        case .none: available = false
+        case .builtin: if case .ready = store.downloader.state { available = true } else { available = false }
+        case .api: available = true
+        }
+        let generator = Result { try store.textGenerator() }
         brain.configure(settings: BrainSettings(liveliness: settings.liveliness, markGap: settings.markGap,
             paused: settings.paused, blacklist: settings.blacklist, persona: settings.persona,
             lang: settings.language.lang, disabledBuiltinIds: settings.disabledBuiltinIds,
-            maxOnScreen: settings.bubbleStyle.maxOnScreen, modelAvailable: generator != nil,
+            maxOnScreen: settings.bubbleStyle.maxOnScreen, modelAvailable: available,
             systemOne: systemOne, ownProcessID: getpid()),
             content: BrainContent(rules: store.rules, builtin: store.builtin, personas: store.personas),
             generator: generator)

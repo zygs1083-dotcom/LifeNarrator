@@ -8,14 +8,12 @@ public protocol GeneratorMetrics: Sendable {
 
 public struct BrainSettings: Sendable {
     public struct SystemOne: Sendable {
-        public var url: URL
         public var model: String
-        public var key: String
+        public var connection: Result<(url: URL, key: String), any Error>
 
-        public init(url: URL, model: String, key: String) {
-            self.url = url
+        public init(model: String, connection: Result<(url: URL, key: String), any Error>) {
             self.model = model
-            self.key = key
+            self.connection = connection
         }
     }
 

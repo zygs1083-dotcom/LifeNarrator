@@ -28,7 +28,7 @@ public final class AppStore: ObservableObject {
                 }
                 llama = nil
             }
-            perform { try engine?.configure() }
+            engine?.configure()
         }
     }
     @Published public private(set) var personas: PersonaCatalog
@@ -67,7 +67,7 @@ public final class AppStore: ObservableObject {
         downloadSubscriptions = downloaders.map { downloader in
             downloader.$state.dropFirst().sink { [unowned self] state in
                 self.objectWillChange.send()
-                self.perform { try self.engine?.configure() }
+                self.engine?.configure()
                 if case .ready = state { self.pregenerator.schedule() }
             }
         }
@@ -200,7 +200,7 @@ public final class AppStore: ObservableObject {
     private func saveRules(_ updated: [Rule]) throws {
         try RuleLoader.save(updated, to: directory.rules)
         rules = updated
-        perform { try engine?.configure() }
+        engine?.configure()
     }
 
     public func releaseModel() async {
@@ -211,7 +211,7 @@ public final class AppStore: ObservableObject {
 
     func saveAPIKey(_ key: String, account: String) throws {
         try KeychainStore.save(key, account: account)
-        try engine?.configure()
+        engine?.configure()
     }
 
     public func textGenerator() throws -> (any TextGenerator)? {
@@ -260,7 +260,7 @@ public final class AppStore: ObservableObject {
         let updated = PersonaCatalog(custom: personas.custom.filter { $0.id != id })
         try updated.save(to: directory.personas)
         personas = updated
-        perform { try engine?.configure() }
+        engine?.configure()
     }
 
     public func compile(_ input: String, generator: (any TextGenerator)?) async throws -> Rule {

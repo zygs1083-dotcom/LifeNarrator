@@ -105,7 +105,7 @@ private actor BrainGenerator: TextGenerator {
 
     func configure(_ generator: (any TextGenerator)? = nil) {
         settings.modelAvailable = generator != nil
-        brain.configure(settings: settings, content: content, generator: generator)
+        brain.configure(settings: settings, content: content, generator: .success(generator))
     }
 
     func snapshot(_ texts: [String] = ["quoted first phrase"], window: UInt32 = 1, switching: Bool = true,
@@ -259,6 +259,48 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.snapshot()
         try await Task.sleep(for: .milliseconds(100))
         #expect(await generator.prompts.isEmpty)
+        try f.finish()
+    }
+
+    @Test func invalidGeneratorConfigurationStillAppliesPauseAndReportsWhenUsed() async throws {
+        enum InvalidConfiguration: Error { case invalidURL }
+        let f = try BrainFixture()
+        f.settings.paused = true
+        f.brain.configure(settings: f.settings, content: f.content, generator: .failure(InvalidConfiguration.invalidURL))
+        f.snapshot()
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(f.host.errors.isEmpty)
+        f.settings.paused = false
+        f.brain.configure(settings: f.settings, content: f.content, generator: .failure(InvalidConfiguration.invalidURL))
+        try await eventually { !f.host.errors.isEmpty }
+        #expect(f.host.errors.allSatisfy { $0 == "invalidURL" })
+        f.host.errors = []
+        try f.finish()
+    }
+
+    @Test func invalidSystemOneConnectionOnlyFailsWhenDecisionIsNeeded() async throws {
+        enum InvalidConfiguration: Error { case invalidURL }
+        let f = try BrainFixture()
+        f.settings.liveliness = .quiet
+        f.settings.systemOne = .init(model: "", connection: .failure(InvalidConfiguration.invalidURL))
+        var rule = Rule(id: "app", kind: .app, source: .user, label: Label(zh: "应用", en: "App"),
+            sentiment: .neutral, match: Match(bundleIds: ["fixture"]), highlight: false,
+            quips: [Quip(lang: .zh, persona: .gentle, text: "咖啡还没凉", emoji: ["🌷"])])
+        f.content.rules = [rule]
+        f.configure()
+        f.snapshot([])
+        try await eventually { f.overlay.narrations.count == 1 }
+        #expect(f.host.errors.isEmpty)
+        rule.id = "topic"
+        rule.kind = .topic
+        rule.match = Match(aliases: ["first phrase"])
+        f.content.rules = [rule]
+        f.configure()
+        f.snapshot(window: 2)
+        try await eventually { !f.host.errors.isEmpty }
+        #expect(f.host.errors.allSatisfy { $0 == "invalidURL" })
+        #expect(f.overlay.narrations.count == 1)
+        f.host.errors = []
         try f.finish()
     }
 

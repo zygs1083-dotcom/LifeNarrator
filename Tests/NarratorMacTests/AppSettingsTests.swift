@@ -129,7 +129,7 @@ final class AppSettingsTests: XCTestCase {
         let engine = try NarratorEngine(store: store)
         for level in [Liveliness.quiet, .lively, .rowdy] {
             store.settings.liveliness = level
-            try engine.configure()
+            engine.configure()
             let brain = try XCTUnwrap(Mirror(reflecting: engine).descendant("brain") as? SpriteBrain)
             let scheduler = Mirror(reflecting: brain).descendant("scheduler") as! Scheduler
             XCTAssertEqual(scheduler.settings.minGap, 9)

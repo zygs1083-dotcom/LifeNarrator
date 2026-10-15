@@ -80,7 +80,7 @@ public final class SpriteBrain {
     private var said: SaidHistory
     private var settings: BrainSettings!
     private var content: BrainContent!
-    private var generator: (any TextGenerator)?
+    private var generator: Result<(any TextGenerator)?, any Error>!
     private var revision = 0
     private var presenting = false
     private var presentationWaiters: [CheckedContinuation<Void, Never>] = []
@@ -168,7 +168,8 @@ public final class SpriteBrain {
         }
     }
 
-    public func configure(settings: BrainSettings, content: BrainContent, generator: (any TextGenerator)?) {
+    // Defer configuration failures until the engine actually needs the corresponding service.
+    public func configure(settings: BrainSettings, content: BrainContent, generator: Result<(any TextGenerator)?, any Error>) {
         let levelChanged = (self.settings?.liveliness ?? .lively) != settings.liveliness
         let personaChanged = configuredPersona != settings.persona
         self.settings = settings
@@ -431,10 +432,10 @@ public final class SpriteBrain {
             try checkGeneration(generation)
             guard allowed else { return }
         }
+        let generator = level != .quiet && !lowPower ? try self.generator.get() : nil
         if switching { try await showOpener(snapshot, now: now) }
         try checkGeneration(generation)
         guard let snapshot = self.snapshot, let screenKey else { return }
-        let generator = level != .quiet && !lowPower ? self.generator : nil
         let screen = SpritePrompt.screen(in: snapshot)
         let attempts = SpriteTick.attempts(in: snapshot, candidates: candidates.filter {
             !(level == .rowdy && $0.rule.source == .builtin && ($0.rule.kind == .app || $0.rule.kind == .site))
@@ -498,7 +499,8 @@ public final class SpriteBrain {
                     needsGeneration: false, now: Date(), model: configuration.model.isEmpty ? "jev-latest" : configuration.model)
                 var response: DecisionResponse?
                 if !plan.request.questions.isEmpty {
-                    let client = SystemOneClient(baseURL: configuration.url, key: configuration.key)
+                    let connection = try configuration.connection.get()
+                    let client = SystemOneClient(baseURL: connection.url, key: connection.key)
                     response = try await client.decide(plan.request)
                     guard generation == self.generation else { return false }
                 }
@@ -909,9 +911,6 @@ public final class SpriteBrain {
         let revision = revision
         guard try await quietReason(snapshot, now: Date()) == nil else { return }
         try checkGeneration(generation)
-        guard revision == self.revision, let generator = self.generator else { return }
-        if let metrics = generator as? any GeneratorMetrics, await metrics.isBusy { return }
-        try checkGeneration(generation)
         guard revision == self.revision else { return }
         let now = Date()
         let settings = self.settings!
@@ -920,8 +919,12 @@ public final class SpriteBrain {
         guard SpriteTick.ambientAllowed(level: settings.liveliness, dwell: now.timeIntervalSince(enteredWindowAt),
             sinceLast: now.timeIntervalSince(lastShownAt ?? enteredWindowAt), exhausted: exhausted,
             typing: typing, hasModel: !lowPower, idleFor: idle),
-            queuedPlaces.isEmpty, modelTask == nil, !requestPending else { return }
+            queuedPlaces.isEmpty, modelTask == nil, !requestPending,
+            let generator = try self.generator.get() else { return }
         guard scheduler.canShow(ruleID: nil, now: now) else { return }
+        if let metrics = generator as? any GeneratorMetrics, await metrics.isBusy { return }
+        try checkGeneration(generation)
+        guard revision == self.revision else { return }
         if let quip = ambientCache.take(app: snapshot.bundleId, now: now,
             isRepeat: { said.isRepeat($0, now: now) }) {
             _ = try await displayCorner(quip, ruleID: "sprite-ambient", source: "ambient")
