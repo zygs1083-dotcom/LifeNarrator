@@ -48,6 +48,7 @@ jobs:
       - run: swift build -c release --product narrator-brain
       - run: windows/scripts/package-brain.ps1
       - name: Publish shell
+        if: ${{ !cancelled() }}
         run: |
           dotnet publish windows/LifeNarrator.Windows -c Release -r win-x64 --self-contained true -o artifacts/shell
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -55,6 +56,7 @@ jobs:
           @{ totalBytes = ($files | Measure-Object Length -Sum).Sum; fileCount = $files.Count; selfContained = $true } |
             ConvertTo-Json | Set-Content artifacts/shell-size.json
       - run: windows/scripts/run-spikes.ps1
+        if: ${{ !cancelled() }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

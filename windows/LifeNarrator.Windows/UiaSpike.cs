@@ -98,7 +98,8 @@ internal static class UiaSpike
             }
             var bounds = Rect(target.CurrentBoundingRectangle);
             var body = segments.Where(x => x.Text.Contains(English) || x.Text.Contains(Chinese)).ToArray();
-            var rectanglesInWindow = body.SelectMany(x => x.Rectangles).All(r => r.Width > 0 && r.Height > 0
+            var bodyRectangles = body.SelectMany(x => x.Rectangles).ToArray();
+            var rectanglesInWindow = bodyRectangles.Length > 0 && bodyRectangles.All(r => r.Width > 0 && r.Height > 0
                 && r.X >= bounds.X && r.Y >= bounds.Y && r.X + r.Width <= bounds.X + bounds.Width + 1
                 && r.Y + r.Height <= bounds.Y + bounds.Height + 1);
             Native.CaptureScreen(Artifact.PathFor($"uia-{name}.png"), new PixelRect(0, 0, Native.GetSystemMetrics(0), Native.GetSystemMetrics(1)));
