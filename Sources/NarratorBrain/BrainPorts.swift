@@ -86,4 +86,6 @@ public struct BrainContent: Sendable {
 
 @MainActor public protocol BrainHost: AnyObject {
     func report(_ error: any Error) async
+    func saveRule(input: String) async throws
+    func applySetting(_ setting: ChatSetting) async throws
 }

@@ -4,6 +4,19 @@ import NarratorCore
 import XCTest
 
 final class AppSettingsTests: XCTestCase {
+    func testChatShortcutDefaultMigrationCustomizationAndRemoval() throws {
+        var settings = AppSettings()
+        let shortcut = settings.chatShortcut
+        XCTAssertNotNil(shortcut)
+        var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(settings)) as! [String: Any]
+        json.removeValue(forKey: "chatShortcut")
+        XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json)).chatShortcut, shortcut)
+        settings.chatShortcut = settings.inputShortcut
+        XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings)).chatShortcut, settings.inputShortcut)
+        settings.chatShortcut = nil
+        XCTAssertNil(try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings)).chatShortcut)
+    }
+
     func testLegacyPersonaStringAndCustomIDRoundTrip() throws {
         var json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as! [String: Any]
         json["persona"] = "sharp"

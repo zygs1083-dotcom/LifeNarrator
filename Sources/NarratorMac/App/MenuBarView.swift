@@ -31,6 +31,9 @@ public struct MenuBarView: View {
             }.frame(minHeight: 28)
             MenuUpdateRow(store: store, updater: store.updater)
             Rectangle().fill(AppTheme.cardStroke).frame(height: 1)
+            Button { store.showChat() } label: {
+                row("chat.open", symbol: "bubble.left.and.bubble.right", shortcut: store.settings.chatShortcut?.description)
+            }
             Button { store.showInput() } label: {
                 row("input.open", symbol: "square.and.pencil", shortcut: store.settings.inputShortcut?.description)
             }

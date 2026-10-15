@@ -55,17 +55,42 @@ public struct AppSettings: Codable {
     public var builtinModel = ModelCatalog.models[0].name
     public var systemOne: APIConfiguration?
     public var inputShortcut: KeyboardShortcuts.Shortcut? = .init(.n, modifiers: [.option, .shift])
+    public var chatShortcut: KeyboardShortcuts.Shortcut? = .init(.space, modifiers: [.option, .shift])
     public var pauseShortcut: KeyboardShortcuts.Shortcut? = .init(.p, modifiers: [.option, .shift])
     public var automaticUpdates = true
     public var onboardingCompleted = false
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case spriteName, memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
+        case spriteName, chatShortcut, memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(language, forKey: .language)
+        try c.encode(persona, forKey: .persona)
+        try c.encode(bubbleStyle, forKey: .bubbleStyle)
+        try c.encode(liveliness, forKey: .liveliness)
+        try c.encode(markGap, forKey: .markGap)
+        try c.encode(memoryEnabled, forKey: .memoryEnabled)
+        try c.encode(paused, forKey: .paused)
+        try c.encode(blacklist, forKey: .blacklist)
+        try c.encode(disabledBuiltinIds, forKey: .disabledBuiltinIds)
+        try c.encode(provider, forKey: .provider)
+        try c.encode(generationAPI, forKey: .generationAPI)
+        try c.encode(builtinModel, forKey: .builtinModel)
+        try c.encodeIfPresent(systemOne, forKey: .systemOne)
+        try c.encodeIfPresent(inputShortcut, forKey: .inputShortcut)
+        try c.encodeIfPresent(pauseShortcut, forKey: .pauseShortcut)
+        try c.encode(chatShortcut, forKey: .chatShortcut)
+        try c.encode(spriteName, forKey: .spriteName)
+        try c.encode(automaticUpdates, forKey: .automaticUpdates)
+        try c.encode(onboardingCompleted, forKey: .onboardingCompleted)
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        if c.contains(.chatShortcut) { chatShortcut = try c.decodeIfPresent(KeyboardShortcuts.Shortcut.self, forKey: .chatShortcut) }
         memoryEnabled = try c.decodeIfPresent(Bool.self, forKey: .memoryEnabled) ?? true
         spriteName = try c.decodeIfPresent(String.self, forKey: .spriteName) ?? ""
         automaticUpdates = try c.decodeIfPresent(Bool.self, forKey: .automaticUpdates) ?? true

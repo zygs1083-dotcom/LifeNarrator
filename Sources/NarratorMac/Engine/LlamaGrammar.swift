@@ -1,5 +1,6 @@
 import Foundation
 import NarratorCore
+import NarratorBrain
 
 /// Hand-written GBNF for the schemas `TextGenerator.generateJSON` receives.
 public enum LlamaGrammar {
@@ -7,6 +8,7 @@ public enum LlamaGrammar {
 
     public static func grammar(for schema: String) throws -> String {
         switch schema {
+        case ChatEngine.schema: return chat
         case GenerationPrompts.compiledRuleSchema: return compiledRule
         case GenerationPrompts.quipsSchema: return quips
         case GenerationPrompts.quipsLongSchema: return quipsLong
@@ -74,6 +76,18 @@ public enum LlamaGrammar {
     char ::= [^"\\\x7f\x00-\x1f] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
     emoji ::= "\"" ebase [️]? ([‍] ebase [️]?){0,3} "\""
     ebase ::= [\U0001f300-\U0001faff☀-➿] [\U0001f3fb-\U0001f3ff]?
+    ws ::= [ \t\n\r]{0,4}
+    """#
+
+    public static let chat = #"""
+    root ::= "{" ws "\"intent\"" ws ":" ws intent ws "," ws "\"reply\"" ws ":" ws reply ws "," ws "\"rule\"" ws ":" ws nullable ws "," ws "\"setting\"" ws ":" ws setting ws "," ws "\"memories\"" ws ":" ws "[" ws (memory (ws "," ws memory)*)? ws "]" ws "," ws "\"forget\"" ws ":" ws nullable ws "}" ws
+    intent ::= "\"chat\"" | "\"rule\"" | "\"setting\"" | "\"remember\"" | "\"forget\"" | "\"recall\""
+    reply ::= "\"" char{1,300} "\""
+    nullable ::= string | "null"
+    setting ::= "null" | "{" ws "\"liveliness\"" ws ":" ws ("\"quiet\"" | "\"lively\"" | "\"rowdy\"" | "null") ws "," ws "\"paused\"" ws ":" ws ("true" | "false" | "null") ws "," ws "\"persona\"" ws ":" ws nullable ws "}"
+    memory ::= "{" ws "\"kind\"" ws ":" ws ("\"fact\"" | "\"preference\"" | "\"nickname\"") ws "," ws "\"text\"" ws ":" ws "\"" char{1,40} "\"" ws "}"
+    string ::= "\"" char* "\""
+    char ::= [^"\\\x7f\x00-\x1f] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
     ws ::= [ \t\n\r]{0,4}
     """#
 
