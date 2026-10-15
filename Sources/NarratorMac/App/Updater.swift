@@ -125,8 +125,10 @@ public final class Updater: NSObject, ObservableObject, URLSessionDownloadDelega
         let app = work.appendingPathComponent("LifeNarrator.app")
         var current: SecCode?
         try checkStatus(SecCodeCopySelf([], &current))
+        var currentStatic: SecStaticCode?
+        try checkStatus(SecCodeCopyStaticCode(current!, [], &currentStatic))
         var requirement: SecRequirement?
-        try checkStatus(SecCodeCopyDesignatedRequirement(current!, [], &requirement))
+        try checkStatus(SecCodeCopyDesignatedRequirement(currentStatic!, [], &requirement))
         var candidate: SecStaticCode?
         try checkStatus(SecStaticCodeCreateWithPath(app as CFURL, [], &candidate))
         try checkStatus(SecStaticCodeCheckValidity(candidate!, SecCSFlags(rawValue: kSecCSCheckAllArchitectures | kSecCSCheckNestedCode), requirement!))
