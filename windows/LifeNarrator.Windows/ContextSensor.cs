@@ -22,6 +22,7 @@ internal sealed class ContextSensor : IDisposable
     int requested = 1;
     DateTimeOffset lastRead, lastScroll;
     DisplayMap display = null!;
+    bool hasTextPattern;
 
     public ContextSensor(DisplayMap[] displays, Action<string, object> emit, Action<string> failed,
         Func<DateTimeOffset> lastTypedAt, Func<DateTimeOffset> scrollAt)
@@ -74,6 +75,7 @@ internal sealed class ContextSensor : IDisposable
         {
             window = foreground;
             lines.Clear();
+            hasTextPattern = false;
             emit("windowChanged", new { });
         }
         if (window == 0) { snapshot = null; return; }
@@ -115,6 +117,7 @@ internal sealed class ContextSensor : IDisposable
         var seen = new HashSet<(string, Box)>();
         var sensitive = new List<Box>();
         string? url = null;
+        var foundTextPattern = false;
         var walker = automation.ControlViewWalker;
         var stack = new Stack<IUIAutomationElement>();
         stack.Push(root);
@@ -129,6 +132,7 @@ internal sealed class ContextSensor : IDisposable
                 {
                     var role = element.CurrentControlType switch { 50000 => "button", 50005 => "link", 50004 => "field", _ => "text" };
                     var hasText = (bool)element.GetCurrentPropertyValue(30040);
+                    foundTextPattern |= hasText;
                     if ((app.Equals("msedge", StringComparison.OrdinalIgnoreCase) || app.Equals("chrome", StringComparison.OrdinalIgnoreCase))
                         && element.CurrentControlType == 50004 && (bool)element.GetCurrentPropertyValue(30043)
                         && (element.CurrentAutomationId is "addressEditBox" or "omnibox"
@@ -159,6 +163,7 @@ internal sealed class ContextSensor : IDisposable
         }
         if (Native.GetForegroundWindow() != window) { RequestRead(); return; }
         lines.Clear(); lines.AddRange(collected);
+        hasTextPattern = foundTextPattern;
         var focused = automation.GetFocusedElement();
         var contentTop = Math.Min(frame.Y + 88, frame.Y + frame.H);
         snapshot = new Snapshot(app, app, root.CurrentProcessId, root.CurrentName, url,
@@ -242,7 +247,7 @@ internal sealed class ContextSensor : IDisposable
                 if (!Native.GetSystemPowerStatus(out var power)) throw new Win32Exception();
                 return power.SystemStatusFlag == 1;
             case "sensor.refresh": lastRead = default; RequestRead(); Tick(); return null;
-            case "sensor.boundsProbe": return lines.Any(x => x.Range != null);
+            case "sensor.boundsProbe": return hasTextPattern;
             case "sensor.startVisualLines": case "sensor.markTrack": return null;
             case "sensor.placementObstacles": return Array.Empty<Box>();
             case "sensor.placementLine": return lines[p.GetProperty("lineIndex").GetInt32()].Line.Rect;

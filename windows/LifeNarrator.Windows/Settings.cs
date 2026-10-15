@@ -42,7 +42,7 @@ internal sealed class Settings
     public object Configuration() => new
     {
         settings = new { Liveliness, MarkGap, Paused, Blacklist, Persona, Lang,
-            disabledBuiltinIds = Array.Empty<string>(), MaxOnScreen, ownProcessID = Environment.ProcessId },
+            disabledBuiltinIds = Array.Empty<string>(), MaxOnScreen, ownProcessID = Environment.ProcessId, memoryEnabled = true },
         rules = Array.Empty<object>(), customPersonas = Array.Empty<object>(),
         generator = Provider.Kind == "none" ? (object)new { kind = "none" } : new
         {

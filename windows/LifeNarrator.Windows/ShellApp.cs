@@ -129,6 +129,7 @@ public sealed class ShellApp : Application
 
     void Report(string message)
     {
+        Console.Error.WriteLine(message);
         error = message;
         UpdateTray();
     }

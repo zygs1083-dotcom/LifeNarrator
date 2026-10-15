@@ -12,6 +12,15 @@ internal static class BrainChecks
         var failure = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         BrainClient brain = null!;
         var geometry = new WindowGeometry(new Box(0, 0, 1000, 800), 60);
+        var configure = new
+        {
+            settings = new { liveliness = "quiet", markGap = 0, paused = false, blacklist = Array.Empty<string>(),
+                persona = "gentle", lang = "zh", disabledBuiltinIds = Array.Empty<string>(), maxOnScreen = 3, ownProcessID = 0, memoryEnabled = true },
+            rules = new[] { new { id = "work", kind = "topic", source = "user", enabled = true,
+                label = new { zh = "上班", en = "work" }, sentiment = "neutral", match = new { aliases = new[] { "上班" } },
+                highlight = true, quips = new[] { new { lang = "zh", persona = "gentle", text = "辛苦啦，慢慢来", emoji = new[] { "😺" } } } } },
+            customPersonas = Array.Empty<object>(), generator = new { kind = "none" }, dataDirectory = directory
+        };
         brain = new BrainClient(Path.GetFullPath(executable), Path.Combine(directory, "stderr.log"), async (method, p) =>
         {
             switch (method)
@@ -45,15 +54,6 @@ internal static class BrainChecks
         }, message => failure.TrySetResult(message));
         await using (brain)
         {
-            var configure = new
-            {
-                settings = new { liveliness = "quiet", markGap = 0, paused = false, blacklist = Array.Empty<string>(),
-                    persona = "gentle", lang = "zh", disabledBuiltinIds = Array.Empty<string>(), maxOnScreen = 3, ownProcessID = 0 },
-                rules = new[] { new { id = "work", kind = "topic", source = "user", enabled = true,
-                    label = new { zh = "上班", en = "work" }, sentiment = "neutral", match = new { aliases = new[] { "上班" } },
-                    highlight = true, quips = new[] { new { lang = "zh", persona = "gentle", text = "辛苦啦，慢慢来", emoji = new[] { "😺" } } } } },
-                customPersonas = Array.Empty<object>(), generator = new { kind = "none" }, dataDirectory = directory
-            };
             await brain.Call("configure", configure).WaitAsync(TimeSpan.FromSeconds(10));
             var snapshot = new Snapshot("fixture", "Fixture", 42, "Work", null, null, geometry.Frame,
                 new Box(0, 60, 1000, 740), 0, [new TextLine("今天又要上班了", new Box(100, 200, 300, 24), "text")],
@@ -68,5 +68,22 @@ internal static class BrainChecks
         }
         if (failure.Task.IsCompleted) throw new Exception(await failure.Task);
         Console.WriteLine("PASS: real brain configure/snapshot, concurrent requests, nested layout during overlay.show, EOF shutdown");
+        var crashed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var broken = new BrainClient(Path.GetFullPath(executable), Path.Combine(directory, "failure.log"),
+            (method, _) => Task.FromResult<object?>(method == "sensor.isLowPowerMode" ? "invalid-boolean" : null),
+            message => crashed.TrySetResult(message));
+        await broken.Call("configure", configure);
+        await broken.Call("snapshot", new
+        {
+            snapshot = new Snapshot("fixture", "Fixture", 42, "Work", null, null, geometry.Frame,
+                new Box(0, 60, 1000, 740), 0, [], "none", [], false, false, DateTimeOffset.UtcNow),
+            windowID = 2, change = new { appChanged = true, windowChanged = true, hostChanged = true }
+        });
+        var crash = await crashed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        if (!crash.Contains(File.ReadLines(Path.Combine(directory, "failure.log")).Last()))
+            throw new Exception("Missing brain stderr in failure report: " + crash);
+        try { await broken.Call("ping", new { }); throw new Exception("Dead brain accepted ping"); }
+        catch (EndOfStreamException) { }
+        Console.WriteLine("PASS: unexpected brain exit surfaces stderr, rejects new calls, and is not retried");
     }
 }
