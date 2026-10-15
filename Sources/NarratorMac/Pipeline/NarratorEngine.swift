@@ -405,7 +405,8 @@ public final class NarratorEngine {
         var nextPicker = picker
         let chosen = nextPicker.pick(for: rule, lang: lang, persona: store.settings.persona,
             pack: target.category == .rule ? store.builtin : .init(version: 1, rules: [], generic: [:]),
-            disabledBuiltinIds: store.settings.disabledBuiltinIds, now: Date(), using: &random, catalog: store.personas)
+            disabledBuiltinIds: store.settings.disabledBuiltinIds, now: Date(),
+            isRepeat: { self.store.said.isRepeat($0, now: Date()) }, using: &random, catalog: store.personas)
         guard let chosen else { return false }
         let source = target.category == .rule ? "rule" : target.category == .revisit ? "revisit" : "local"
         let shown = try await display(quote: target.text, lineIndex: target.lineIndex, range: target.range,
@@ -492,6 +493,10 @@ public final class NarratorEngine {
         if let anchor, SpriteLocator.conflicts(.init(lineIndex: lineIndex, rect: anchor),
             with: positions(excluding: id, snapshot: snapshot)) { return false }
         let obstacles = sensor.placementObstacles(in: snapshot.contentFrame) + snapshot.sensitiveRects
+        if store.said.isRepeat(quip.text, now: Date()) {
+            log(snapshot, tick, pick: lineIndex, source: source, shown: false, reason: "repeat")
+            return false
+        }
         let narrationID = UUID().uuidString
         let shown = overlay.show(Narration(id: narrationID, quipID: quip.text, ruleID: ruleID,
             sequence: screenCount, text: quip.text, emoji: quip.emoji, language: quip.lang.rawValue,
@@ -507,7 +512,9 @@ public final class NarratorEngine {
             if anchor != nil { shownPlaces.append((narrationID, quote)) }
         }
         log(snapshot, tick, pick: lineIndex, rect: rect?.kind.rawValue ?? "none", source: source,
-            place: shown ? overlay.lastPlacement : "corner", shown: shown, reason: shown ? reason : "placement")
+            place: shown ? overlay.lastPlacement : "corner", shown: shown, reason: shown ? reason : "placement",
+            quipHash: shown ? SaidHistory.textHash(quip.text) : nil)
+        if shown { try store.recordSaid(quip.text, now: Date()) }
         return shown
     }
 
@@ -620,18 +627,19 @@ public final class NarratorEngine {
                 }
             } catch { report(error) }
         }
+        let said = store.said
         var reason = "ok"
         do {
             _ = try await SpriteGenerator.generate(screen: request.screen, snapshot: request.snapshot,
                 app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "", exclude: request.exclude,
-                persona: request.persona, lang: request.lang, k: k,
+                persona: request.persona, lang: request.lang, k: k, recent: said.recent(8),
                 generator: SpriteRequestGenerator(base: request.generator, progress: progress,
                     lines: request.screen.lines.map { request.snapshot.textLines[$0.lineIndex] },
                     lineIndices: request.screen.lines.map(\.lineIndex), onMissing: { index in
                         Task { @MainActor in
                             self.log(request.snapshot, .mark, pick: index, source: "model", shown: false, reason: "quote-missing")
                         }
-                    }), catalog: request.catalog) { mark in
+                    }), catalog: request.catalog, isRepeat: { said.isRepeat($0, now: Date()) }) { mark in
                     progress.accepted()
                     continuation.yield(mark)
                 }
@@ -746,10 +754,12 @@ public final class NarratorEngine {
     }
 
     private func log(_ snapshot: ContextSnapshot, _ tick: SpriteTick, pick: Int = -1, rect: String = "none",
-                     source: String = "local", place: String = "corner", shown: Bool, reason: String) {
+                     source: String = "local", place: String = "corner", shown: Bool, reason: String,
+                     quipHash: UInt32? = nil) {
         guard debug else { return }
         let elapsed = Int(Date().timeIntervalSince(snapshot.capturedAt) * 1000)
-        FileHandle.standardError.write(Data("[sprite] \(snapshot.bundleId) tick=\(tick.rawValue) pick=\(pick) rect=\(rect) source=\(source) place=\(place) show=\(shown) reason=\(reason) \(elapsed)ms\n".utf8))
+        let hash = quipHash.map { " qh=" + String(format: "%08x", $0) } ?? ""
+        FileHandle.standardError.write(Data("[sprite] \(snapshot.bundleId) tick=\(tick.rawValue) pick=\(pick) rect=\(rect) source=\(source) place=\(place) show=\(shown) reason=\(reason) \(elapsed)ms\(hash)\n".utf8))
     }
 
     private static func lookupWindowID(pid: pid_t, frame: CGRect) -> CGWindowID {

@@ -57,7 +57,7 @@ public struct SpriteMemory: Sendable {
 
     @discardableResult
     public mutating func mark(key: Key, quip: Quip, lineHint: Int = -1, now: Date) -> Key? {
-        marks[key] = Entry(quip: quip, lineHint: lineHint, lastMarkedAt: now, cachedAt: marks[key]?.cachedAt)
+        marks[key] = Entry(quip: quip, lineHint: lineHint, lastMarkedAt: now, cachedAt: nil)
         return touch(key)
     }
 

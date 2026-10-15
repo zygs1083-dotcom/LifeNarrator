@@ -34,14 +34,15 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["售�
     #expect(tickAttempts(snapshot, memory: memory, allowed: false, now: epoch.addingTimeInterval(1800)).first?.reason == "revisit")
 }
 
-@Test func tickCacheReplaysAfterTTLAndDoesNotReplayMissingOrUnsentQuotes() {
+@Test func tickOnlyReplaysUnshownCacheAndNeverShownQuotesAfterTTL() {
     let snapshot = semanticsSnapshot(["first quote", "second quote"])
     var memory = SpriteMemory(level: .rowdy)
     let first = SpriteMemory.Key(bundleId: snapshot.bundleId, text: "first quote")
     memory.cache(key: first, quip: quip("一句"), lineHint: 0, now: epoch)
+    #expect(tickAttempts(snapshot, memory: memory, level: .rowdy, now: epoch).first?.reason == "cache")
     memory.mark(key: first, quip: quip("一句"), lineHint: 0, now: epoch)
     #expect(!tickAttempts(snapshot, memory: memory, level: .rowdy, now: epoch.addingTimeInterval(899)).contains { $0.reason == "cache" })
-    #expect(tickAttempts(snapshot, memory: memory, level: .rowdy, now: epoch.addingTimeInterval(900)).first?.reason == "cache")
+    #expect(tickAttempts(snapshot, memory: memory, level: .rowdy, now: epoch.addingTimeInterval(900)).first?.reason == "request")
     memory.cache(key: .init(bundleId: snapshot.bundleId, text: "missing quote"), quip: quip("丢弃"), lineHint: 1, now: epoch)
     var filtered = snapshot
     filtered.textLines[0].role = .field

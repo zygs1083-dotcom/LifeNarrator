@@ -34,14 +34,17 @@ import Testing
     }
 }
 
-@Test func spriteMemoryCacheTTLIsIndependentOfMarkTTL() {
+@Test func spriteMemoryCacheExpiresAndIsInvalidatedWhenShown() {
     var memory = SpriteMemory(level: .rowdy)
     let key = SpriteMemory.Key(bundleId: "test", text: "目标")
     memory.cache(key: key, quip: quip("模型句"), lineHint: 2, now: epoch)
     #expect(memory.status(key: key, now: epoch)?.lastMarkedAt == nil)
-    memory.mark(key: key, quip: quip("模型句"), lineHint: 2, now: epoch)
-    #expect(memory.status(key: key, now: epoch.addingTimeInterval(900))?.isMarked == false)
     #expect(memory.status(key: key, now: epoch.addingTimeInterval(1799.999))?.isCached == true)
+    #expect(memory.status(key: key, now: epoch.addingTimeInterval(1800))?.isCached == false)
+    memory.mark(key: key, quip: quip("模型句"), lineHint: 2, now: epoch)
+    #expect(memory.status(key: key, now: epoch)?.cachedAt == nil)
+    #expect(memory.status(key: key, now: epoch.addingTimeInterval(900))?.isMarked == false)
+    #expect(memory.status(key: key, now: epoch.addingTimeInterval(1799.999))?.isCached == false)
     #expect(memory.status(key: key, now: epoch.addingTimeInterval(1800))?.isCached == false)
     #expect(memory.keys(bundleId: "other").isEmpty)
 }

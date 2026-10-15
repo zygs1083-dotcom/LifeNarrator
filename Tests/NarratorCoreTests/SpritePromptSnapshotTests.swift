@@ -19,38 +19,12 @@ import Testing
 怎么写：
 - q：要圈的文字。逐字复制屏幕上某一行里连续的一段，2 到 12 个字最好，最多 32 个字；不改标点，不跨行，不要整行。l 是它所在的行号。
 - t：旁白，不超过 14 个汉字（标点算字，不含表情）。只说这一处的具体点，让人一眼知道你在说哪句、为什么有意思。不复述 q，不泛泛感叹（“真厉害”“数字真多”这类不算数）。
+- 几条旁白换着说：问句、感叹、比喻、自言自语都行，开头别重复。
 - 像朋友凑过来瞄一眼随口一句：可爱、好笑、有点意味深长；不是口号，不说教。
 - 不恶毒：不攻击外貌、智商、家庭、身份；不脏话；不涉及政治、宗教、色情、暴力；不编造屏幕上没有的事。
 - e：一个表情。
 - 只输出 JSON：{"marks":[{"l":行号,"q":"原文","t":"旁白","e":"表情"}]}，marks 可以是空数组。
 
-例子：
-屏幕：
-0| 备份任务说明
-1| 每晚 02:00 执行全量备份；若 40 分钟内未完成则判定超时，任务会被中止并在次日重试。超时不计为错误，但连续三次超时会触发警告邮件。
-2| - 全量备份平均耗时 31 分钟，最长一次 39 分 50 秒。
-3| - 增量备份平均 48 秒。
-4| 备份文件保留 30 天，之后自动删除。
-输出：
-{"marks":[{"l":2,"q":"39 分 50 秒","t":"离超时就差十秒，刺激","e":"😬"},{"l":1,"q":"次日重试","t":"今晚不行就明晚，佛系","e":"🧘"}]}
-
-屏幕：
-0| 无线降噪耳机 Pro 2
-1| ¥1,899 限时直降 ¥300
-2| 续航 30 小时，支持快充 10 分钟听 5 小时
-3| 已售 2.3 万 · 好评率 98%
-4| 加入购物车
-输出：
-{"marks":[{"l":1,"q":"限时直降 ¥300","t":"先涨再降的老把戏？","e":"🧐"},{"l":2,"q":"10 分钟听 5 小时","t":"比我充电效率高多了","e":"🔋"}]}
-
-屏幕：
-0| 李雯
-1| 方案我看了，整体可以
-2| 就是第三页的数据来源要补一下
-3| 还有，今天能发出去吗
-4| 好的，我马上改
-输出：
-{"marks":[{"l":3,"q":"今天能发出去吗","t":"“整体可以”的后半句来了","e":"😅"},{"l":4,"q":"马上改","t":"这个“马上”，大概率两小时","e":"⏳"}]}
 """#
     let expectedUser = #"""
 最多 3 处。
@@ -59,10 +33,30 @@ import Testing
 屏幕：
 0| first phrase
 1| second phrase
+
+这次最多挑 3 处。
+
+例子：
+屏幕：
+0| 小镇慢生活报
+1| 旧车站改成图书馆，周日开放
+2| 首批书架由居民捐出旧木桌制作
+3| 开馆当天提供免费修书服务
+输出：
+{"marks":[{"e":"🚉","l":1,"q":"旧车站改成图书馆","t":"这站终点是书里"},{"e":"🌱","l":2,"q":"旧木桌","t":"桌子退休还得上班？"}]}
+
+屏幕：
+0| 慢烤面包入门
+1| 视频时长 18 分钟
+2| 面团需冷藏发酵 16 小时
+3| 作者：新手也能轻松完成
+输出：
+{"marks":[{"e":"🍞","l":2,"q":"16 小时","t":"面团睡得比我香"},{"e":"🧑‍🍳","l":3,"q":"轻松完成","t":"轻松的是等待部分？"}]}
 """#
     let screen = SpriteScreen(lines: [(0, "first phrase"), (1, "second phrase")], tokens: 10)
+    var random = SeededRandom(seed: 15)
     let prompt = GenerationPrompts.spriteMarks(app: "Fixture", title: "Manual", screen: screen,
-                                              exclude: [], persona: .sharp, lang: .zh, k: 3)
+        exclude: [], persona: .sharp, lang: .zh, k: 3, using: &random)
     #expect(prompt.system == expectedSystem)
     #expect(prompt.user == expectedUser)
 }
@@ -84,38 +78,12 @@ How to pick:
 How to write:
 - q: the text to box. Copy it verbatim from one line on screen, a contiguous span, ideally 2 to 12 characters and at most 32; keep the punctuation, never cross a line, never the whole line. l is that line's number.
 - t: the remark, under 8 words, no emoji. Make one specific point about that spot so the reader instantly sees which line you mean and why it is interesting. Do not repeat q, do not gush ("impressive", "lots of numbers" do not count).
+- Vary the lines: questions, exclamations, comparisons, asides; never start two lines the same way.
 - Like a friend peeking over your shoulder: cute, funny, a little knowing. Not a slogan, never preachy.
 - Never mean: nothing about looks, intelligence, family or identity; no profanity; no politics, religion, sex or violence; do not invent facts that are not on screen.
 - e: exactly one emoji.
 - Output JSON only: {"marks":[{"l":line,"q":"verbatim text","t":"remark","e":"emoji"}]}; marks may be empty.
 
-Examples:
-Screen:
-0| Backup job overview
-1| A full backup runs nightly at 02:00. If it does not finish within 40 minutes it is marked as timed out, aborted and retried the next night. A timeout is not counted as an error, but three timeouts in a row send a warning email.
-2| - Full backup: 31 min on average, 39 min 50 s at worst.
-3| - Incremental backup: 48 s on average.
-4| Backups are kept for 30 days and then deleted automatically.
-Output:
-{"marks":[{"l":2,"q":"39 min 50 s","t":"Ten seconds from a timeout. Thrilling.","e":"😬"},{"l":1,"q":"retried the next night","t":"Tomorrow is also a day, apparently.","e":"🧘"}]}
-
-Screen:
-0| Noise Cancelling Headphones Pro 2
-1| $249 Limited time: $50 off
-2| 30-hour battery, 10-minute charge for 5 hours of playback
-3| 23k sold · 98% positive
-4| Add to cart
-Output:
-{"marks":[{"l":1,"q":"$50 off","t":"Was it ever not on sale?","e":"🧐"},{"l":2,"q":"10-minute charge for 5 hours","t":"Charges faster than I wake up.","e":"🔋"}]}
-
-Screen:
-0| Maya
-1| Read the proposal, overall fine
-2| Page 3 needs a source for the numbers
-3| Also, can it go out today?
-4| Sure, on it now
-Output:
-{"marks":[{"l":3,"q":"can it go out today","t":"There's the other half of 'fine'.","e":"😅"},{"l":4,"q":"on it now","t":"'Now' as in two hours from now.","e":"⏳"}]}
 """#
     let expectedUser = #"""
 At most 4 spots.
@@ -124,10 +92,30 @@ Window: -
 Screen:
 0| first phrase
 1| second phrase
+
+Pick at most 4 spots this time.
+
+Examples:
+Screen:
+0| The Slow Town Gazette
+1| Old station becomes a library, opening Sunday
+2| Residents donated old desks for the bookshelves
+3| Free book repairs on opening day
+Output:
+{"marks":[{"e":"🚉","l":1,"q":"becomes a library","t":"A new story for the station."},{"e":"🌱","l":2,"q":"old desks","t":"Those wooden friends get another story."}]}
+
+Screen:
+0| Slow bread for beginners
+1| Video length: 18 minutes
+2| Chill the dough for 16 hours
+3| Creator: Easy even for first timers
+Output:
+{"marks":[{"e":"🍞","l":2,"q":"16 hours","t":"Let that little dough dream."},{"e":"🧑‍🍳","l":3,"q":"Easy even","t":"Your first loaf can take time."}]}
 """#
     let screen = SpriteScreen(lines: [(0, "first phrase"), (1, "second phrase")], tokens: 10)
+    var random = SeededRandom(seed: 15)
     let prompt = GenerationPrompts.spriteMarks(app: "Fixture", title: "", screen: screen,
-                                              exclude: [], persona: .gentle, lang: .en, k: 4)
+        exclude: [], persona: .gentle, lang: .en, k: 4, using: &random)
     #expect(prompt.system == expectedSystem)
     #expect(prompt.user == expectedUser)
 }
@@ -141,8 +129,43 @@ Screen:
         #expect(prompt.user.contains("{{title}}"))
         #expect(prompt.user.contains("{{app}}"))
         #expect(!prompt.system.contains("{{"))
-        #expect(prompt.user.hasSuffix(lang == .zh
+        #expect(prompt.user.contains(lang == .zh
             ? "已经说过的地方（这次别再挑）：「first」「second」"
             : "Already remarked on (pick something else this time): \"first\" \"second\""))
+    }
+}
+
+@Test func spritePromptSamplesTwoScenesAndKeepsSystemFixedAcrossRequests() {
+    for lang in Lang.allCases {
+        for persona in Persona.allCases {
+            let screen = SpriteScreen(lines: [(0, "current screen")], tokens: 10)
+            var firstRandom = SeededRandom(seed: 15)
+            let first = GenerationPrompts.spriteMarks(app: "A", title: "one", screen: screen,
+                exclude: [], persona: persona, lang: lang, k: 3, using: &firstRandom)
+            var sameRandom = SeededRandom(seed: 15)
+            let same = GenerationPrompts.spriteMarks(app: "A", title: "one", screen: screen,
+                exclude: [], persona: persona, lang: lang, k: 3, using: &sameRandom)
+            #expect(first.user == same.user)
+            var nextRandom = SeededRandom(seed: 99)
+            let recent = (0..<10).map { "recent-\($0)" }
+            let next = GenerationPrompts.spriteMarks(app: "B", title: "two", screen: .init(lines: [], tokens: 0),
+                exclude: ["old quote"], persona: persona, lang: lang, k: 8, recent: recent, using: &nextRandom)
+            #expect(first.system == next.system)
+            #expect(!first.system.contains("0|"))
+            #expect(!first.system.contains("recent-"))
+            for user in [first.user, next.user] {
+                let marker = lang == .zh ? "输出：\n" : "Output:\n"
+                #expect(user.components(separatedBy: marker).count - 1 == 2)
+                let matchingScenes = SpriteExample.pool.filter { user.contains($0.prompt(lang: lang, persona: persona)) }
+                #expect(matchingScenes.count == 2)
+            }
+            #expect(next.user.hasSuffix(lang == .zh
+                ? "最近说过的话（别再用一样的句式、开头和梗）：" + recent.prefix(8).map { "「\($0)」" }.joined()
+                : "Things you said recently (don't reuse their phrasing, openings or jokes): " + recent.prefix(8).map { "\"\($0)\"" }.joined(separator: " ")))
+            #expect(!next.user.contains("recent-8"))
+            #expect(!next.user.contains("recent-9"))
+            #expect(first.user.components(separatedBy: lang == .zh ? "例子：" : "Examples:").last
+                != next.user.components(separatedBy: lang == .zh ? "例子：" : "Examples:").last)
+        }
     }
 }

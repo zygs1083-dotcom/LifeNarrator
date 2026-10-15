@@ -2,21 +2,34 @@ import Foundation
 import Testing
 @testable import NarratorCore
 
-@Test func spriteLocatorFindsEveryQuoteInAllSixDesignExamples() throws {
-    for examples in [GenerationPrompts.spriteExamplesZH, GenerationPrompts.spriteExamplesEN] {
-        let screens = examples.components(separatedBy: "\n\n")
-        #expect(screens.count == 3)
-        for example in screens {
-            let rows = example.split(separator: "\n").filter { $0.first?.isNumber == true }
-            let lines = rows.map { line(String($0.split(separator: "|", maxSplits: 1)[1].dropFirst())) }
-            struct Batch: Decodable { var marks: [RawMark] }
-            let json = String(example.split(separator: "\n").last!)
-            let batch = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
-            for mark in batch.marks {
+@Test func spriteExamplePoolHasLocalizedScenesAndValidPersonaVoices() throws {
+    #expect(SpriteExample.pool.count >= 10)
+    #expect(Set(SpriteExample.pool.map(\.id)).count == SpriteExample.pool.count)
+    #expect(Set(SpriteExample.pool.map(\.id)).isSuperset(of: ["backup", "headphones", "chat", "terminal", "ai-dialogue", "news", "technical-docs", "settings", "video", "spreadsheet", "email"]))
+    for scene in SpriteExample.pool {
+        for lang in Lang.allCases {
+            let screen = lang == .zh ? scene.zh : scene.en
+            #expect((2...3).contains(screen.marks.count))
+            let lines = screen.lines.map { line($0) }
+            for mark in screen.marks {
+                #expect(screen.lines.indices.contains(mark.l))
+                #expect(screen.lines[mark.l].contains(mark.q))
+                #expect((2...32).contains(mark.q.count))
                 let hit = try #require(SpriteLocator.locate(quote: mark.q, lineHint: mark.l, in: lines))
                 #expect(hit.lineIndex == mark.l)
                 #expect(String(lines[hit.lineIndex].text[hit.range]) == mark.q)
-                #expect(mark.t.count <= (examples == GenerationPrompts.spriteExamplesZH ? 14 : 40))
+                for persona in Persona.allCases {
+                    let voice = try #require(mark.voices[persona.rawValue])
+                    if lang == .zh { #expect(voice.t.count <= 14) }
+                    else { #expect(voice.t.split(whereSeparator: \.isWhitespace).count < 8) }
+                    #expect(!voice.t.contains(mark.q))
+                    #expect(!voice.t.contains(where: QuipValidator.isEmoji))
+                    #expect(voice.e.count == 1 && QuipValidator.isEmoji(voice.e.first!))
+                }
+            }
+            for persona in Persona.allCases {
+                let openings = screen.marks.map { String($0.voices[persona.rawValue]!.t.prefix(2)) }
+                #expect(Set(openings).count == openings.count)
             }
         }
     }

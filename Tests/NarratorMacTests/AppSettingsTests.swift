@@ -106,6 +106,30 @@ final class AppSettingsTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testSaidHistoryStartsEmptyPersistsHashesAndExposesCorruptFiles() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let previousDirectory = ProcessInfo.processInfo.environment["LIFENARRATOR_DATA_DIR"]
+        setenv("LIFENARRATOR_DATA_DIR", root.path, 1)
+        defer {
+            if let previousDirectory { setenv("LIFENARRATOR_DATA_DIR", previousDirectory, 1) }
+            else { unsetenv("LIFENARRATOR_DATA_DIR") }
+        }
+        defer { try! FileManager.default.removeItem(at: root) }
+        let store = try AppStore()
+        let now = Date()
+        XCTAssertTrue(store.said.recent(8).isEmpty)
+        XCTAssertEqual(store.directory.said.lastPathComponent, "said.json")
+        try store.recordSaid("private screen remark", now: now)
+        XCTAssertEqual(store.said.recent(8), ["private screen remark"])
+        let restored = try AppStore()
+        XCTAssertTrue(restored.said.isRepeat("private screen remark", now: now))
+        XCTAssertTrue(restored.said.recent(8).isEmpty)
+        XCTAssertFalse(try String(contentsOf: store.directory.said, encoding: .utf8).contains("private"))
+        try Data("invalid JSON".utf8).write(to: store.directory.said)
+        XCTAssertThrowsError(try AppStore())
+    }
+
     func testSameAppWindowSwitchHasItsOwnReason() {
         let change = ContextChange(appChanged: false, windowChanged: true, hostChanged: false)
         XCTAssertEqual(change.reason, .windowChanged)

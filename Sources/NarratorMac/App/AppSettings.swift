@@ -136,6 +136,7 @@ public struct AppDataDirectory {
     public var settings: URL { root.appendingPathComponent("settings.json") }
     public var personas: URL { root.appendingPathComponent("personas.json") }
     public var rules: URL { root.appendingPathComponent("rules.json") }
+    public var said: URL { root.appendingPathComponent("said.json") }
     public var models: URL { root.appendingPathComponent("Models", isDirectory: true) }
 
     public init(environment: [String: String] = ProcessInfo.processInfo.environment) throws {

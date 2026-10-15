@@ -52,7 +52,7 @@ private func generateSprite(_ json: String, texts: [String] = ["quoted first phr
         app: "Fixture", title: "Manual", exclude: ["previous"], persona: .gentle, lang: lang, k: k,
         generator: SpriteStub(response: json, stream: stream, failAfterFirst: fail, afterPartial: { count in
             #expect(recorder.marks.count == count)
-        }), onMark: { recorder.append($0) })
+        }), isRepeat: { _ in false }, onMark: { recorder.append($0) })
 }
 
 private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一句","e":"🌷"},{"l":1,"q":"second phrase","t":"第二句","e":"🌷"},{"l":2,"q":"third phrase","t":"第三句","e":"🌷"}]}"#
@@ -67,7 +67,8 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
 
 @Test func spriteGenerationAcceptsEightMarksAndHonorsRequestCount() async throws {
     let texts = (0..<8).map { "quoted phrase \($0)" }
-    let raw = (0..<8).map { ["l": $0, "q": texts[$0], "t": "一句旁白", "e": "🌷"] as [String: Any] }
+    let quips = ["咖啡还没凉", "谁偷偷请了假", "知识列车进站", "钱包快躲起来", "小苗雨天备案", "备用能量耗尽", "双脚放个假吧", "酵母闭关修炼"]
+    let raw = (0..<8).map { ["l": $0, "q": texts[$0], "t": quips[$0], "e": "🌷"] as [String: Any] }
     let json = String(decoding: try JSONSerialization.data(withJSONObject: ["marks": raw]), as: UTF8.self)
     let recorder = MarkRecorder()
     let marks = try await generateSprite(json, texts: texts, k: 8, stream: true, recorder: recorder)
@@ -84,7 +85,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     }
     let snapshot = generationSnapshot(["first phrase", "second phrase", "third phrase"])
     let result = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
-        app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 3, generator: APIStub(), onMark: { _ in })
+        app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 3, generator: APIStub(), isRepeat: { _ in false }, onMark: { _ in })
     #expect(result.count == 3)
 }
 
@@ -122,7 +123,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     var sensitive = snapshot
     sensitive.sensitiveRects = [snapshot.textLines[1].rect]
     let marks = try await SpriteGenerator.generate(screen: screen, snapshot: sensitive, app: "Fixture", title: "", exclude: [],
-        persona: .gentle, lang: .zh, k: 3, generator: SpriteStub(response: #"{"marks":[{"l":0,"q":"alice@example.com","t":"隐私","e":"🌷"},{"l":1,"q":"second phrase","t":"密码","e":"🌷"}]}"#), onMark: { _ in })
+        persona: .gentle, lang: .zh, k: 3, generator: SpriteStub(response: #"{"marks":[{"l":0,"q":"alice@example.com","t":"隐私","e":"🌷"},{"l":1,"q":"second phrase","t":"密码","e":"🌷"}]}"#), isRepeat: { _ in false }, onMark: { _ in })
     #expect(marks.isEmpty)
 }
 
@@ -140,7 +141,7 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     snapshot.textLines[0].role = .field
     let result = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
         app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 3,
-        generator: SpriteStub(response: #"{"marks":[{"l":0,"q":"hello world","t":"第一句","e":"🌷"},{"l":0,"q":"another phrase","t":"第二句","e":"🌷"},{"l":1,"q":"draft phrase","t":"不该有","e":"🌷"}]}"#), onMark: { _ in })
+        generator: SpriteStub(response: #"{"marks":[{"l":0,"q":"hello world","t":"第一句","e":"🌷"},{"l":0,"q":"another phrase","t":"第二句","e":"🌷"},{"l":1,"q":"draft phrase","t":"不该有","e":"🌷"}]}"#), isRepeat: { _ in false }, onMark: { _ in })
     #expect(result.map(\.lineIndex) == [1, 2])
     #expect(result.map(\.quote) == ["ＨＥＬＬＯ   World", "another phrase"])
     for mark in result { #expect(String(snapshot.textLines[mark.lineIndex].text[mark.range]) == mark.quote) }
@@ -160,6 +161,20 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     let json = #"{"marks":[{"l":0,"q":"first quote","t":"第一句","e":"🌷"},{"l":0,"q":"other words","t":"同行","e":"🌷"},{"l":1,"q":"second quote","t":"太近","e":"🌷"},{"l":2,"q":"third quote","t":"够远","e":"🌷"}]}"#
     let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
         app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 4,
-        generator: SpriteStub(response: json), onMark: { _ in })
+        generator: SpriteStub(response: json), isRepeat: { _ in false }, onMark: { _ in })
     #expect(marks.map(\.quote) == ["first quote", "third quote"])
+}
+
+@Test func spriteGenerationDropsGlobalAndBatchRepeatsWithoutUsingSlots() async throws {
+    for streaming in [false, true] {
+        let snapshot = generationSnapshot(["first quote", "second quote", "third quote", "fourth quote", "fifth quote"])
+        let json = #"{"marks":[{"l":0,"q":"first quote","t":"咖啡还没凉","e":"☕"},{"l":0,"q":"first quote","t":"昨晚星星睡着了","e":"🌷"},{"l":1,"q":"second quote","t":"昨晚星星睡着啦","e":"⭐"},{"l":2,"q":"third quote","t":"昨晚星星睡着了！","e":"😴"},{"l":3,"q":"fourth quote","t":"钱包快躲起来","e":"💸"},{"l":4,"q":"fifth quote","t":"小苗雨天备案","e":"🌱"}]}"#
+        let recorder = MarkRecorder()
+        let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
+            app: "Fixture", title: "", exclude: [], persona: .gentle, lang: .zh, k: 3,
+            generator: SpriteStub(response: json, stream: streaming),
+            isRepeat: { $0 == "咖啡还没凉" }, onMark: { recorder.append($0) })
+        #expect(marks.map(\.quip.text) == ["昨晚星星睡着了", "钱包快躲起来", "小苗雨天备案"])
+        #expect(recorder.marks.map(\.lineIndex) == [0, 3, 4])
+    }
 }

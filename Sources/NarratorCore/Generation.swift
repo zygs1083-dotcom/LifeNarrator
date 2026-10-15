@@ -157,20 +157,22 @@ public enum SpriteGenerator {
     }
 
     public static func generate(screen: SpriteScreen, snapshot: ContextSnapshot, app: String, title: String,
-                                exclude: [String], persona: Persona, lang: Lang, k: Int,
+                                exclude: [String], persona: Persona, lang: Lang, k: Int, recent: [String] = [],
                                 generator: any TextGenerator, catalog: PersonaCatalog = .builtin,
+                                isRepeat: @escaping @Sendable (String) -> Bool,
                                 onMark: @escaping @Sendable (SpriteMark) -> Void) async throws -> [SpriteMark] {
         final class State: @unchecked Sendable {
             let lock = NSLock()
             var stream = SpriteMarkStream()
             var marks: [SpriteMark] = []
+            var said = SaidHistory()
             var error: (any Error)?
         }
         let state = State()
         let limit = spriteLimit(persona: persona, catalog: catalog)
         let lines = screen.lines.map { snapshot.textLines[$0.lineIndex] }
         let prompt = GenerationPrompts.spriteMarks(app: app, title: title, screen: screen, exclude: exclude,
-                                                   persona: persona, lang: lang, k: k, catalog: catalog)
+                                                   persona: persona, lang: lang, k: k, recent: recent, catalog: catalog)
         let receive: @Sendable (String) -> Bool = { partial in
             let accepted = state.lock.withLock { () -> [SpriteMark] in
                 do {
@@ -193,6 +195,9 @@ public enum SpriteGenerator {
                                   .init(lineIndex: $0.lineIndex, rect: RuleMatcher.estimatedRect(for: snapshot.textLines[$0.lineIndex], range: $0.range))
                               }),
                               state.marks.count < k else { continue }
+                        let now = Date()
+                        guard !isRepeat(text), !state.said.isRepeat(text, now: now) else { continue }
+                        state.said.record(text, now: now)
                         let mark = SpriteMark(lineIndex: lineIndex, range: hit.range, quote: String(line.text[hit.range]),
                                               quip: Quip(lang: lang, persona: persona, text: text, emoji: [raw.e]))
                         state.marks.append(mark)

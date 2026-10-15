@@ -79,6 +79,19 @@ ws ::= [ \t\n\r]{0,4}
 """#
 
 func run() async throws {
+    if CommandLine.arguments.dropFirst().first == "variety" {
+        let arguments = Array(CommandLine.arguments.dropFirst(2))
+        let rounds: Int
+        if arguments.isEmpty { rounds = 2 }
+        else {
+            guard arguments.count == 2, arguments[0] == "--rounds", let count = Int(arguments[1]), count > 0 else {
+                throw BenchError.usage
+            }
+            rounds = count
+        }
+        try await runVariety(rounds: rounds)
+        return
+    }
     if CommandLine.arguments.count == 3 && CommandLine.arguments[1] == "sprite" {
         try await runSprite(modelPath: CommandLine.arguments[2])
         return
