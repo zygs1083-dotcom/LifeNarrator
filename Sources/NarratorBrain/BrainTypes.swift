@@ -14,10 +14,10 @@ public struct ContextChange: Codable, Sendable {
     public var reason: Reason { appChanged ? .appChanged : windowChanged ? .windowChanged : hostChanged ? .hostChanged : .contentChanged }
 }
 
-public enum RectKind: String, Sendable { case bounds, estimated, ocr }
+public enum RectKind: String, Codable, Sendable { case bounds, estimated, ocr }
 
 /// One narration to display. Rects are screen coordinates with a top-left origin (visual-spec §8).
-public struct Narration: Sendable {
+public struct Narration: Codable, Sendable {
     /// Quip instance id; a rule firing twice yields two ids so both bubbles animate separately.
     public var id: String
     /// Identifies the quip text itself; drives the fixed sticker/note tilt.

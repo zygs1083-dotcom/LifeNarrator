@@ -4,7 +4,7 @@ import CoreGraphics
 #endif
 
 /// Size tier from visual-spec §1, plus the per-tier shape constants of §2 and §7.
-public enum BubbleSize: String, CaseIterable, Sendable {
+public enum BubbleSize: String, Codable, CaseIterable, Sendable {
     case small, medium, large
 
     public var fontSize: CGFloat { pick(14, 18, 24) }
