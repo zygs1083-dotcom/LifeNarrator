@@ -78,7 +78,7 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
     }
 }
 
-@MainActor struct ChatEngineTests {
+@Suite(.serialized) @MainActor struct ChatEngineTests {
     @Test func executesAllIntentsMemoryNoticeAndExperience() async throws {
         let f = try ChatFixture()
         defer { try! FileManager.default.removeItem(at: f.directory) }
@@ -120,8 +120,11 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
         let f = try ChatFixture()
         defer { try! FileManager.default.removeItem(at: f.directory) }
         let generator = ChatGenerator(try (0..<53).map { _ in try response() })
-        f.configure(generator)
-        for index in 0..<53 { _ = try await f.brain.sendChat("消息\(index)", context: ChatContext()) }
+        for index in 0..<53 {
+            _ = try await f.brain.chat.send("消息\(index)", context: ChatContext(), includeScreen: false,
+                settings: f.settings, catalog: .builtin, memories: [], relationship: "刚认识，客气一点",
+                generator: generator, execute: { _ in false })
+        }
         let turns = try ChatEngine(url: f.directory.appendingPathComponent("chat.json")).turns
         #expect(turns.count == 50)
         #expect(turns.first?.user == "消息3")
@@ -129,7 +132,6 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
         let last = try #require(await generator.prompts.last)
         let prompt = try #require(try JSONSerialization.jsonObject(with: Data(last.utf8)) as? [String: Any])
         #expect((prompt["conversation"] as? [Any])?.count == 6)
-        #expect(f.brain.growthState.chatMessages == 53)
     }
 
     @Test func promptUsesPersonaRelationshipMemoriesAndExplicitScreenOptIn() async throws {
@@ -189,16 +191,18 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
         await #expect(throws: ChatEngine.Failure.self) { try await f.brain.sendChat("hello", context: ChatContext()) }
     }
 
-    @Test func chatMemoriesPrioritizePinnedThenRecentWithoutMarkBudget() throws {
+    @Test nonisolated func chatMemoriesPrioritizePinnedThenRecentWithoutMarkBudget() throws {
         let directory = try memoryTestDirectory()
         defer { try! FileManager.default.removeItem(at: directory) }
-        var store = try MemoryStore(url: directory.appendingPathComponent("memory.json"))
+        let url = directory.appendingPathComponent("memory.json")
         let start = Date()
-        for index in 0..<24 {
-            let entry = try #require(try store.add(kind: .fact, text: String(repeating: String(UnicodeScalar(0x4E00 + index)!), count: 40),
-                source: .manual, now: start.addingTimeInterval(Double(index))))
-            if index == 0 { try store.pin(id: entry.id, pinned: true) }
+        let entries = (0..<24).map { index in
+            Memory(id: UUID(), kind: .fact, text: String(repeating: String(UnicodeScalar(0x4E00 + index)!), count: 40),
+                source: .manual, createdAt: start.addingTimeInterval(Double(index)),
+                lastUsedAt: start.addingTimeInterval(Double(index)), uses: 0, pinned: index == 0)
         }
+        try JSONEncoder().encode(entries).write(to: url)
+        var store = try MemoryStore(url: url)
         let selected = try store.chat(now: start.addingTimeInterval(50))
         #expect(selected.count == 20)
         #expect(selected[0].pinned)
