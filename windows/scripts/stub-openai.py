@@ -1,5 +1,6 @@
 """Deterministic OpenAI SSE fixture. Only run on the CI runner's loopback."""
 import json
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -13,9 +14,10 @@ class Handler(BaseHTTPRequestHandler):
         request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         assert self.path.endswith("/chat/completions"), self.path
         assert request["stream"] is True
-        marks = {"marks": [
-            {"l": 0, "q": "visible English paragraph", "t": "有我陪你呀", "e": "✨"},
-            {"l": 1, "q": "又要上班了", "t": "辛苦啦，慢慢来", "e": "😺"},
+        text = "\n".join(message["content"] for message in request["messages"] if message["role"] == "user")
+        match = re.search(r"^(\d+)\| .*?(visible English paragraph)", text, re.MULTILINE)
+        marks = {"marks": [] if match is None else [
+            {"l": int(match[1]), "q": match[2], "t": "有我陪你呀", "e": "✨"},
         ]}
         if request["messages"][-1]["content"] == "Return JSON with ok set to true.":
             marks = {"ok": True}

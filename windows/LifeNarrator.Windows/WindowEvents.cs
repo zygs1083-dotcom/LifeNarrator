@@ -47,7 +47,7 @@ internal sealed class WindowEvents : IDisposable
     public DateTimeOffset LastTypedAt => new(Interlocked.Read(ref lastKeyTicks), TimeSpan.Zero);
     public DateTimeOffset ScrollAt => new(Interlocked.Read(ref scrollTicks), TimeSpan.Zero);
 
-    public WindowEvents(Action changed)
+    public WindowEvents(Action changed, Action<bool> scrolled)
     {
         windowEvent = (_, type, window, objectID, childID, _, _) =>
         {
@@ -55,12 +55,24 @@ internal sealed class WindowEvents : IDisposable
         };
         keyboard = (code, message, data) =>
         {
-            if (code >= 0 && message is 0x100 or 0x104) Interlocked.Exchange(ref lastKeyTicks, DateTimeOffset.UtcNow.UtcTicks);
+            if (code >= 0 && message is 0x100 or 0x104)
+            {
+                Interlocked.Exchange(ref lastKeyTicks, DateTimeOffset.UtcNow.UtcTicks);
+                if (Marshal.ReadInt32(data) is 0x20 or 0x21 or 0x22 or 0x23 or 0x24 or 0x25 or 0x26 or 0x27 or 0x28 or 0x4A or 0x4B)
+                {
+                    Interlocked.Exchange(ref scrollTicks, DateTimeOffset.UtcNow.UtcTicks);
+                    scrolled(false);
+                }
+            }
             return Native.CallNextHookEx(0, code, message, data);
         };
         mouse = (code, message, data) =>
         {
-            if (code >= 0 && message is 0x20A or 0x20E) Interlocked.Exchange(ref scrollTicks, DateTimeOffset.UtcNow.UtcTicks);
+            if (code >= 0 && message is 0x20A or 0x20E)
+            {
+                Interlocked.Exchange(ref scrollTicks, DateTimeOffset.UtcNow.UtcTicks);
+                scrolled(true);
+            }
             return Native.CallNextHookEx(0, code, message, data);
         };
         foregroundHook = Native.SetWinEventHook(3, 3, 0, windowEvent, 0, 0, 0);

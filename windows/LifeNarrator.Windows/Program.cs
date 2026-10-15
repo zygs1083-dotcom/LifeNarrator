@@ -34,6 +34,10 @@ internal static class Program
             case "uia":
                 AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
                 UiaSpike.Run(); break;
+            case "follow-probe":
+                var probe = new Thread(FollowProbe.Run);
+                probe.SetApartmentState(ApartmentState.MTA);
+                probe.Start(); probe.Join(); break;
             case "brain": BrainSpike.Run().GetAwaiter().GetResult(); break;
             case "ocr": OcrSpike.Run().GetAwaiter().GetResult(); break;
             default: throw new ArgumentException("Expected --spike overlay|uia|brain|ocr");

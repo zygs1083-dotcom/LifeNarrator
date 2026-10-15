@@ -55,6 +55,35 @@ internal static partial class Native
             ["WS_EX_TOPMOST"] = Topmost, ["WS_EX_TOOLWINDOW"] = ToolWindow, ["WS_EX_NOACTIVATE"] = NoActivate }
             .ToDictionary(x => x.Key, x => (value & x.Value) != 0);
     }
+    [DllImport("user32.dll", SetLastError = true)] static extern bool PrintWindow(nint window, nint dc, uint flags);
+    internal record WindowImage(int Width, int Height, byte[] Pixels);
+    public static WindowImage CaptureWindow(nint window)
+    {
+        if (!GetWindowRect(window, out var frame)) throw new Win32Exception();
+        var width = frame.Right - frame.Left;
+        var height = frame.Bottom - frame.Top;
+        var screen = GetDC(0);
+        var memory = CreateCompatibleDC(screen);
+        nint bitmap = 0, old = 0;
+        try
+        {
+            var info = new BitmapInfo { Size = (uint)Marshal.SizeOf<BitmapInfo>(), Width = width,
+                Height = -height, Planes = 1, BitCount = 32 };
+            bitmap = CreateDIBSection(screen, ref info, 0, out var bits, 0, 0);
+            if (bitmap == 0) throw new Win32Exception();
+            old = SelectObject(memory, bitmap);
+            if (!PrintWindow(window, memory, 2)) throw new Win32Exception(); // PW_RENDERFULLCONTENT
+            var pixels = new byte[checked(width * height * 4)];
+            Marshal.Copy(bits, pixels, 0, pixels.Length);
+            return new WindowImage(width, height, pixels);
+        }
+        finally
+        {
+            if (old != 0) SelectObject(memory, old);
+            if (bitmap != 0) DeleteObject(bitmap);
+            DeleteDC(memory); ReleaseDC(0, screen);
+        }
+    }
     public static void CaptureScreen(string path, PixelRect bounds)
     {
         var screen = GetDC(0);
