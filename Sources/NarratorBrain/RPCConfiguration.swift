@@ -37,6 +37,7 @@ struct RPCConfiguration: Decodable {
         let maxOnScreen: Int
         let systemOne: SystemOne?
         let ownProcessID: Int32
+        let memoryEnabled: Bool
 
         func makeSettings(modelAvailable: Bool) throws -> BrainSettings {
             guard markGap >= 0, maxOnScreen > 0 else {
@@ -50,7 +51,8 @@ struct RPCConfiguration: Decodable {
             }
             return BrainSettings(liveliness: liveliness, markGap: markGap, paused: paused, blacklist: blacklist,
                 persona: persona, lang: lang, disabledBuiltinIds: disabledBuiltinIds, maxOnScreen: maxOnScreen,
-                modelAvailable: modelAvailable, systemOne: connection, ownProcessID: ownProcessID)
+                modelAvailable: modelAvailable, systemOne: connection, ownProcessID: ownProcessID,
+                memoryEnabled: memoryEnabled)
         }
     }
     let settings: Settings

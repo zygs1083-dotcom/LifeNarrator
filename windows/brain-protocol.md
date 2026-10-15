@@ -32,7 +32,7 @@
   "settings": {
     "liveliness": "lively", "markGap": 2, "paused": false,
     "blacklist": [], "persona": "gentle", "lang": "zh",
-    "disabledBuiltinIds": [], "maxOnScreen": 3, "ownProcessID": 1234,
+    "disabledBuiltinIds": [], "maxOnScreen": 3, "ownProcessID": 1234, "memoryEnabled": true,
     "systemOne": null
   },
   "rules": [], "customPersonas": [],
@@ -43,7 +43,7 @@
 
 result：null。首次成功时创建数据目录并载入 `said.json`，启动大脑；后续 configure 复用同一个大脑和说过的话历史。dataDirectory 为大脑进程可访问的本机路径，同一会话不能更换，需重启进程。失败配置不替换正在使用的配置。
 
-settings 的必填项即上例除 systemOne 外的字段。liveliness 为 `quiet/lively/rowdy`，markGap ≥ 0，maxOnScreen > 0，lang 为 `zh/en`，ownProcessID 为外壳进程的 Int32 pid。blacklist 为字符串数组，disabledBuiltinIds 为规则 id 数组。modelAvailable 由生成器是否存在计算，不从外壳读取。可选 systemOne 为 `{baseURL:string,model:string,key:string}`，baseURL 必须是 http(s) URL，使用现有 SystemOneClient。
+settings 的必填项即上例除 systemOne 外的字段。liveliness 为 `quiet/lively/rowdy`，markGap ≥ 0，maxOnScreen > 0，lang 为 `zh/en`，ownProcessID 为外壳进程的 Int32 pid。memoryEnabled 为是否让小精灵记住事情（关掉时不记、不用，已有记忆保留）。blacklist 为字符串数组，disabledBuiltinIds 为规则 id 数组。modelAvailable 由生成器是否存在计算，不从外壳读取。可选 systemOne 为 `{baseURL:string,model:string,key:string}`，baseURL 必须是 http(s) URL，使用现有 SystemOneClient。
 
 rules 使用 NarratorCore 的 Rule：必填 `{id,kind,source,enabled,label,sentiment,match,highlight,quips}`；可选 `input,note,variables,createdAt`。label 为 `{zh,en}`，variables 为字符串字典，createdAt 为日期；kind 为 `app/site/person/topic/time`，source 为 `user/builtin`，sentiment 为 `dislike/like/neutral`。match 的可选字段为 `bundleIds,appNames,domains,aliases`（字符串数组）、region（`header/anywhere`）、when（`any/lateNight/mondayMorning/fridayEvening`）。app 要有 bundleIds 或 appNames，site 要有 domains，person 要有 aliases 和 region，topic 要有 aliases，time 要有非 any 的 when。Quip 为 `{lang,persona,text,emoji?:string[],when?:string}`，emoji 默认 []，when 默认 any。W1 应始终传上面的必填项。
 

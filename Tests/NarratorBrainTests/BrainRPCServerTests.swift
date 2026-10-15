@@ -65,7 +65,7 @@ private actor RPCGenerator: TextGenerator {
     var object: [String: RPCValue] = [
         "settings": .object(["liveliness": .string("lively"), "markGap": .number(0), "paused": .bool(false),
             "blacklist": .array([]), "persona": .string("gentle"), "lang": .string("zh"),
-            "disabledBuiltinIds": .array([]), "maxOnScreen": .number(8), "ownProcessID": .number(999)]),
+            "disabledBuiltinIds": .array([]), "maxOnScreen": .number(8), "ownProcessID": .number(999), "memoryEnabled": .bool(true)]),
         "rules": .array([]), "customPersonas": .array([]),
         "generator": .object(["kind": .string(kind)]), "dataDirectory": .string(directory.path)]
     if kind == "api" {
