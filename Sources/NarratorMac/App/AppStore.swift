@@ -172,6 +172,10 @@ public final class AppStore: ObservableObject {
         engine?.configure()
     }
 
+    public func releaseModel() async {
+        await llama.release()
+    }
+
     public func textGenerator() throws -> (any TextGenerator)? {
         switch settings.provider {
         case .none: return nil

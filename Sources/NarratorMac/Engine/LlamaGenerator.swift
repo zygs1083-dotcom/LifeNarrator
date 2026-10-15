@@ -40,6 +40,12 @@ public actor LlamaGenerator: TextGenerator {
         }
     }
 
+    /// ggml asserts at exit that its Metal device holds no model buffers, so free the model before quitting.
+    public func release() {
+        unload?.cancel()
+        engine = nil
+    }
+
     private func scheduleUnload() {
         unload = Task {
             do { try await Task.sleep(for: .seconds(600)) } catch { return }

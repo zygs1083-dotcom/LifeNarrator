@@ -45,21 +45,22 @@ private final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if case .downloading = store.downloader.state {
-            Task {
+        Task {
+            if case .downloading = store.downloader.state {
                 do {
                     try await store.downloader.pause()
-                    sender.reply(toApplicationShouldTerminate: true)
                 } catch {
                     let alert = NSAlert()
                     alert.messageText = store.text("error")
                     alert.informativeText = String(describing: error)
                     alert.runModal()
                     sender.reply(toApplicationShouldTerminate: false)
+                    return
                 }
             }
-            return .terminateLater
+            await store.releaseModel()
+            sender.reply(toApplicationShouldTerminate: true)
         }
-        return .terminateNow
+        return .terminateLater
     }
 }
