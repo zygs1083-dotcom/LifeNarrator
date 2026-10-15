@@ -123,7 +123,7 @@ private struct SpriteSettingsView: View {
                     (value: $0.0, emoji: $0.1, title: store.text("liveliness.\($0.0.rawValue)"), caption: store.text("liveliness.\($0.0.rawValue).hint"))
                 }, selection: $store.settings.liveliness, hue: hue)
                 Text(store.text("liveliness.hint")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
-                if store.settings.provider == .openAICompatible && store.settings.generationAPI.isCloud && store.settings.liveliness != .quiet {
+                if store.settings.provider == .api && store.settings.generationAPI.isCloud && store.settings.liveliness != .quiet {
                     Badge(text: store.text("api.privacy"), hue: AppTheme.hue(42))
                 }
             } label: { CardHeading(title: store.text("liveliness"), symbol: "speaker.wave.2.fill", hue: hue) }

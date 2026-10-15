@@ -11,10 +11,14 @@ public actor LlamaGenerator: TextGenerator {
 
     private let modelPath: String
     private var engine: LlamaEngine?
+    private var waitForRelease: Task<Void, Never>?
     private var unload: Task<Void, Never>?
     private nonisolated let closed = OSAllocatedUnfairLock(initialState: false)
 
-    public init(modelPath: String) { self.modelPath = modelPath }
+    public init(modelPath: String, waitForRelease: Task<Void, Never>? = nil) {
+        self.modelPath = modelPath
+        self.waitForRelease = waitForRelease
+    }
 
     public func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         try await generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: maxTokens, partial: { _ in true })
@@ -27,6 +31,8 @@ public actor LlamaGenerator: TextGenerator {
 
     public func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?,
                              partial: @escaping @Sendable (String) -> Bool) async throws -> String {
+        await waitForRelease?.value
+        waitForRelease = nil
         try Task.checkCancellation()
         if closed.withLock({ $0 }) { throw CancellationError() }
         unload?.cancel()

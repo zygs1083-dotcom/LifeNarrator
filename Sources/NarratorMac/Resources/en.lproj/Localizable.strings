@@ -75,7 +75,7 @@
 "kind.time" = "Time";
 "provider" = "Generation model";
 "provider.builtin" = "Built-in model";
-"provider.openAICompatible" = "OpenAI-compatible API";
+
 "provider.none" = "No model";
 "provider.none.hint" = "Keyword rules and offline lines still work.";
 "model.notDownloaded" = "Not downloaded";
@@ -137,7 +137,7 @@
 "appearance.motion" = "Motion";
 "preview.hint" = "Changes pop up here right away.";
 "provider.builtin.hint" = "Downloaded once, works offline";
-"provider.openAICompatible.hint" = "Cloud or local server";
+
 "shortcuts" = "Shortcuts";
 "rules.empty.title" = "No rules yet";
 "rules.empty.body" = "Tell me something like \"I hate meetings\" or \"Alice is my boss\". I'll remember, and speak up when it shows.";
@@ -174,3 +174,23 @@
 "onboarding.accessibility.open" = "Open Accessibility Settings";
 "screenRecording.repair" = "Already enabled but still prompted? macOS may have a record from an older version. Select LifeNarrator in the list, click “−” to remove it, then “+” to add it again. Or run this command in Terminal: tccutil reset ScreenCapture dev.lifenarrator.app";
 "screenRecording.copyCommand" = "Copy command";
+
+"provider.api" = "Model API";
+"provider.api.hint" = "Cloud or local server";
+"api.provider" = "Provider";
+"api.group.cn" = "China";
+"api.group.global" = "Global";
+"api.group.local" = "Local";
+"api.group.custom" = "Custom";
+"api.suggestions" = "Suggestions";
+"api.fetchModels" = "Fetch model list";
+"api.getKey" = "Get a key";
+"api.advanced" = "Advanced";
+"api.structured" = "Structured output";
+"api.default" = "Provider default";
+"api.test" = "Test connection";
+"api.testSuccess" = "Connected";
+"model.standard" = "Standard";
+"model.fast" = "Fast";
+"model.standard.hint" = "4B · Higher quality";
+"model.fast.hint" = "2B · Faster responses, less memory";

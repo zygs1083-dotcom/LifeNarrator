@@ -175,7 +175,7 @@ public final class NarratorEngine {
         switch settings.provider {
         case .none: available = false
         case .builtin: if case .ready = store.downloader.state { available = true } else { available = false }
-        case .openAICompatible: available = true
+        case .api: available = true
         }
         return RuleMatcher(userRules: store.rules, builtinRules: store.builtin.rules,
             hasModel: available && settings.liveliness != .quiet && !ProcessInfo.processInfo.isLowPowerModeEnabled,

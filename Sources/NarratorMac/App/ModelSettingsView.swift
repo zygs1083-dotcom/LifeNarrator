@@ -1,4 +1,5 @@
 import SwiftUI
+import NarratorCore
 
 struct ModelSettingsView: View {
     @ObservedObject var store: AppStore
@@ -31,8 +32,28 @@ struct ProviderSettingsView: View {
             (value: $0.0, emoji: $0.1, title: store.text("provider.\($0.0.rawValue)"), caption: store.text("provider.\($0.0.rawValue).hint"))
         }, selection: $store.settings.provider, hue: AppTheme.hue(200))
         switch store.settings.provider {
-        case .builtin: ModelDownloadView(store: store, downloader: store.downloader)
-        case .openAICompatible: APISettingsView(store: store, configuration: $store.settings.generationAPI, account: "generation")
+        case .builtin:
+            ForEach(store.downloaders, id: \.model.name) { downloader in
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        store.settings.builtinModel = downloader.model.name
+                    } label: {
+                        HStack {
+                            Image(systemName: store.settings.builtinModel == downloader.model.name ? "checkmark.circle.fill" : "circle")
+                            Text(store.text(downloader.model.name == ModelCatalog.models[0].name ? "model.standard" : "model.fast"))
+                            Spacer()
+                            Text(ByteCountFormatter.string(fromByteCount: downloader.model.size, countStyle: .file))
+                        }
+                    }.buttonStyle(.plain)
+                    Text(store.text(downloader.model.name == ModelCatalog.models[0].name ? "model.standard.hint" : "model.fast.hint"))
+                        .font(AppTheme.font(.badge)).foregroundStyle(AppTheme.textSecondary)
+                    ModelDownloadView(store: store, downloader: downloader)
+                }
+                .padding(10)
+                .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(store.settings.builtinModel == downloader.model.name ? AppTheme.accent : AppTheme.cardStroke))
+            }
+        case .api: GenerationAPISettingsView(store: store).id(store.settings.generationAPI.presetID)
         case .none: EmptyView()
         }
     }
@@ -76,7 +97,12 @@ struct ModelDownloadView: View {
         case .verifying:
             ProgressView().controlSize(.small).tint(AppTheme.accent)
         case .ready:
-            Button(store.text("delete"), role: .destructive) { store.perform { try downloader.delete() } }
+            Button(store.text("delete"), role: .destructive) {
+                Task {
+                    if store.settings.builtinModel == downloader.model.name { await store.releaseModel() }
+                    store.perform { try downloader.delete() }
+                }
+            }
                 .buttonStyle(AppTheme.CapsuleButton(hue: AppTheme.hue(350)))
         }
         if let error = downloader.error {
