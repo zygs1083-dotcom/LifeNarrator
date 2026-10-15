@@ -6,12 +6,14 @@ Copy-Item "$release/narrator-brain.exe" $destination
 Get-ChildItem $release -Directory -Filter '*.resources' | Copy-Item -Destination $destination -Recurse
 # Resolve the actual PE import closure, rather than copying the entire Swift SDK.
 $search = @((Split-Path (Get-Command swift).Source)) + ($env:PATH -split ';')
+$vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+$dumpbin = & $vswhere -latest -products '*' -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe'
 $queue = [System.Collections.Generic.Queue[string]]::new()
 $queue.Enqueue((Join-Path $destination 'narrator-brain.exe'))
 $seen = @{}
 while ($queue.Count -gt 0) {
     $binary = $queue.Dequeue()
-    $imports = & dumpbin /nologo /dependents $binary
+    $imports = & $dumpbin /nologo /dependents $binary
     if ($LASTEXITCODE -ne 0) { throw "dumpbin failed: $binary" }
     foreach ($line in $imports) {
         if ($line -notmatch '^\s+(\S+\.dll)\s*$') { continue }

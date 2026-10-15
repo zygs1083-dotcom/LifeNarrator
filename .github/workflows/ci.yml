@@ -59,7 +59,9 @@ jobs:
         if: always()
         with:
           name: windows-spike
-          path: artifacts/
+          path: |
+            artifacts/
+            !artifacts/fixtures/edge-profile/**
           if-no-files-found: warn
 
   macos:
