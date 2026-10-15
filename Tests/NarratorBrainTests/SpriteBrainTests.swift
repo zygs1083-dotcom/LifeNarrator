@@ -151,7 +151,7 @@ private actor BrainGenerator: TextGenerator {
 
 private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没凉","e":"🌷"}]}"#
 
-@Suite(.serialized) @MainActor struct SpriteBrainScenarios {
+@Suite(.serialized, .timeLimit(.minutes(1))) @MainActor struct SpriteBrainScenarios {
     @Test func memoryAndRelationshipOnlyChangeUserPrompt() async throws {
         let f = try BrainFixture(), generator = BrainGenerator()
         f.configure(generator)

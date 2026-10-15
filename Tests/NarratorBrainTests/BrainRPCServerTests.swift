@@ -48,6 +48,10 @@ private actor ConnectionGenerator: TextGenerator {
         }
     }
 
+    func waitForReply(_ id: RPCValue) async {
+        for await value in written.stream where value["id"] == id && value["method"] == nil { return }
+    }
+
     func write(_ line: String) throws {
         let value = try JSONDecoder().decode(RPCValue.self, from: Data(line.utf8))
         output.append(value)
@@ -91,7 +95,7 @@ private actor ConnectionGenerator: TextGenerator {
     return .object(object)
 }
 
-@Suite @MainActor struct BrainRPCServerScenarios {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct BrainRPCServerScenarios {
     @Test(arguments: [#"{"ok":true}"#, #"{"ok":false}"#, "invalid JSON"])
     func connectionTestValidatesReplyAndDoesNotBlockRPC(_ response: String) async throws {
         let shell = ScriptedShell()
@@ -102,12 +106,12 @@ private actor ConnectionGenerator: TextGenerator {
         try shell.send("testConnection", params: .object(["generator": .object([
             "kind": .string("api"), "presetId": .string("openai"), "model": .string("fixture"), "key": .string("test-key")])]), id: .number(10))
         try shell.send("ping", id: .number(11))
-        try await waitFor { shell.output.contains { $0["id"] == .number(11) } }
+        await shell.waitForReply(.number(11))
         #expect(!shell.output.contains { $0["id"] == .number(10) })
         #expect(await generator.prompt == "Return JSON with ok set to true.")
         #expect(await generator.maxTokens == 1024)
         gate.continuation.yield(())
-        try await waitFor { shell.output.contains { $0["id"] == .number(10) } }
+        await shell.waitForReply(.number(10))
         let result = try #require(shell.output.first { $0["id"] == .number(10) })
         if response == #"{"ok":true}"# {
             #expect(result["result"]?["elapsedMilliseconds"] != nil)
@@ -217,7 +221,7 @@ private actor ConnectionGenerator: TextGenerator {
     }
 }
 
-@Suite @MainActor struct RPCPortScenarios {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct RPCPortScenarios {
     @Test func concurrentRequestsMatchOutOfOrderRepliesAndRemoteErrors() async throws {
         let sent = AsyncStream<RPCValue>.makeStream()
         var messages = sent.stream.makeAsyncIterator()
@@ -248,7 +252,7 @@ private actor ConnectionGenerator: TextGenerator {
     }
 }
 
-@Suite @MainActor struct RPCAdapterRoundTrips {
+@Suite(.timeLimit(.minutes(1))) @MainActor struct RPCAdapterRoundTrips {
     @Test func allPortMethodsPreserveArgumentsAndResults() async throws {
         let shell = ScriptedShell()
         let peer = RPCPeer(writeLine: shell.write)
