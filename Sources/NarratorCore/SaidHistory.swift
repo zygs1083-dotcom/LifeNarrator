@@ -45,6 +45,10 @@ public struct SaidHistory: Codable, Sendable {
         }))
     }
 
+    public static func similarity(_ a: String, _ b: String) -> Double {
+        jaccard(shingles(a), shingles(b))
+    }
+
     public static func textHash(_ text: String) -> UInt32 { fnv1a(normalizedText(text)) }
 
     static func shingles(_ text: String) -> Set<UInt32> {

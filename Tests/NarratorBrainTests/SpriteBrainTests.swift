@@ -5,12 +5,14 @@ import NarratorCore
 
 private actor BrainGenerator: TextGenerator {
     var prompts: [String] = []
+    var systems: [String?] = []
     var cancelled: Set<Int> = []
     private var pending: [Int: CheckedContinuation<String, any Error>] = [:]
 
     func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         let id = prompts.count
         prompts.append(prompt)
+        systems.append(system)
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { pending[id] = $0 }
         } onCancel: {
@@ -96,10 +98,11 @@ private actor BrainGenerator: TextGenerator {
         lang: .zh, disabledBuiltinIds: [], maxOnScreen: 8, modelAvailable: true, systemOne: nil, ownProcessID: 999)
     var content = BrainContent(rules: [], builtin: QuipPack(version: 1, rules: [], generic: [:]), personas: .builtin)
 
-    init() throws {
+    init(said: SaidHistory? = nil) throws {
         directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         saidURL = directory.appendingPathComponent("said.json")
+        if let said { try JSONEncoder().encode(said).write(to: saidURL) }
         brain = try SpriteBrain(sensor: sensor, overlay: overlay, host: host, saidURL: saidURL)
     }
 
@@ -135,11 +138,121 @@ private actor BrainGenerator: TextGenerator {
 private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没凉","e":"🌷"}]}"#
 
 @Suite(.serialized) @MainActor struct SpriteBrainScenarios {
+    @Test func memoryAndRelationshipOnlyChangeUserPrompt() async throws {
+        let f = try BrainFixture(), generator = BrainGenerator()
+        f.configure(generator)
+        try f.brain.addMemory(kind: .nickname, text: "阿王")
+        try f.brain.addMemory(kind: .fact, text: "You enjoy writing Swift")
+        try f.brain.addMemory(kind: .episode, text: "昨天凌晨三点还在输入", source: .stats)
+        f.snapshot(["Writing Swift with first phrase"])
+        try await eventually { await generator.prompts.count == 1 }
+        let user = await generator.prompts[0]
+        #expect(user.contains("你记得的事："))
+        #expect(user.contains("阿王"))
+        #expect(user.contains("You enjoy writing Swift"))
+        #expect(user.contains("刚认识，客气一点"))
+        let baseline = GenerationPrompts.spriteMarks(app: "Fixture", title: "", screen: SpriteScreen(lines: [], tokens: 0),
+            exclude: [], persona: .gentle, lang: .zh,
+            k: SpriteTick.requestCount(level: f.settings.liveliness, maxOnScreen: f.settings.maxOnScreen))
+        #expect(await generator.systems[0] == baseline.system)
+        #expect(f.brain.memories.allSatisfy { $0.uses == 1 })
+        let context = try f.brain.memoryContext()
+        #expect(context.contains("阿王"))
+        #expect(context.contains("昨天凌晨三点还在输入"))
+        #expect(!context.contains("You enjoy writing Swift"))
+        let json = String(decoding: try Data(contentsOf: f.directory.appendingPathComponent("memory.json")), as: UTF8.self)
+        #expect(!json.contains("first phrase"))
+        let growth = String(decoding: try Data(contentsOf: f.directory.appendingPathComponent("growth.json")), as: UTF8.self)
+        #expect(!growth.contains("Writing Swift"))
+        try f.finish()
+    }
+
+    @Test func ambientIncludesNicknameEpisodesAndRelationshipWithStableSystem() async throws {
+        for lang in [Lang.zh, .en] {
+            let f = try BrainFixture(), generator = BrainGenerator()
+            f.settings.lang = lang
+            f.configure()
+            try f.brain.addMemory(kind: .nickname, text: "阿王")
+            try f.brain.addMemory(kind: .episode, text: "昨天凌晨三点还在输入", source: .stats)
+            let signals = SpriteAmbientSignals(app: "Fixture", title: "", minutes: 10, hour: 12,
+                minute: 0, switches: 1, typedRecently: true)
+            let context = try f.brain.memoryContext()
+            let task = Task {
+                try await SpriteAmbient.generate(signals: signals, persona: .gentle, lang: lang,
+                    recent: [], generator: generator, memoryContext: context)
+            }
+            try await eventually { await generator.prompts.count == 1 }
+            #expect(await generator.prompts[0].contains("阿王"))
+            #expect(await generator.prompts[0].contains("昨天凌晨三点还在输入"))
+            #expect(await generator.prompts[0].contains(lang == .zh ? "刚认识" : "You just met"))
+            let baseline = SpriteAmbient.prompt(signals: signals, persona: .gentle, lang: lang, recent: [])
+            #expect(await generator.systems[0] == baseline.system)
+            await generator.complete(0, #"{"lines":[{"t":"茶还温着","e":"🍵"},{"t":"窗外有光","e":"☀️"},{"t":"键盘开花了","e":"🌷"}]}"#)
+            _ = try await task.value
+            try f.finish()
+        }
+    }
+
+    @Test func disabledMemoryNeitherRecordsNorUsesAndRetainsExistingMemories() async throws {
+        let f = try BrainFixture(), generator = BrainGenerator()
+        f.configure(generator)
+        let entry = try #require(try f.brain.addMemory(kind: .nickname, text: "阿王"))
+        let url = f.directory.appendingPathComponent("memory.json")
+        let before = try Data(contentsOf: url)
+        f.settings.memoryEnabled = false
+        f.configure(generator)
+        #expect(try f.brain.addMemory(kind: .fact, text: "No new facts") == nil)
+        #expect(try !f.brain.memoryContext(screenText: "阿王").contains("阿王"))
+        #expect(try !f.brain.memoryContext().contains("你记得的事"))
+        f.snapshot()
+        try await eventually { await generator.prompts.count == 1 }
+        #expect(await !generator.prompts[0].contains("阿王"))
+        #expect(await !generator.prompts[0].contains("你记得的事"))
+        #expect(f.brain.memories.map(\.id) == [entry.id])
+        #expect(try Data(contentsOf: url) == before)
+        f.settings.memoryEnabled = true
+        f.configure(generator)
+        #expect(try f.brain.memoryContext().contains("阿王"))
+        #expect(f.brain.memories[0].uses == 1)
+        try f.finish()
+    }
+
+    @Test func levelUpUsesCornerAndSaidHistory() async throws {
+        for repeatAlreadySaid in [false, true] {
+            var said = SaidHistory()
+            let text = GrowthMilestone.level(2).text(lang: .zh)
+            if repeatAlreadySaid { said.record(text, now: Date()) }
+            let f = try BrainFixture(said: said)
+            f.settings.liveliness = .quiet
+            f.configure()
+            for _ in 0..<7 { try f.brain.recordGrowth(.rule) }
+            #expect(f.brain.growthState.level == 2)
+            f.snapshot([])
+            if repeatAlreadySaid {
+                try await Task.sleep(for: .milliseconds(100))
+                #expect(f.overlay.narrations.isEmpty)
+            } else {
+                try await eventually { f.overlay.narrations.count == 1 }
+                #expect(f.overlay.narrations[0].text == text)
+                #expect(f.overlay.narrations[0].ruleID == "sprite-growth")
+                #expect(f.overlay.narrations[0].anchor == nil)
+                let history = try JSONDecoder().decode(SaidHistory.self, from: Data(contentsOf: f.saidURL))
+                #expect(history.isRepeat(text, now: Date()))
+                #expect(f.brain.growthState.narrations == 1)
+            }
+            f.snapshot([], window: 2)
+            try await Task.sleep(for: .milliseconds(100))
+            #expect(f.overlay.narrations.count == (repeatAlreadySaid ? 0 : 1))
+            try f.finish()
+        }
+    }
+
     @Test func contentUpdatesKeepRequestAndLocateAgainstLatestLines() async throws {
         let f = try BrainFixture(), generator = BrainGenerator()
         f.configure(generator)
         f.snapshot()
         try await eventually { await generator.prompts.count == 1 }
+        let experience = f.brain.growthState.experience
         f.snapshot(["unrelated heading", "quoted first phrase"], switching: false)
         #expect(await generator.cancelled.isEmpty)
         await generator.complete(0, firstMark)
@@ -150,6 +263,8 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         #expect(narration.anchor?.minY == 180)
         let history = try JSONDecoder().decode(SaidHistory.self, from: Data(contentsOf: f.saidURL))
         #expect(history.isRepeat("咖啡还没凉", now: Date()))
+        #expect(f.brain.growthState.narrations == 1)
+        #expect(f.brain.growthState.experience == experience + 1)
         try f.finish()
     }
 

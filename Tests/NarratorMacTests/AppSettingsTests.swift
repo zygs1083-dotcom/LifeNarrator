@@ -14,6 +14,17 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(custom)).persona, custom.persona)
     }
 
+    func testMemoryEnabledDefaultsAndRoundTrips() throws {
+        var settings = AppSettings()
+        XCTAssertTrue(settings.memoryEnabled)
+        settings.memoryEnabled = false
+        let data = try JSONEncoder().encode(settings)
+        XCTAssertFalse(try JSONDecoder().decode(AppSettings.self, from: data).memoryEnabled)
+        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        json.removeValue(forKey: "memoryEnabled")
+        XCTAssertTrue(try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: json)).memoryEnabled)
+    }
+
     func testAutomaticUpdatesDefaultAndPersistence() throws {
         var original = AppSettings()
         XCTAssertTrue(original.automaticUpdates)

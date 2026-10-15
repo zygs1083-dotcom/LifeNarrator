@@ -2,6 +2,7 @@ import AppKit
 import Combine
 import KeyboardShortcuts
 import NarratorCore
+import NarratorBrain
 import SwiftUI
 
 @MainActor
@@ -186,6 +187,22 @@ public final class AppStore: ObservableObject {
         inputPanel!.show()
     }
 
+    public var memories: [Memory] { engine?.memories ?? [] }
+    public var growthState: GrowthState? { engine?.growthState }
+
+    @discardableResult
+    public func addMemory(kind: Memory.Kind, text: String) throws -> Memory? {
+        try engine!.addMemory(kind: kind, text: text)
+    }
+
+    public func editMemory(id: UUID, kind: Memory.Kind, text: String) throws {
+        try engine!.editMemory(id: id, kind: kind, text: text)
+    }
+
+    public func pinMemory(id: UUID, pinned: Bool) throws { try engine!.pinMemory(id: id, pinned: pinned) }
+    public func deleteMemory(id: UUID) throws { try engine!.deleteMemory(id: id) }
+    public func clearMemories() throws { try engine!.clearMemories() }
+
     public func setEnabled(_ enabled: Bool, id: String) throws {
         var updated = rules
         updated[updated.firstIndex { $0.id == id }!].enabled = enabled
@@ -276,6 +293,7 @@ public final class AppStore: ObservableObject {
             rule = try RuleCompiler.compileWithoutModel(input: input, pack: builtin, now: Date())
         }
         try saveRules(rules + [rule])
+        try engine?.recordGrowth(.rule)
         pregenerator.schedule()
         return rule
     }

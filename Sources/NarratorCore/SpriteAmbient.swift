@@ -74,11 +74,11 @@ public enum SpriteAmbient {
 
     public static func generate(signals: SpriteAmbientSignals, persona: Persona, lang: Lang,
                                 recent: [String], generator: any TextGenerator,
-                                catalog: PersonaCatalog = .builtin) async throws -> [Quip] {
+                                catalog: PersonaCatalog = .builtin, memoryContext: String = "") async throws -> [Quip] {
         struct Line: Decodable { let t: String; let e: String }
         struct Batch: Decodable { let lines: [Line] }
         let prompt = prompt(signals: signals, persona: persona, lang: lang, recent: recent, catalog: catalog)
-        let json = try await generator.generateJSON(system: prompt.system, prompt: prompt.user,
+        let json = try await generator.generateJSON(system: prompt.system, prompt: prompt.user + memoryContext,
             schema: catalog[persona].limit.en > 8 ? longSchema : schema, maxTokens: 450)
         let batch = try JSONDecoder().decode(Batch.self, from: Data(json.utf8))
         guard (3...6).contains(batch.lines.count) else { throw Failure.invalidBatchSize }
