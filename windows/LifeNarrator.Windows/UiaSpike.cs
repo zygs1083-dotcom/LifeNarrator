@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Avalonia;
-using UIAutomationClient;
+using Interop.UIAutomationClient;
 
 namespace LifeNarrator.Windows;
 
@@ -79,7 +79,7 @@ internal static class UiaSpike
                 {
                     var element = elements.GetElement(i);
                     if (element.CurrentIsOffscreen != 0) continue;
-                    var role = automation.GetControlTypeProgrammaticName(element.CurrentControlType);
+                    var role = $"{element.CurrentControlType}:{element.CurrentLocalizedControlType}";
                     var text = element.CurrentName;
                     if (!string.IsNullOrWhiteSpace(text)) segments.Add(new("element", role, text, [Rect(element.CurrentBoundingRectangle)]));
                     if (!(bool)element.GetCurrentPropertyValue(30040)) continue; // UIA_IsTextPatternAvailablePropertyId
