@@ -26,7 +26,7 @@ internal static class BuiltinModelChecks
             ?? throw new Exception("NARRATOR_TEST_MODEL must point to the W2b test GGUF"));
         var directory = Path.GetFullPath("artifacts/builtin-ui-test"); Directory.CreateDirectory(directory);
         foreach (var name in new[] { "said.json", "growth.json", "memory.json" }) File.Delete(Path.Combine(directory, name));
-        var modelCopy = Path.Combine(directory, "Models", Path.GetFileName(modelPath));
+        var modelCopy = Path.GetFullPath(Path.Combine(".dev-data", "builtin-ui-model", Path.GetFileName(modelPath)));
         Directory.CreateDirectory(Path.GetDirectoryName(modelCopy)!); File.Copy(modelPath, modelCopy, overwrite: true);
         var testModel = Catalog.Models[1] with { Url = new Uri(modelCopy), Size = new FileInfo(modelCopy).Length };
         var settings = new Settings([new(Catalog.Models[0], directory), new(testModel, Path.GetDirectoryName(modelCopy)!)])

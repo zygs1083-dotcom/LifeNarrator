@@ -83,10 +83,11 @@ internal static class ModelDownloadChecks
         Capture(window, "paused");
         log.WriteLine($"PAUSE retained {partialSize} bytes; no ready file");
         var reopened = new ModelDownloader(download.Model, Path.Combine(work, "Models"));
+        var ranges = new List<string?>();
         async Task Reply(byte[] bytes, bool ignoreRange = false)
         {
             var context = await server.GetContextAsync();
-            var range = context.Request.Headers["Range"];
+            var range = context.Request.Headers["Range"]; ranges.Add(range);
             var offset = range == null || ignoreRange ? 0 : int.Parse(range[6..^1]);
             log.WriteLine($"GET {context.Request.RawUrl} Range={range ?? "none"} offset={offset}");
             if (offset > 0)
@@ -101,7 +102,7 @@ internal static class ModelDownloadChecks
         // A newly created downloader resumes the same on-disk partial after app restart.
         var reply = Reply(data);
         Wait(reopened.Start(url)); Wait(reply);
-        if (reopened.State != ModelDownloadState.Ready || !File.ReadAllBytes(reopened.Destination).SequenceEqual(data)) throw new Exception("Range resume corrupted output");
+        if (ranges.Last() != $"bytes={partialSize}-" || reopened.State != ModelDownloadState.Ready || !File.ReadAllBytes(reopened.Destination).SequenceEqual(data)) throw new Exception("Range resume corrupted output");
         log.WriteLine("PASS restart + HTTP 206 resume + size/SHA-256 verification");
         reopened.Delete();
         // A server ignoring Range must replace the partial, rather than append a second copy.
@@ -115,7 +116,7 @@ internal static class ModelDownloadChecks
         download.Changed += SnapshotVerification;
         reply = Reply(data, ignoreRange: true); Wait(download.Start(url)); Wait(reply);
         download.Changed -= SnapshotVerification;
-        if (!verifying || download.State != ModelDownloadState.Ready) throw new Exception("Verification state missing");
+        if (ranges.Last() != "bytes=4096-" || !verifying || download.State != ModelDownloadState.Ready) throw new Exception("Verification state missing");
         Click(window, "choice-" + download.Model.Name);
         var generator = configurations.Last().GetProperty("generator");
         if (generator.GetProperty("kind").GetString() != "builtin" || generator.GetProperty("modelPath").GetString() != download.Destination)
@@ -138,6 +139,27 @@ internal static class ModelDownloadChecks
         if (download.State != ModelDownloadState.NotDownloaded || File.Exists(download.Destination) || download.HasPartial)
             throw new Exception("Corrupt file became usable or cannot be redownloaded");
         Capture(window, "checksum-error");
+        var shortReply = Reply(data[..4096]);
+        try { Wait(download.Start(url)); throw new Exception("Wrong model size accepted"); }
+        catch (InvalidDataException failure)
+        {
+            if (!failure.Message.Contains("4096 bytes")) throw;
+            log.WriteLine("PASS rejected size mismatch: " + failure.Message);
+        }
+        Wait(shortReply);
+        async Task Unavailable()
+        {
+            var context = await server.GetContextAsync();
+            context.Response.StatusCode = 503; context.Response.Close();
+        }
+        reply = Unavailable();
+        try { Wait(download.Start(url)); throw new Exception("HTTP error accepted"); }
+        catch (HttpRequestException failure)
+        {
+            if (download.Error != failure.Message || !failure.Message.Contains("503")) throw;
+            log.WriteLine("PASS HTTP error unchanged: " + failure.Message);
+        }
+        Wait(reply);
         window.Close();
 
         var wizard = new OnboardingWindow(settings, Configure, () => Task.FromResult(0d), () => { });
