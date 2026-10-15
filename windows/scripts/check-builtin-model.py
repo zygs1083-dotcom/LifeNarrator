@@ -48,8 +48,8 @@ def call(identifier, method, params):
 
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
 line = {'x': 100, 'y': 100, 'w': 700, 'h': 24}
-settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='sharp',
-                lang='zh', disabledBuiltinIds=[], maxOnScreen=3, ownProcessID=999, memoryEnabled=False)
+settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='gentle',
+                lang='zh', disabledBuiltinIds=[], maxOnScreen=1, ownProcessID=999, memoryEnabled=False)
 call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
 started = time.monotonic()
@@ -76,10 +76,10 @@ try:
                 raise RuntimeError(str(value))
             if value['id'] == 1:
                 call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Fixture', pid=1,
-                     windowTitle='聊天', windowFrame=frame, contentFrame=frame, screenIndex=0,
+                     windowTitle='工作备忘', windowFrame=frame, contentFrame=frame, screenIndex=0,
                      textLines=[dict(text=text, rect={**line, 'y': 100 + index * 80}, role='text')
-                                for index, text in enumerate(['张三：今晚把100份周报写完，不许下班。', '小王：可是现在已经凌晨3点了。',
-                                                              '张三：辛苦一下，这周加班不算工资。', '小王：我的咖啡已经喝到第八杯了。'])],
+                                for index, text in enumerate(['这杯咖啡售价999元。', '现在下单，预计2099年发货。',
+                                                              '今日会议预计持续八小时。', '本周计划每天加班到凌晨三点。'])],
                      textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
                      capturedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())), windowID=7,
                      change=dict(appChanged=True, windowChanged=True, hostChanged=True)))
@@ -94,13 +94,11 @@ try:
         elif method == 'sensor.lastTypedAt':
             result = '2020-01-01T00:00:00Z'
         elif method == 'sensor.textRect':
-            result = dict(rect={**line, 'y': 100 + params['lineIndex'] * 80}, kind='bounds')
+            result = dict(rect=line, kind='bounds')
         elif method == 'sensor.markTrack':
             result = 'fixture-track'
-        elif method == 'sensor.unframedRect':
-            result = {**line, 'y': 100 + params['lineIndex'] * 80}
-        elif method == 'sensor.placementLine':
-            result = params['rect']
+        elif method in ('sensor.unframedRect', 'sensor.placementLine'):
+            result = line
         elif method == 'sensor.placementObstacles':
             result = []
         elif method == 'overlay.show':
@@ -125,7 +123,7 @@ try:
     metrics = dict(firstMs=int(batch[1]), totalMs=int(batch[2]), marks=int(batch[3]),
                    located=int(batch[4]), shown=shown, exitCode=process.returncode)
     (directory / 'result.json').write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding='utf-8')
-    print('PASS builtin RPC: ' + json.dumps(metrics, ensure_ascii=False))
+    print('PASS builtin RPC: ' + json.dumps(metrics))
 finally:
     if process.poll() is None:
         process.kill()
