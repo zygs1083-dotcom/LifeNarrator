@@ -23,7 +23,7 @@ public static class E2EWindow {
         [FieldOffset(8)] public Mouse mouse;
         [FieldOffset(8)] public Keyboard keyboard;
     }
-    [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
+    [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(IntPtr cls, string title);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] static extern uint SendInput(uint n, Input[] inputs, int size);
@@ -152,8 +152,8 @@ try {
     Copy-Item (Join-Path $data 'brain.log') artifacts/e2e-follow-brain.log
 
     $ocrProcess = Start-Process powershell -ArgumentList '-NoProfile', '-File', 'windows/scripts/ocr-fixture.ps1' -PassThru -RedirectStandardOutput artifacts/e2e-ocr-fixture.stdout.log -RedirectStandardError artifacts/e2e-ocr-fixture.stderr.log
-    Wait-For 'image-only fixture' { [E2EWindow]::FindWindow($null, 'LifeNarrator OCR image fixture') -ne [IntPtr]::Zero }
-    $ocrWindow = [E2EWindow]::FindWindow($null, 'LifeNarrator OCR image fixture')
+    Wait-For 'image-only fixture' { [E2EWindow]::FindWindow([IntPtr]::Zero, 'LifeNarrator OCR image fixture') -ne [IntPtr]::Zero }
+    $ocrWindow = [E2EWindow]::FindWindow([IntPtr]::Zero, 'LifeNarrator OCR image fixture')
     if (![E2EWindow]::SetForegroundWindow($ocrWindow)) { throw 'Cannot foreground OCR fixture' }
     Start-Sleep -Seconds 2
     Remove-Item (Join-Path $data 'said.json'), (Join-Path $data 'brain.log') -ErrorAction SilentlyContinue
