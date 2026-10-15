@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 using System.Threading.Channels;
 using Avalonia;
 using Avalonia.Controls;
@@ -9,7 +10,7 @@ using Avalonia.Threading;
 
 namespace LifeNarrator.Windows;
 
-public sealed class ShellApp : Application
+public sealed partial class ShellApp : Application
 {
     IClassicDesktopStyleApplicationLifetime desktop = null!;
     Settings settings = null!;
@@ -22,6 +23,12 @@ public sealed class ShellApp : Application
     OverlayController? overlay;
     Channel<(string Method, object Params)>? changes;
     Task? eventPump;
+    SettingsWindow? settingsWindow;
+    OnboardingWindow? onboarding;
+    readonly SemaphoreSlim configurationGate = new(1);
+    Texts text = null!;
+    NativeMenuItem settingsItem = null!, quit = null!, levelHeader = null!, personaHeader = null!;
+    public override void Initialize() => Styles.Add(new AppTheme());
     bool exiting;
     bool stopping;
     string? error;
@@ -30,13 +37,15 @@ public sealed class ShellApp : Application
     {
         desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        settings = Settings.Load();
+        text = new Texts(settings);
         status = new NativeMenuItem { Header = "人生旁白", IsEnabled = false };
         details = new NativeMenuItem { Header = "错误详情", IsVisible = false };
-        pause = Item("在岗", async () => { settings.Paused = !settings.Paused; await Configure(); });
+        pause = Item("在岗", async () => { settings.Paused = !settings.Paused; await Configure(); settingsWindow?.Refresh(); });
         var levelMenu = new NativeMenu();
         foreach (var (id, label) in new[] { ("quiet", "安静"), ("lively", "热闹"), ("rowdy", "吵闹") })
         {
-            var item = Item(label, async () => { settings.Liveliness = id; await Configure(); });
+            var item = Item(label, async () => { settings.Liveliness = id; await Configure(); settingsWindow?.Refresh(); });
             item.ToggleType = NativeMenuItemToggleType.Radio;
             levels.Add(id, item); levelMenu.Items.Add(item);
         }
@@ -44,23 +53,36 @@ public sealed class ShellApp : Application
         foreach (var (id, label) in new[] { ("sharp", "毒舌"), ("gentle", "温柔"), ("chuuni", "中二"),
             ("teacher", "老师"), ("mom", "妈妈"), ("hype", "捧场"), ("cat", "猫咪") })
         {
-            var item = Item(label, async () => { settings.Persona = id; await Configure(); });
+            var item = Item(label, async () => { settings.Persona = id; await Configure(); settingsWindow?.Refresh(); });
             item.ToggleType = NativeMenuItemToggleType.Radio;
             personas.Add(id, item); personaMenu.Items.Add(item);
         }
         restart = Item("重启大脑", async () => { await Stop(); await Start(); });
         var menu = new NativeMenu();
         menu.Items.Add(status); menu.Items.Add(details); menu.Items.Add(pause);
-        menu.Items.Add(new NativeMenuItem("热闹程度") { Menu = levelMenu });
-        menu.Items.Add(new NativeMenuItem("人格") { Menu = personaMenu });
+        levelHeader = new NativeMenuItem("热闹程度") { Menu = levelMenu }; menu.Items.Add(levelHeader);
+        personaHeader = new NativeMenuItem("人格") { Menu = personaMenu }; menu.Items.Add(personaHeader);
         menu.Items.Add(restart); menu.Items.Add(new NativeMenuItemSeparator());
-        menu.Items.Add(Item("退出", async () => { exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown(); }));
+        settingsItem = Item("设置…", () => { ShowSettings(); return Task.CompletedTask; }); menu.Items.Add(settingsItem);
+        quit = Item("退出", async () => { exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown(); }); menu.Items.Add(quit);
         tray = new TrayIcon { Menu = menu, ToolTipText = "人生旁白", Icon = MakeIcon(42, 166, 100), IsVisible = true };
+        tray.Clicked += (_, _) => ShowSettings();
         TrayIcon.SetIcons(this, new TrayIcons { tray });
         Dispatcher.UIThread.Post(async () =>
         {
-            try { settings = Settings.Load(); await Start(); }
-            catch (Exception failure) { Report(failure.Message); }
+            try
+            {
+                Startup.SetEnabled(settings.LaunchAtLogin);
+                await Start();
+                if (!settings.OnboardingCompleted)
+                {
+                    onboarding = new OnboardingWindow(settings, Configure, TestConnection, ShowSettings);
+                    onboarding.Closed += (_, _) => onboarding = null;
+                    onboarding.Show();
+                }
+                if (Program.VerifyUI) await VerifyUI();
+            }
+            catch (Exception failure) { Report(failure.Message); if (Program.VerifyUI) desktop.Shutdown(1); }
         });
         base.OnFrameworkInitializationCompleted();
     }
@@ -124,7 +146,32 @@ public sealed class ShellApp : Application
         settings.Save();
         UpdateTray();
         if (settings.Paused) overlay?.DismissAll();
-        if (brain != null) await brain.Call("configure", settings.Configuration());
+        var configuration = settings.Configuration();
+        await configurationGate.WaitAsync();
+        try
+        {
+            if (brain != null) await brain.Call("configure", configuration);
+            error = null;
+            UpdateTray();
+        }
+        finally { configurationGate.Release(); }
+    }
+
+    async Task<double> TestConnection()
+    {
+        var reply = await brain!.Call("testConnection", new { generator = settings.GeneratorConfiguration() });
+        return reply.GetProperty("elapsedMilliseconds").GetDouble();
+    }
+
+    void ShowSettings()
+    {
+        if (onboarding != null && !settings.OnboardingCompleted) { onboarding.Activate(); return; }
+        if (settingsWindow == null)
+        {
+            settingsWindow = new SettingsWindow(settings, Configure, TestConnection);
+            settingsWindow.Closed += (_, _) => settingsWindow = null;
+        }
+        settingsWindow.Refresh(); settingsWindow.Show(); settingsWindow.Activate();
     }
 
     void Report(string message)
@@ -136,16 +183,21 @@ public sealed class ShellApp : Application
 
     void UpdateTray()
     {
-        var paused = settings?.Paused == true;
-        status.Header = error == null ? (paused ? "已暂停" : "小精灵在岗") : "人生旁白出错";
-        tray.ToolTipText = error == null ? (string)status.Header! : "人生旁白出错：" + error.Split('\n')[0];
+        var paused = settings.Paused;
+        status.Header = error == null ? (paused ? text["paused"] : text["sprite.onDuty"]) : text["app.error"];
+        tray.ToolTipText = error == null ? (string)status.Header! : text["app.error"] + ": " + error.Split('\n')[0];
         tray.Icon = error != null ? MakeIcon(225, 55, 75) : paused ? MakeIcon(140, 140, 140) : MakeIcon(42, 166, 100);
         details.IsVisible = error != null;
         var errors = new NativeMenu();
         foreach (var line in error?.Split('\n') ?? []) errors.Items.Add(new NativeMenuItem(line) { IsEnabled = false });
         details.Menu = errors;
         restart.IsEnabled = error != null;
-        pause.Header = paused ? "在岗" : "暂停";
+        pause.Header = paused ? text["menu.onDuty"] : text["pause"];
+        details.Header = text["error.details"]; restart.Header = text["brain.restart"];
+        settingsItem.Header = text["settings"]; quit.Header = text["quit"];
+        levelHeader.Header = text["liveliness"]; personaHeader.Header = text["persona"];
+        foreach (var (id, item) in levels) item.Header = text["liveliness." + id];
+        foreach (var (id, item) in personas) item.Header = Catalog.Personas.Single(p => p.Id == id).Name.Text(settings.EffectiveLanguage);
         foreach (var (id, item) in levels) item.IsChecked = id == settings?.Liveliness;
         foreach (var (id, item) in personas) item.IsChecked = id == settings?.Persona;
     }

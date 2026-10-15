@@ -62,6 +62,25 @@ jobs:
         if: ${{ !cancelled() }}
       - name: Windows shell end-to-end
         run: windows/scripts/run-e2e.ps1
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
+        run: windows/scripts/build-installer.ps1
+      - name: Verify installed app and uninstall
+        run: windows/scripts/verify-installer.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: LifeNarrator-Windows
+          path: |
+            artifacts/LifeNarrator-Setup.exe
+            artifacts/checksums-windows.txt
+            artifacts/ui-*.png
+            artifacts/ui-*.json
+            artifacts/installer-*.json
+            artifacts/install*.log
+            artifacts/uninstall.log
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:

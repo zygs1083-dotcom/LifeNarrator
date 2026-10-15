@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Globalization;
+using System.Text.Json.Serialization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -10,6 +12,11 @@ internal sealed class Settings
     public string Liveliness { get; set; } = "lively";
     public string Persona { get; set; } = "gentle";
     public string Lang { get; set; } = "zh";
+    public string Language { get; set; } = "system";
+    public bool OnboardingCompleted { get; set; }
+    public bool LaunchAtLogin { get; set; } = true;
+    [JsonIgnore] public string EffectiveLanguage => Language == "system"
+        ? (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh" ? "zh" : "en") : Language;
     public bool Paused { get; set; }
     public double MarkGap { get; set; } = 2;
     public double Dwell { get; set; } = 3;
@@ -29,7 +36,7 @@ internal sealed class Settings
             ?? throw new InvalidDataException("settings.json must contain an object");
         if (settings.Liveliness is not ("quiet" or "lively" or "rowdy")
             || settings.Persona is not ("sharp" or "gentle" or "chuuni" or "teacher" or "mom" or "hype" or "cat")
-            || settings.Lang is not ("zh" or "en") || !double.IsFinite(settings.MarkGap) || settings.MarkGap < 0
+            || settings.Lang is not ("zh" or "en") || settings.Language is not ("system" or "zh" or "en") || !double.IsFinite(settings.MarkGap) || settings.MarkGap < 0
             || !double.IsFinite(settings.Dwell) || settings.Dwell <= 0 || settings.MaxOnScreen <= 0
             || settings.Provider.Kind is not ("none" or "api"))
             throw new InvalidDataException("Invalid Windows shell settings");
@@ -39,16 +46,18 @@ internal sealed class Settings
     public void Save() => File.WriteAllText(FilePath, JsonSerializer.Serialize(this,
         new JsonSerializerOptions(Protocol.Json) { WriteIndented = true }));
 
+    public object GeneratorConfiguration() => Provider.Kind == "none" ? (object)new { kind = "none" } : new
+    {
+        kind = "api", Provider.PresetId, Provider.Model, Provider.BaseURL, Provider.Structured,
+        key = CredentialStore.Read(Provider.PresetId)
+    };
+
     public object Configuration() => new
     {
-        settings = new { Liveliness, MarkGap, Paused, Blacklist, Persona, Lang,
+        settings = new { Liveliness, MarkGap, Paused, Blacklist, Persona, lang = EffectiveLanguage,
             disabledBuiltinIds = Array.Empty<string>(), MaxOnScreen, ownProcessID = Environment.ProcessId, memoryEnabled = true },
         rules = Array.Empty<object>(), customPersonas = Array.Empty<object>(),
-        generator = Provider.Kind == "none" ? (object)new { kind = "none" } : new
-        {
-            kind = "api", Provider.PresetId, Provider.Model, Provider.BaseURL, Provider.Structured,
-            key = CredentialStore.Read(Provider.PresetId)
-        },
+        generator = GeneratorConfiguration(),
         dataDirectory = DataDirectory
     };
 }
@@ -81,6 +90,8 @@ internal static class CredentialStore
     static extern bool CredWriteW(ref Credential credential, uint flags);
     [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     static extern bool CredReadW(string target, uint type, uint flags, out nint credential);
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    static extern bool CredDeleteW(string target, uint type, uint flags);
     [DllImport("advapi32.dll")] static extern void CredFree(nint credential);
 
     public static string Read(string provider)
@@ -97,6 +108,12 @@ internal static class CredentialStore
             return Marshal.PtrToStringUni(value.CredentialBlob, (int)value.CredentialBlobSize / 2)!;
         }
         finally { CredFree(pointer); }
+    }
+
+    public static void Delete(string provider)
+    {
+        if (!CredDeleteW("LifeNarrator/" + provider, 1, 0) && Marshal.GetLastWin32Error() != 1168)
+            throw new Win32Exception();
     }
 
     public static void Write(string provider, string key)

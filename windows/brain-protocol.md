@@ -55,6 +55,13 @@ customPersonas 是完整 PersonaProfile 数组：`{id,emoji,name,caption,descrip
 - `{"kind":"api","presetId":"openai","model":"MODEL","key":"KEY","baseURL":"https://example.com/v1","structured":"json_schema"}`：presetId、model、key 必填，baseURL 和 structured 可省略，沿用 preset。model 不可为空，baseURL 必须为 http(s) URL。structured 为 `json_schema/json_object/prompt`。presetId 使用 `Sources/NarratorCore/Resources/providers.json` 中的 id；通过 ProviderConfiguration / ProviderCatalog 构造 OpenAIChatClient 或 AnthropicClient。Anthropic 沿用其工具结构化输出，不使用 OpenAI 的 structured 选项。key 允许空字符串（本地免鉴权服务）；不写入数据目录，也不输出到日志。
 - `{"kind":"builtin"}`：本期不支持，返回 -32001，留待 W2。
 
+### testConnection
+
+参数：`{generator:{kind:"api",presetId:string,model:string,key:string,baseURL?:string,structured?:string}}`。
+通过现有生成器发送一个最小 JSON 请求（`{"ok":true}`），验证响应并返回 `{elapsedMilliseconds:number}`。
+不要求 configure，不替换当前配置，也不使用屏幕文字。调用异步执行，等待时仍处理其他 RPC。
+配置错误返回 -32602；请求失败或响应无效返回 -32003。会话关闭时取消未完成的测试。
+
 ### snapshot
 
 参数：`{snapshot:ContextSnapshot,windowID:uint32,change:{appChanged:bool,windowChanged:bool,hostChanged:bool}}`。result：null。

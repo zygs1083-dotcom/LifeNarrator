@@ -6,6 +6,7 @@ import NarratorCore
     private let peer: RPCPeer
     private let events = AsyncStream<Event>.makeStream()
     private let generatorFactory: (RPCGeneratorConfiguration) throws -> (any TextGenerator)?
+    private var connectionTests: [UUID: Task<Void, Never>] = [:]
     private var brain: SpriteBrain?
     private var directory: URL?
 
@@ -31,6 +32,7 @@ import NarratorCore
         }
         defer {
             reader.cancel()
+            for task in connectionTests.values { task.cancel() }
             continuation.finish()
             brain?.windowChanged()
             peer.close()
@@ -60,7 +62,34 @@ import NarratorCore
         }
         let params = object["params"] ?? .object([:])
         let result: RPCValue
-        do { result = try handle(method, params: params, line: line) }
+        do {
+            if method == "testConnection" {
+                struct Params: Decodable { let generator: RPCGeneratorConfiguration }
+                let configuration = try params.decode(Params.self).generator
+                guard configuration.kind == .api, let generator = try generatorFactory(configuration) else {
+                    throw BrainRPCError(code: -32602, message: "testConnection requires an API generator")
+                }
+                let token = UUID()
+                connectionTests[token] = Task {
+                    defer { connectionTests.removeValue(forKey: token) }
+                    let response: RPCValue
+                    do { response = try await Self.testConnection(generator) }
+                    catch {
+                        if let id = object["id"] {
+                            do { try reply(error: BrainRPCError(code: -32003, message: "Connection test: \(error)"), id: id) }
+                            catch { events.continuation.yield(.failure(error)) }
+                        }
+                        return
+                    }
+                    if let id = object["id"] {
+                        do { try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": response])) }
+                        catch { events.continuation.yield(.failure(error)) }
+                    }
+                }
+                return
+            }
+            result = try handle(method, params: params, line: line)
+        }
         catch {
             if let id = object["id"] {
                 let error = error as? BrainRPCError ?? BrainRPCError(code: -32602, message: "Invalid params: \(error)")
@@ -122,6 +151,20 @@ import NarratorCore
             return object["result"]!
         default: throw BrainRPCError(code: -32601, message: "Method not found")
         }
+    }
+
+    private static func testConnection(_ generator: any TextGenerator) async throws -> RPCValue {
+        let start = ContinuousClock.now
+        let json = try await generator.generateJSON(system: nil, prompt: "Return JSON with ok set to true.",
+            schema: #"{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":false}"#,
+            maxTokens: 1024)
+        struct Reply: Decodable { let ok: Bool }
+        guard try JSONDecoder().decode(Reply.self, from: Data(json.utf8)).ok else {
+            throw ProviderConfigurationError.invalidResponse
+        }
+        let elapsed = start.duration(to: .now).components
+        let milliseconds = Double(elapsed.seconds) * 1000 + Double(elapsed.attoseconds) / 1e15
+        return .object(["elapsedMilliseconds": .number(Decimal(milliseconds))])
     }
 
     private func configured() throws -> SpriteBrain {

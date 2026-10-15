@@ -3,7 +3,7 @@ $data = Join-Path $env:APPDATA 'LifeNarrator'
 New-Item -ItemType Directory -Force $data | Out-Null
 Copy-Item artifacts/brain artifacts/shell/brain -Recurse
 @{
-    liveliness = 'lively'; persona = 'gentle'; lang = 'zh'; paused = $false
+    onboardingCompleted = $true; launchAtLogin = $false; language = 'zh'; liveliness = 'lively'; persona = 'gentle'; lang = 'zh'; paused = $false
     markGap = 1; dwell = 30; maxOnScreen = 3; blacklist = @()
     provider = @{ kind = 'api'; presetId = 'custom-openai'; model = 'ci-stub'; baseURL = 'http://127.0.0.1:18765/v1'; structured = 'json_object' }
 } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $data 'settings.json') -Encoding utf8

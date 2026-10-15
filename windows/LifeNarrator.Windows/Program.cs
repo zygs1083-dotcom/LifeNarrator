@@ -7,10 +7,18 @@ namespace LifeNarrator.Windows;
 
 internal static class Program
 {
+    internal static bool VerifyUI;
     [STAThread]
     public static int Main(string[] args)
     {
-        if (args.Length == 0)
+        if (args.SequenceEqual(new[] { "--delete-user-data" }))
+        {
+            foreach (var provider in Catalog.Providers) CredentialStore.Delete(provider.Id);
+            if (Directory.Exists(Settings.DataDirectory)) Directory.Delete(Settings.DataDirectory, recursive: true);
+            return 0;
+        }
+        VerifyUI = args.SequenceEqual(new[] { "--verify-ui" });
+        if (args.Length == 0 || VerifyUI)
         {
             using var single = new Mutex(true, "Local\\LifeNarrator.Windows", out var first);
             if (!first) return 0;
