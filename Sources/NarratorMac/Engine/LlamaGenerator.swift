@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import NarratorCore
+import os
 
 /// Serializes the synchronous `LlamaEngine` on its own queue; loads the model on first use and
 /// releases it after 10 idle minutes.
@@ -11,6 +12,7 @@ public actor LlamaGenerator: TextGenerator {
     private let modelPath: String
     private var engine: LlamaEngine?
     private var unload: Task<Void, Never>?
+    private nonisolated let closed = OSAllocatedUnfairLock(initialState: false)
 
     public init(modelPath: String) { self.modelPath = modelPath }
 
@@ -26,6 +28,7 @@ public actor LlamaGenerator: TextGenerator {
     public func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?,
                              partial: @escaping @Sendable (String) -> Bool) async throws -> String {
         try Task.checkCancellation()
+        if closed.withLock({ $0 }) { throw CancellationError() }
         unload?.cancel()
         defer { scheduleUnload() }
         let grammar = try LlamaGrammar.grammar(for: schema)
@@ -36,12 +39,18 @@ public actor LlamaGenerator: TextGenerator {
         try Task.checkCancellation()
         return try engine!.generate(prompt: chat, grammar: grammar, maxTokens: maxTokens ?? 1024,
                                     cachePrefix: cachePrefix) {
-            !Task.isCancelled && partial($0)
+            !Task.isCancelled && !closed.withLock({ $0 }) && partial($0)
         }
     }
 
     /// ggml asserts at exit that its Metal device holds no model buffers, so free the model before quitting.
-    public func release() {
+    /// A running generation stops at its next token, so quitting doesn't wait for it, and nothing loads the model again.
+    public nonisolated func close() async {
+        closed.withLock { $0 = true }
+        await release()
+    }
+
+    private func release() {
         unload?.cancel()
         engine = nil
     }
