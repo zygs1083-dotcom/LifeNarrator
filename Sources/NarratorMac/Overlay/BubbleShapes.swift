@@ -2,17 +2,18 @@ import SwiftUI
 
 struct StarShape: Shape {
     func path(in rect: CGRect) -> Path {
-        Path { path in
-            for index in 0..<10 {
-                let angle = Double(index) * .pi / 5 - .pi / 2
-                let radius = index.isMultiple(of: 2) ? 1.0 : 0.62
-                let point = CGPoint(x: rect.midX + cos(angle) * radius * rect.width / 2,
-                                    y: rect.midY + sin(angle) * radius * rect.height / 2)
-                if index == 0 { path.move(to: point) }
-                else { path.addLine(to: point) }
-            }
-            path.closeSubpath()
+        var path = Path()
+        for index in 0..<10 {
+            let angle = Double(index) * Double.pi / 5 - Double.pi / 2
+            let radius: CGFloat = index.isMultiple(of: 2) ? 1 : 0.62
+            let x = rect.midX + CGFloat(cos(angle)) * radius * rect.width / 2
+            let y = rect.midY + CGFloat(sin(angle)) * radius * rect.height / 2
+            let point = CGPoint(x: x, y: y)
+            if index == 0 { path.move(to: point) }
+            else { path.addLine(to: point) }
         }
+        path.closeSubpath()
+        return path
     }
 }
 
