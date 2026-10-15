@@ -1,22 +1,33 @@
-import Darwin
 import Foundation
+import Dispatch
 import NarratorCore
-import NarratorBrain
+#if os(macOS)
+import Darwin
 import os
+#endif
 
 /// Serializes the synchronous `LlamaEngine` on its own queue; loads the model on first use and
 /// releases it after 10 idle minutes.
 public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
+    #if os(Windows)
+    private let queue = LlamaExecutor()
+    #else
     private let queue = DispatchSerialQueue(label: "LifeNarrator.LlamaGenerator", qos: .utility)
+    #endif
     public nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
     private let modelPath: String
     private var engine: LlamaEngine?
     private var waitForRelease: Task<Void, Never>?
     private var unload: Task<Void, Never>?
+    #if os(macOS)
     private nonisolated let generating = OSAllocatedUnfairLock(initialState: false)
-    public nonisolated var isBusy: Bool { generating.withLock { $0 } }
     private nonisolated let closed = OSAllocatedUnfairLock(initialState: false)
+    #else
+    private nonisolated let generating = LockedFlag()
+    private nonisolated let closed = LockedFlag()
+    #endif
+    public nonisolated var isBusy: Bool { generating.withLock { $0 } }
 
     public init(modelPath: String, waitForRelease: Task<Void, Never>? = nil) {
         self.modelPath = modelPath
@@ -73,7 +84,29 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
             do { try await Task.sleep(for: .seconds(600)) } catch { return }
             engine = nil
             // Freed model and compute buffers otherwise stay in the process footprint.
+            #if os(macOS)
             malloc_zone_pressure_relief(nil, 0)
+            #endif
         }
     }
 }
+
+#if os(Windows)
+private final class LlamaExecutor: SerialExecutor {
+    private let queue = DispatchQueue(label: "LifeNarrator.LlamaGenerator", qos: .utility)
+
+    func enqueue(_ job: consuming ExecutorJob) {
+        let job = UnownedJob(job)
+        queue.async { job.runSynchronously(on: self.asUnownedSerialExecutor()) }
+    }
+}
+
+private final class LockedFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    func withLock<T>(_ body: (inout Bool) -> T) -> T {
+        lock.withLock { body(&value) }
+    }
+}
+#endif

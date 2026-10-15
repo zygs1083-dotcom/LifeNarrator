@@ -1,5 +1,8 @@
 import Foundation
 import NarratorCore
+#if canImport(NarratorLlama)
+import NarratorLlama
+#endif
 
 @MainActor public final class BrainRPCServer {
     private enum Event: Sendable { case line(String), failure(any Error) }
@@ -13,6 +16,10 @@ import NarratorCore
     private var configuration: RPCConfiguration?
     private var generator: (any TextGenerator)?
     private var spriteName = ""
+    #if canImport(NarratorLlama)
+    private var builtin: LlamaGenerator?
+    private var modelRelease: Task<Void, Never>?
+    #endif
 
     public convenience init(writeLine: @escaping (String) throws -> Void) {
         self.init(writeLine: writeLine, generatorFactory: { try $0.makeGenerator() })
@@ -27,6 +34,30 @@ import NarratorCore
     }
 
     public func run(lines: AsyncThrowingStream<String, any Error>) async throws {
+        do { try await process(lines: lines) }
+        catch { await closeGenerator(); throw error }
+        await closeGenerator()
+    }
+
+    private func closeGenerator() async {
+        #if canImport(NarratorLlama)
+        await builtin?.close()
+        await modelRelease?.value
+        builtin = nil
+        #endif
+    }
+
+    #if canImport(NarratorLlama)
+    private func releaseBuiltin() {
+        if let previous = builtin {
+            let pending = modelRelease
+            modelRelease = Task { await pending?.value; await previous.close() }
+            builtin = nil
+        }
+    }
+    #endif
+
+    private func process(lines: AsyncThrowingStream<String, any Error>) async throws {
         let continuation = events.continuation
         let reader = Task {
             do {
@@ -109,16 +140,18 @@ import NarratorCore
         case "configure":
             let configuration = try params.decode(RPCConfiguration.self)
             let content = try configuration.makeContent()
-            // Reject builtin even when tests supply a generator directly.
-            if configuration.generator.kind == .builtin {
-                throw BrainRPCError(code: -32001, message: "builtin generator is not supported")
-            }
-            let generator = try generatorFactory(configuration.generator)
-            let settings = try configuration.settings.makeSettings(modelAvailable: generator != nil)
+            let settings = try configuration.settings.makeSettings(modelAvailable: configuration.generator.kind != .none)
             let url = URL(fileURLWithPath: configuration.dataDirectory, isDirectory: true).standardizedFileURL
             guard directory == nil || directory == url else {
                 throw BrainRPCError(code: -32602, message: "dataDirectory cannot change within a session")
             }
+            #if canImport(NarratorLlama)
+            let generator = configuration.generator.kind == .builtin
+                ? try configuration.generator.makeGenerator { self.releaseBuiltin(); return self.modelRelease }
+                : try generatorFactory(configuration.generator)
+            #else
+            let generator = try generatorFactory(configuration.generator)
+            #endif
             if brain == nil {
                 do {
                     try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
@@ -137,6 +170,10 @@ import NarratorCore
             }
             self.configuration = configuration
             self.generator = generator
+            #if canImport(NarratorLlama)
+            if configuration.generator.kind != .builtin { releaseBuiltin() }
+            builtin = generator as? LlamaGenerator
+            #endif
             brain!.configure(settings: settings, content: content, generator: .success(generator))
             return .null
         case "snapshot":

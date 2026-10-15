@@ -1,3 +1,4 @@
+@_exported import NarratorLlama
 @_exported import NarratorBrain
 import NarratorCore
 

@@ -284,7 +284,7 @@ private actor ConnectionGenerator: TextGenerator {
         #expect(output.count == 8)
     }
 
-    @Test func configureRejectsBuiltinInvalidProviderAndDirectoryChanges() throws {
+    @Test func configureRejectsMissingModelInvalidProviderAndDirectoryChanges() throws {
         var output: [RPCValue] = []
         let server = BrainRPCServer { output.append(try JSONDecoder().decode(RPCValue.self, from: Data($0.utf8))) }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -294,9 +294,16 @@ private actor ConnectionGenerator: TextGenerator {
                 "method": .string("configure"), "params": params]).line())
         }
         try call(configuration(directory: directory, kind: "builtin"))
-        #expect(output.last?["error"]?["code"] == .number(-32001))
+        #expect(output.last?["error"]?["code"] == .number(-32602))
         #expect(!FileManager.default.fileExists(atPath: directory.path))
-        var bad = try configuration(directory: directory, kind: "api").decode([String: RPCValue].self)
+        var bad = try configuration(directory: directory, kind: "builtin").decode([String: RPCValue].self)
+        for path in ["", directory.appendingPathComponent("missing.gguf").path] {
+            bad["generator"] = .object(["kind": .string("builtin"), "modelPath": .string(path)])
+            try call(.object(bad))
+            #expect(output.last?["error"]?["code"] == .number(-32602))
+            #expect(!FileManager.default.fileExists(atPath: directory.path))
+        }
+        bad = try configuration(directory: directory, kind: "api").decode([String: RPCValue].self)
         bad["generator"] = .object(["kind": .string("api"), "presetId": .string("unknown"), "model": .string("m"), "key": .string("")])
         try call(.object(bad))
         #expect(output.last?["error"]?["code"] == .number(-32602))
@@ -322,6 +329,11 @@ private actor ConnectionGenerator: TextGenerator {
             try JSONDecoder().decode(RPCGeneratorConfiguration.self, from: Data(json.utf8)).makeGenerator()
         }
         #expect(try make(#"{"kind":"none"}"#) == nil)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let directoryJSON = try RPCValue.object(["kind": .string("builtin"), "modelPath": .string(directory.path)]).line()
+        #expect(throws: (any Error).self) { try make(directoryJSON) }
         let openAI = try #require(try make(#"{"kind":"api","presetId":"openai","model":"m","baseURL":"http://localhost:1234/v1","structured":"prompt","key":"k"}"#) as? OpenAIChatClient)
         #expect(openAI.model == "m" && openAI.key == "k" && openAI.structured == .prompt)
         #expect(openAI.baseURL.absoluteString == "http://localhost:1234/v1")

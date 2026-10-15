@@ -1,6 +1,5 @@
 import Foundation
 import NarratorCore
-import NarratorBrain
 
 /// Hand-written GBNF for the schemas `TextGenerator.generateJSON` receives.
 public enum LlamaGrammar {
@@ -8,7 +7,7 @@ public enum LlamaGrammar {
 
     public static func grammar(for schema: String) throws -> String {
         switch schema {
-        case ChatEngine.schema: return chat
+        case GenerationPrompts.chatSchema: return chat
         case GenerationPrompts.compiledRuleSchema: return compiledRule
         case GenerationPrompts.quipsSchema: return quips
         case GenerationPrompts.quipsLongSchema: return quipsLong

@@ -1,5 +1,8 @@
 // swift-tools-version: 6.0
 import PackageDescription
+#if os(Windows)
+import Foundation
+#endif
 
 var dependencies: [Package.Dependency] = []
 
@@ -11,6 +14,22 @@ var targets: [Target] = [
     .testTarget(name: "NarratorBrainTests", dependencies: ["NarratorCore", "NarratorBrain"]),
 ]
 
+#if os(macOS) || os(Windows)
+#if os(macOS)
+let llamaDependency: Target.Dependency = "LlamaFramework"
+#else
+let llamaDependency: Target.Dependency = "llama"
+#endif
+targets.append(.target(name: "NarratorLlama", dependencies: ["NarratorCore", llamaDependency]))
+targets[1].dependencies.append(.byName(name: "NarratorLlama", condition: .when(platforms: [.macOS, .windows])))
+#endif
+
+#if os(Windows)
+let llamaLibraries = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent(".dev-data/llama/lib").path
+targets.append(.systemLibrary(name: "llama", path: "windows/llama"))
+targets.first { $0.name == "NarratorLlama" }!.linkerSettings = [.unsafeFlags(["-L", llamaLibraries])]
+#endif
+
 // macOS-only targets are left out on Linux so NarratorCore can be built and tested there.
 #if os(macOS)
 dependencies.append(.package(url: "https://github.com/sindresorhus/KeyboardShortcuts", exact: "3.1.0"))
@@ -20,7 +39,7 @@ targets += [
         url: "https://github.com/ggml-org/llama.cpp/releases/download/b11429/llama-b11429-xcframework.zip",
         checksum: "e26a6a0a813f5760fe45834ce239d5b525e4e2442d4fd017221d9f0438383174"
     ),
-    .target(name: "NarratorMac", dependencies: ["NarratorCore", "NarratorBrain", "LlamaFramework",
+    .target(name: "NarratorMac", dependencies: ["NarratorCore", "NarratorBrain", "NarratorLlama",
         .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts")], resources: [.process("Resources")]),
     .executableTarget(name: "narrator-bench", dependencies: ["NarratorMac"]),
     .executableTarget(name: "context-probe", dependencies: ["NarratorMac", "NarratorCore"], exclude: ["README.md"]),

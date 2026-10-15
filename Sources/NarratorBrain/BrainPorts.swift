@@ -1,11 +1,6 @@
 import Foundation
 import NarratorCore
 
-public protocol GeneratorMetrics: Sendable {
-    var isBusy: Bool { get async }
-    var lastPrefillSeconds: Double { get async }
-}
-
 public struct BrainSettings: Sendable {
     public struct SystemOne: Sendable {
         public var model: String

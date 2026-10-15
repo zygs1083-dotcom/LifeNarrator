@@ -44,6 +44,16 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - uses: actions/cache@v4
+        with:
+          path: .dev-data/llama
+          key: windows-llama-b11429-cpu-vulkan-v1
+      - run: windows/scripts/setup-llama.ps1
+      - uses: actions/cache@v4
+        with:
+          path: .dev-data/models
+          key: qwen35-08b-q4km-bd258782
+      - run: windows/scripts/setup-test-model.ps1
       - run: swift --version
       - name: Windows updater checks
         run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- --updates-only
@@ -56,6 +66,8 @@ jobs:
       - run: windows/scripts/package-brain.ps1
       - name: Shell brain protocol checks
         run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- artifacts/brain/narrator-brain.exe
+      - name: Builtin model RPC generation (packaged runtime)
+        run: python windows/scripts/check-builtin-model.py artifacts/brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL
       - name: Publish shell
         if: ${{ !cancelled() }}
         run: |

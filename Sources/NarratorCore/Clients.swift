@@ -49,3 +49,8 @@ public extension TextGenerator {
         try await generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: nil)
     }
 }
+
+public protocol GeneratorMetrics: Sendable {
+    var isBusy: Bool { get async }
+    var lastPrefillSeconds: Double { get async }
+}
