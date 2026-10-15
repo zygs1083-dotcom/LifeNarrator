@@ -46,12 +46,26 @@ internal sealed class OnboardingWindow : Window
         };
         var back = Views.Button(text["back"], () => { step = step == 3 && settings.Provider.Kind == "none" ? 1 : step - 1; Render(); });
         back.IsVisible = step > 0;
-        var next = Views.Button(text[step == 3 ? "finish" : "continue"], async () => await Advance());
+        var next = Views.Button(text[step == 3 ? "finish" : "continue"], () => { });
+        next.IsDefault = true;
         next.Classes.Add("primary"); AutomationProperties.SetAutomationId(next, "onboarding-next");
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        if (step == 2) actions.Children.Add(Views.Button(text["skip"], async () => { settings.Provider.Kind = "none"; await Advance(); }));
+        var skip = Views.Button(text["skip"], () => { });
+        if (step == 2) actions.Children.Add(skip);
         actions.Children.Add(next);
         var footer = Views.Row(back, actions);
+        async Task Move(bool skipModel)
+        {
+            footer.IsEnabled = false;
+            try
+            {
+                if (skipModel) settings.Provider.Kind = "none";
+                await Advance();
+            }
+            finally { footer.IsEnabled = true; }
+        }
+        next.Click += async (_, _) => await Move(false);
+        skip.Click += async (_, _) => await Move(true);
         var dock = new DockPanel { Margin = new Thickness(20) };
         var heading = Views.Stack(title, progress); heading.Margin = new Thickness(0, 0, 0, 20);
         DockPanel.SetDock(heading, Dock.Top); dock.Children.Add(heading);

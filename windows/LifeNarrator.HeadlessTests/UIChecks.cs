@@ -53,6 +53,20 @@ internal static class UIChecks
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }
         if (!complete || wizard.IsVisible) throw new Exception("Offline onboarding did not finish");
+        var pending = new TaskCompletionSource();
+        var busyWizard = new OnboardingWindow(new Settings(), () => pending.Task, () => Task.FromResult(1d), () => { });
+        busyWizard.Show();
+        Button Next()
+        {
+            busyWizard.UpdateLayout();
+            return busyWizard.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetAutomationId(b) == "onboarding-next");
+        }
+        Next().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var waiting = Next(); waiting.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (waiting.IsEffectivelyEnabled) throw new Exception("Onboarding permits repeated navigation while configuring");
+        pending.SetResult();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        busyWizard.Close();
         Console.WriteLine("PASS: seven-persona selection and pace configure immediately; three tabs render in both themes; language refresh; offline onboarding");
     }
 }
