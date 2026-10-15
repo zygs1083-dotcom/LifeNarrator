@@ -78,6 +78,7 @@ public final class ContextSensor {
     private var appChangePending = false
     private var windowChangePending = false
     private var lastCapture = Date.distantPast
+    public private(set) var lastTypedAt = Date.distantPast
     private var lastHost: String?
     private var valueChanges: [AXUIElement: Date] = [:]
 
@@ -95,6 +96,7 @@ public final class ContextSensor {
         observations.scrollMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [weak self] event in
             MainActor.assumeIsolated {
                 guard let self else { return }
+                if event.type == .keyDown { self.lastTypedAt = Date() }
                 // Chromium posts no AX notification for a scroll, so read the newly visible content once it settles
                 // (reading during the scroll would stall the marks following it).
                 self.scrollSettle?.cancel()

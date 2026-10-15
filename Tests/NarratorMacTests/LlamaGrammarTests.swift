@@ -21,6 +21,8 @@ final class LlamaGrammarTests: XCTestCase {
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.spriteMarksLongSchema), LlamaGrammar.spriteMarksLong)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.quipsLongSchema), LlamaGrammar.quipsLong)
         XCTAssertEqual(try LlamaGrammar.grammar(for: PersonaGenerator.schema), LlamaGrammar.persona)
+        XCTAssertEqual(try LlamaGrammar.grammar(for: SpriteAmbient.schema), LlamaGrammar.ambient)
+        XCTAssertEqual(try LlamaGrammar.grammar(for: SpriteAmbient.longSchema), LlamaGrammar.ambientLong)
         XCTAssertThrowsError(try LlamaGrammar.grammar(for: "{}"))
     }
 
@@ -76,6 +78,17 @@ final class LlamaGrammarTests: XCTestCase {
         }
         XCTAssertTrue(LlamaGrammar.persona.contains("focus"))
         XCTAssertTrue(LlamaGrammar.persona.contains("label)?"))
+    }
+
+    func testAmbientGrammarHasThreeToSixLinesAndSpriteTextLimits() {
+        XCTAssertEqual(bound(LlamaGrammar.ambient, rule: "root") + 1, 6)
+        XCTAssertTrue(LlamaGrammar.ambient.contains("aside){2,5}"))
+        XCTAssertEqual(bound(LlamaGrammar.ambient, rule: "zh"), 20)
+        XCTAssertEqual(bound(LlamaGrammar.ambient, rule: "en"), 56)
+        XCTAssertEqual(bound(LlamaGrammar.ambientLong, rule: "zh"), 28)
+        XCTAssertEqual(bound(LlamaGrammar.ambientLong, rule: "en"), 80)
+        XCTAssertTrue(LlamaGrammar.ambient.contains(#"\"lines\""#))
+        XCTAssertFalse(LlamaGrammar.ambient.contains("quote ::="))
     }
 
     func testCompiledRuleGrammarCoversSchemaEnumsAndArrayLimits() {

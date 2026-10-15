@@ -77,6 +77,12 @@ public struct SpriteMemory: Sendable {
             .prefix(12).map { $0.key.text }
     }
 
+    public func requestQuotes(bundleId: String, queued: [String], now: Date) -> [String] {
+        let shown = recentMarks.filter { $0.bundleId == bundleId && status(key: $0, now: now)!.isMarked }.map(\.text)
+        var seen = Set<String>()
+        return (shown + queued.map(normalized)).filter { seen.insert($0).inserted }
+    }
+
     public func screenStatus(key: UInt64, now: Date) -> ScreenStatus? {
         screens[key].flatMap { now.timeIntervalSince($0.lastRequestAt) < ttl ? $0 : nil }
     }
