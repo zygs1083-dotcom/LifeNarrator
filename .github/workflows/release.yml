@@ -21,6 +21,6 @@ jobs:
       - run: scripts/bundle.sh
         env:
           SIGN_IDENTITY: LifeNarrator Self-Signed
-      - run: gh release create "$GITHUB_REF_NAME" dist/LifeNarrator.dmg dist/LifeNarrator.zip dist/checksums.txt --generate-notes
+      - run: gh release create "$GITHUB_REF_NAME" dist/LifeNarrator.dmg dist/LifeNarrator.zip dist/checksums.txt dist/version.txt --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

@@ -29,17 +29,15 @@ final class UpdatesTests: XCTestCase {
         }
     }
 
-    func testReleaseJSON() throws {
-        let json = #"{"tag_name":"v1.2.3","html_url":"https://github.com/zygs1083-dotcom/LifeNarrator/releases/tag/v1.2.3","assets":[{"name":"LifeNarrator.zip","browser_download_url":"https://github.com/zygs1083-dotcom/LifeNarrator/releases/download/v1.2.3/LifeNarrator.zip"},{"name":"checksums.txt","browser_download_url":"https://github.com/zygs1083-dotcom/LifeNarrator/releases/download/v1.2.3/checksums.txt"}]}"#
-        let release = try AppRelease.parse(Data(json.utf8))
-        XCTAssertEqual(release.tag, "v1.2.3")
-        XCTAssertEqual(try release.assetURL(named: "LifeNarrator.zip").lastPathComponent, "LifeNarrator.zip")
-        XCTAssertEqual(try release.assetURL(named: "checksums.txt").lastPathComponent, "checksums.txt")
-        XCTAssertThrowsError(try release.assetURL(named: "missing"))
-        for invalid in ["{}", json.replacingOccurrences(of: "v1.2.3", with: "invalid"), json.replacingOccurrences(of: "https://github.com", with: "http://github.com")] {
-            XCTAssertThrowsError(try AppRelease.parse(Data(invalid.utf8)))
+    func testLatestVersionText() throws {
+        let release = try AppRelease(versionText: "0.8.1\n")
+        XCTAssertEqual(release.tag, "v0.8.1")
+        XCTAssertEqual(try AppRelease(versionText: "v0.8.1").tag, "v0.8.1")
+        XCTAssertEqual(release.assetURL(named: "LifeNarrator.zip").absoluteString,
+                       "https://github.com/zygs1083-dotcom/LifeNarrator/releases/download/v0.8.1/LifeNarrator.zip")
+        XCTAssertEqual(release.pageURL.absoluteString, "https://github.com/zygs1083-dotcom/LifeNarrator/releases/tag/v0.8.1")
+        for invalid in ["", "<html>", "0.8", "0.8.1 extra"] {
+            XCTAssertThrowsError(try AppRelease(versionText: invalid), invalid)
         }
-        let badAsset = try AppRelease.parse(Data(json.replacingOccurrences(of: "/releases/download/", with: "/elsewhere/").utf8))
-        XCTAssertThrowsError(try badAsset.assetURL(named: "LifeNarrator.zip"))
     }
 }

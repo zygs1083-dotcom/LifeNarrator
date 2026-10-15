@@ -30,34 +30,16 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'echo "LifeNarrator: Failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 
-api=https://api.github.com/repos/zygs1083-dotcom/LifeNarrator/releases
+# Direct release downloads, not the REST API: its anonymous rate limit is shared by everyone behind a proxy exit.
+releases=https://github.com/zygs1083-dotcom/LifeNarrator/releases
 if [[ -n ${LIFENARRATOR_VERSION:-} ]]; then
   [[ $LIFENARRATOR_VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+([+-][a-zA-Z0-9.+-]+)?$ ]] || fail "Invalid LIFENARRATOR_VERSION."
-  api="$api/tags/$LIFENARRATOR_VERSION"
+  download="$releases/download/$LIFENARRATOR_VERSION"
 else
-  api="$api/latest"
+  download="$releases/latest/download"
 fi
-curl -fsSL "$api" -o "$work/release.json"
-# JavaScript for Automation ships with macOS; no jq or Python installation is needed.
-asset_url() {
-  osascript -l JavaScript - "$work/release.json" "$1" <<'JXA'
-ObjC.import('Foundation');
-function run(argv) {
-  const text = $.NSString.stringWithContentsOfFileEncodingError(argv[0], $.NSUTF8StringEncoding, null);
-  const release = JSON.parse(ObjC.unwrap(text));
-  const asset = release.assets.find(function(asset) { return asset.name === argv[1]; });
-  if (!asset) throw new Error('Release is missing ' + argv[1]);
-  if (!/^https:\/\/github\.com\/zygs1083-dotcom\/LifeNarrator\/releases\/download\//.test(asset.browser_download_url)) {
-    throw new Error('Invalid asset URL: ' + asset.browser_download_url);
-  }
-  return asset.browser_download_url;
-}
-JXA
-}
-zip_url=$(asset_url LifeNarrator.zip)
-checksums_url=$(asset_url checksums.txt)
-curl -fsSL "$zip_url" -o "$work/LifeNarrator.zip"
-curl -fsSL "$checksums_url" -o "$work/checksums.txt"
+curl -fsSL "$download/LifeNarrator.zip" -o "$work/LifeNarrator.zip"
+curl -fsSL "$download/checksums.txt" -o "$work/checksums.txt"
 awk '$2 == "LifeNarrator.zip" || $2 == "*LifeNarrator.zip" { print; found++ } END { if (found != 1) exit 1 }' \
   "$work/checksums.txt" > "$work/zip.sha256" || fail "Expected exactly one LifeNarrator.zip checksum."
 (cd "$work" && shasum -a 256 -c zip.sha256) || fail "SHA-256 verification failed."
