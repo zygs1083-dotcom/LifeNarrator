@@ -24,7 +24,6 @@ try {
         provider = @{ kind = 'none' }
     } | ConvertTo-Json | Set-Content "$data/settings.json" -Encoding utf8
     '{"fixture":"user data must survive an update"}' | Set-Content "$data/memory/update-fixture.json" -Encoding utf8
-    $settingsHash = (Get-FileHash "$data/settings.json").Hash
     $memoryHash = (Get-FileHash "$data/memory/update-fixture.json").Hash
     $server = Start-Process python -ArgumentList @('-m', 'http.server', '18766', '--bind', '127.0.0.1', '--directory', "`"$service`"") -PassThru -RedirectStandardOutput artifacts/update-server.stdout.log -RedirectStandardError artifacts/update-server.stderr.log
     $ready = $false
@@ -49,11 +48,15 @@ try {
     }
     $before = Get-Content artifacts/update-before.json -Raw | ConvertFrom-Json
     $after = Get-Content artifacts/update-after.json -Raw | ConvertFrom-Json
+    $settingsHash = (Get-FileHash artifacts/update-settings-before.json).Hash
     if ($before.version -ne '0.0.1' -or $after.version -ne $version -or $after.brain.version -ne $version) { throw 'Running version did not advance' }
     if ($after.executable -ne "$installed\LifeNarrator.exe" -or $after.installFailure) { throw 'Updated installed app is unhealthy' }
     if ((Get-FileHash "$installed/LifeNarrator.exe").Hash -eq (Get-FileHash artifacts/shell/LifeNarrator.exe).Hash) { throw 'Installed executable is still the old build' }
     if (Get-Process -Id $before.shellPID, $before.brainPID -ErrorAction SilentlyContinue) { throw 'Old shell or brain survived update' }
-    if ((Get-FileHash "$data/settings.json").Hash -ne $settingsHash -or (Get-FileHash "$data/memory/update-fixture.json").Hash -ne $memoryHash) { throw 'Update changed user data' }
+    if ((Get-FileHash artifacts/update-settings-after.json).Hash -ne $settingsHash -or (Get-FileHash "$data/settings.json").Hash -ne $settingsHash) { throw 'Update changed user settings' }
+    if ((Get-FileHash "$data/memory/update-fixture.json").Hash -ne $memoryHash) { throw 'Update changed memory fixture' }
+    $settings = Get-Content "$data/settings.json" -Raw | ConvertFrom-Json
+    if ($settings.persona -ne 'cat' -or !$settings.paused -or $settings.markGap -ne 7 -or $settings.launchAtLogin -or !$settings.automaticUpdates) { throw 'User preferences were not preserved' }
     $running = Get-Process -Id $after.shellPID -ErrorAction SilentlyContinue
     if ($running -and !$running.WaitForExit(30000)) { throw 'Updated verification app did not exit' }
     $watch.Restart()

@@ -23,6 +23,7 @@ public sealed partial class ShellApp
             settingsWindow.UpdateLayout();
             settingsWindow.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToEnd();
             await Capture("update-before");
+            File.Copy(Settings.FilePath, Artifact.PathFor("update-settings-before.json"));
             Artifact.Write("update-before.json", new { version = AppRelease.CurrentVersion, target = updater.Release!.Tag,
                 executable = Environment.ProcessPath, shellPID = Environment.ProcessId,
                 brainPID = brain!.ProcessID });
@@ -46,6 +47,7 @@ public sealed partial class ShellApp
             settingsWindow.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToEnd();
             await Capture("update-after");
             var ping = await brain!.Call("ping", new { });
+            File.Copy(Settings.FilePath, Artifact.PathFor("update-settings-after.json"));
             Artifact.Write("update-after.json", new { version = AppRelease.CurrentVersion, executable = Environment.ProcessPath,
                 shellPID = Environment.ProcessId, brain = ping, dataDirectory = Settings.DataDirectory,
                 installFailure = updateFailure });
