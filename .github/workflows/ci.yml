@@ -1,36 +1,165 @@
 name: CI
-on: workflow_dispatch
-permissions:
-  contents: read
-  actions: read
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
 jobs:
-  model:
-    runs-on: windows-latest
-    timeout-minutes: 10
+  core-linux:
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build
+      - run: swift test
+
+  headless-linux:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - uses: actions/download-artifact@v4
+      - run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji libfontconfig1
+      - run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release
+      - uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ github.token }}
-          run-id: 38819793421
-          name: windows-spike
-          path: artifacts
+          name: windows-bubble-headless
+          path: |
+            artifacts/bubble-*.png
+            artifacts/ui-headless-*.png
+            artifacts/model-download-test/*.log
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f
+        with:
+          swift-version: swift-6.2-release
+          swift-build: 6.2-RELEASE
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/cache@v4
+        with:
+          path: .dev-data/llama
+          key: windows-llama-b11429-cpu-vulkan-v1
+      - run: windows/scripts/setup-llama.ps1
       - uses: actions/cache@v4
         with:
           path: .dev-data/models
           key: qwen35-08b-q4km-bd258782
       - run: windows/scripts/setup-test-model.ps1
-      - run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- artifacts/brain/narrator-brain.exe
+      - run: swift --version
+      - name: Windows updater checks
+        run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- --updates-only
+      - run: swift build --target NarratorCore
+      - run: swift build --target NarratorBrain
+      - name: Isolated brain RPC scenario
+        run: swift test --filter configureSnapshotGeneratesAndShowsThroughLineStreams
+      - run: swift test
+      - run: swift build -c release --product narrator-brain
+      - run: windows/scripts/package-brain.ps1
+      - name: Shell brain protocol checks
+        run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- artifacts/brain/narrator-brain.exe
+      - name: Builtin model RPC generation (packaged runtime)
+        run: python windows/scripts/check-builtin-model.py artifacts/brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL
+      - name: Publish shell
+        if: ${{ !cancelled() }}
+        run: |
+          dotnet publish windows/LifeNarrator.Windows -c Release -r win-x64 --self-contained true -o artifacts/shell
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $files = @(Get-ChildItem artifacts/shell -File -Recurse)
+          @{ totalBytes = ($files | Measure-Object Length -Sum).Sum; fileCount = $files.Count; selfContained = $true } |
+            ConvertTo-Json | Set-Content artifacts/shell-size.json
+      - run: windows/scripts/run-spikes.ps1
+        if: ${{ !cancelled() }}
+      - name: Windows shell end-to-end
+        run: windows/scripts/run-e2e.ps1
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
+        run: windows/scripts/build-installer.ps1
+      - name: Verify installed app and uninstall
+        run: windows/scripts/verify-installer.ps1
+      - name: Verify in-app update from an installed older version
+        run: windows/scripts/verify-updater.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: model-probe
+          name: windows-updater-e2e
           path: |
-            artifacts/model-download-test/*.log
-            artifacts/builtin-ui-test/*.log
-            artifacts/builtin-ui-test/*.json
-            artifacts/builtin-ui-test/*.jsonl
-            artifacts/ui-headless-model-*.png
+            artifacts/update-*.png
+            artifacts/update-*.json
+            artifacts/update-*.log
+            artifacts/update-logs/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: LifeNarrator-Windows
+          path: |
+            artifacts/LifeNarrator-Setup.exe
+            artifacts/checksums-windows.txt
+            artifacts/ui-*.png
+            artifacts/ui-*.json
+            artifacts/installer-*.json
+            artifacts/install*.log
+            artifacts/uninstall.log
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-shell-e2e
+          path: |
+            artifacts/e2e-*.png
+            artifacts/e2e*.json
+            artifacts/e2e*.log
+            artifacts/shell.*.log
+            artifacts/stub.*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-spike
+          path: |
+            artifacts/
+            !artifacts/fixtures/edge-profile/**
+            !artifacts/fixtures/e2e-edge-profile/**
+          if-no-files-found: warn
+
+  macos:
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift build
+      - run: swift test
+        env:
+          SNAPSHOT_DIR: ${{ github.workspace }}/.build/snapshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bubble-snapshots
+          path: .build/snapshots
+      - run: scripts/ci-import-signing.sh
+        env:
+          MACOS_SIGNING_P12: ${{ secrets.MACOS_SIGNING_P12 }}
+          MACOS_SIGNING_PASSWORD: ${{ secrets.MACOS_SIGNING_PASSWORD }}
+      - run: scripts/bundle.sh
+        env:
+          SIGN_IDENTITY: LifeNarrator Self-Signed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LifeNarrator-app
+          path: |
+            dist/LifeNarrator.zip
+            dist/LifeNarrator.dmg
+            dist/checksums.txt
+          if-no-files-found: error
