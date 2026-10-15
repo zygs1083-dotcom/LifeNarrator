@@ -129,7 +129,7 @@ internal sealed class SettingsWindow : Window
             UpdateState.Checking => text["updates.checking"],
             UpdateState.UpToDate => text["updates.latest"],
             UpdateState.Available => text["updates.available"].Replace("%@", updater.Release!.Tag),
-            UpdateState.Downloading => text["updates.downloading"].Replace("%d", updater.Progress.ToString()),
+            UpdateState.Downloading => text["updates.downloading"].Replace("%d", updater.Progress.ToString()).Replace("%%", "%"),
             UpdateState.Failed => updater.Error!,
             _ => ""
         };
