@@ -34,6 +34,7 @@ public final class NarratorEngine {
         sensorPort = MacBrainSensor(sensor: sensor, host: host)
         brain = try SpriteBrain(sensor: sensorPort, overlay: MacBrainOverlay(overlay: overlay, sensor: sensorPort),
             host: host, saidURL: store.directory.said)
+        brain.onStateChange = { [unowned store] in store.objectWillChange.send() }
         sensor.onScroll = { [unowned self] event in
             guard let bundleID = self.bundleID else { return }
             self.overlay.scrolled(event, bundleID: bundleID)
@@ -67,10 +68,27 @@ public final class NarratorEngine {
             paused: settings.paused, blacklist: settings.blacklist, persona: settings.persona,
             lang: settings.language.lang, disabledBuiltinIds: settings.disabledBuiltinIds,
             maxOnScreen: settings.bubbleStyle.maxOnScreen, modelAvailable: available,
-            systemOne: systemOne, ownProcessID: getpid()),
+            systemOne: systemOne, ownProcessID: getpid(), memoryEnabled: settings.memoryEnabled),
             content: BrainContent(rules: store.rules, builtin: store.builtin, personas: store.personas),
             generator: generator)
     }
+
+    public var memories: [Memory] { brain.memories }
+    public var growthState: GrowthState { brain.growthState }
+
+    @discardableResult
+    public func addMemory(kind: Memory.Kind, text: String) throws -> Memory? {
+        try brain.addMemory(kind: kind, text: text)
+    }
+
+    public func editMemory(id: UUID, kind: Memory.Kind, text: String) throws {
+        try brain.editMemory(id: id, kind: kind, text: text)
+    }
+
+    public func pinMemory(id: UUID, pinned: Bool) throws { try brain.pinMemory(id: id, pinned: pinned) }
+    public func deleteMemory(id: UUID) throws { try brain.deleteMemory(id: id) }
+    public func clearMemories() throws { try brain.clearMemories() }
+    public func recordGrowth(_ event: GrowthTracker.Event) throws { try brain.recordGrowth(event) }
 
     private static func lookupWindowID(pid: pid_t, frame: CGRect) -> CGWindowID {
         let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as! [[String: Any]]

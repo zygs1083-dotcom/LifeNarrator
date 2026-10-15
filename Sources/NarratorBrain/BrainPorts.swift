@@ -19,6 +19,7 @@ public struct BrainSettings: Sendable {
 
     public var liveliness: Liveliness
     public var markGap: TimeInterval
+    public var memoryEnabled: Bool
     public var paused: Bool
     public var blacklist: [String]
     public var persona: Persona
@@ -31,7 +32,8 @@ public struct BrainSettings: Sendable {
 
     public init(liveliness: Liveliness, markGap: TimeInterval, paused: Bool, blacklist: [String],
                 persona: Persona, lang: Lang, disabledBuiltinIds: Set<String>, maxOnScreen: Int,
-                modelAvailable: Bool, systemOne: SystemOne?, ownProcessID: Int32) {
+                modelAvailable: Bool, systemOne: SystemOne?, ownProcessID: Int32, memoryEnabled: Bool = true) {
+        self.memoryEnabled = memoryEnabled
         self.liveliness = liveliness
         self.markGap = markGap
         self.paused = paused

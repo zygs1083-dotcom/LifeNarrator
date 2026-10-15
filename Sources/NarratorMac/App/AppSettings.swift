@@ -40,6 +40,7 @@ public struct AppSettings: Codable {
     public var bubbleStyle = BubbleStyle()
     public var liveliness: Liveliness = .lively
     public var markGap: Double = 2
+    public var memoryEnabled = true
     public var paused = false
     public var blacklist = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.agilebits.onepassword-osx",
@@ -59,11 +60,12 @@ public struct AppSettings: Codable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
+        case memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        memoryEnabled = try c.decodeIfPresent(Bool.self, forKey: .memoryEnabled) ?? true
         automaticUpdates = try c.decodeIfPresent(Bool.self, forKey: .automaticUpdates) ?? true
         liveliness = try c.decodeIfPresent(Liveliness.self, forKey: .liveliness) ?? .lively
         markGap = try c.decodeIfPresent(Double.self, forKey: .markGap) ?? 2

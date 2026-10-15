@@ -158,7 +158,7 @@ public enum SpriteGenerator {
 
     public static func generate(screen: SpriteScreen, snapshot: ContextSnapshot, app: String, title: String,
                                 exclude: [String], persona: Persona, lang: Lang, k: Int, recent: [String] = [],
-                                generator: any TextGenerator, catalog: PersonaCatalog = .builtin,
+                                generator: any TextGenerator, catalog: PersonaCatalog = .builtin, memoryContext: String = "",
                                 isRepeat: @escaping @Sendable (String) -> Bool,
                                 onMark: @escaping @Sendable (SpriteMark) -> Void) async throws -> [SpriteMark] {
         final class State: @unchecked Sendable {
@@ -214,7 +214,7 @@ public enum SpriteGenerator {
         }
         let json: String
         do {
-            json = try await generator.generateJSON(system: prompt.system, prompt: prompt.user,
+            json = try await generator.generateJSON(system: prompt.system, prompt: prompt.user + memoryContext,
                 schema: catalog[persona].limit.en > 8 ? GenerationPrompts.spriteMarksLongSchema : GenerationPrompts.spriteMarksSchema, maxTokens: maxTokens, partial: receive)
         } catch {
             if let decodingError = state.lock.withLock({ state.error }) { throw decodingError }

@@ -78,6 +78,13 @@ public final class SpriteBrain {
     private let host: any BrainHost
     private let saidURL: URL
     private var said: SaidHistory
+    private var memoryStore: MemoryStore
+    private var growth: GrowthTracker
+    private var pendingGrowth: [GrowthMilestone] = []
+    private var growthTask: Task<Void, Never>?
+    public var onStateChange: (() -> Void)?
+    public var memories: [Memory] { memoryStore.memories }
+    public var growthState: GrowthState { growth.state }
     private var settings: BrainSettings!
     private var content: BrainContent!
     private var generator: Result<(any TextGenerator)?, any Error>!
@@ -151,10 +158,27 @@ public final class SpriteBrain {
         self.saidURL = saidURL
         said = FileManager.default.fileExists(atPath: saidURL.path)
             ? try JSONDecoder().decode(SaidHistory.self, from: Data(contentsOf: saidURL)) : SaidHistory()
+        let directory = saidURL.deletingLastPathComponent()
+        memoryStore = try MemoryStore(url: directory.appendingPathComponent("memory.json"))
+        growth = try GrowthTracker(url: directory.appendingPathComponent("growth.json"))
         quips = try SpriteQuips.loadBuiltin()
     }
 
     public func start() {
+        growthTask = Task {
+            do {
+                pendingGrowth += try growth.open()
+                onStateChange?()
+                while true {
+                    try await Task.sleep(for: .seconds(60))
+                    do {
+                        try await trackActivity()
+                        try await showGrowth()
+                    } catch is CancellationError { try Task.checkCancellation() }
+                }
+            } catch is CancellationError { return }
+            catch { await report(error) }
+        }
         if debug {
             statsTask = Task {
                 do {
@@ -172,10 +196,14 @@ public final class SpriteBrain {
     public func configure(settings: BrainSettings, content: BrainContent, generator: Result<(any TextGenerator)?, any Error>) {
         let levelChanged = (self.settings?.liveliness ?? .lively) != settings.liveliness
         let personaChanged = configuredPersona != settings.persona
+        let memoryChanged = self.settings?.memoryEnabled != settings.memoryEnabled
         self.settings = settings
         self.content = content
         self.generator = generator
-        if personaChanged || configuredLanguage != settings.lang { ambientCache = SpriteAmbientCache() }
+        do { try growth.tried(settings.persona); onStateChange?() }
+        catch { Task { await report(error) } }
+        if personaChanged || configuredLanguage != settings.lang || memoryChanged { ambientCache = SpriteAmbientCache() }
+        if !settings.memoryEnabled { growth.endSession() }
         configuredLanguage = settings.lang
         configuredPersona = settings.persona
         if personaChanged { memory = SpriteMemory(level: settings.liveliness) }
@@ -201,6 +229,90 @@ public final class SpriteBrain {
             candidates = matcher.candidates(in: snapshot, now: Date(), appChanged: true, hostChanged: true)
             runTick(.snapshot, switching: false)
             startCadence()
+        }
+    }
+
+    @discardableResult
+    public func addMemory(kind: Memory.Kind, text: String, source: Memory.Source = .manual, now: Date = Date()) throws -> Memory? {
+        guard settings.memoryEnabled else { return nil }
+        let entry = try memoryStore.add(kind: kind, text: text, source: source, now: now)
+        if entry != nil { try recordGrowth(.memory, now: now); memoriesChanged() }
+        return entry
+    }
+
+    public func editMemory(id: UUID, kind: Memory.Kind, text: String) throws {
+        try memoryStore.edit(id: id, kind: kind, text: text)
+        memoriesChanged()
+    }
+
+    public func pinMemory(id: UUID, pinned: Bool) throws {
+        try memoryStore.pin(id: id, pinned: pinned)
+        onStateChange?()
+    }
+
+    public func deleteMemory(id: UUID) throws {
+        try memoryStore.delete(id: id)
+        memoriesChanged()
+    }
+
+    public func clearMemories() throws {
+        try memoryStore.clear()
+        memoriesChanged()
+    }
+
+    public func recordGrowth(_ event: GrowthTracker.Event, now: Date = Date()) throws {
+        pendingGrowth += try growth.record(event, now: now)
+        onStateChange?()
+    }
+
+    private func memoriesChanged() {
+        ambientTask?.cancel()
+        ambientCache = SpriteAmbientCache()
+        onStateChange?()
+    }
+
+    func memoryContext(screenText: String? = nil, now: Date = Date()) throws -> String {
+        let lang = settings.lang
+        var context = "\n\n" + (lang == .zh ? "你们的关系：" : "Your relationship: ")
+            + growth.state.relationship(lang: lang, now: now)
+        guard settings.memoryEnabled else { return context }
+        let entries = try screenText.map { try memoryStore.relevant(for: $0, limit: 4, now: now) }
+            ?? memoryStore.episodes(now: now)
+        if !entries.isEmpty {
+            context += "\n" + (lang == .zh ? "你记得的事：" : "Things you remember: ") + entries.map(\.text).joined(separator: " / ")
+            onStateChange?()
+        }
+        return context
+    }
+
+    private func trackActivity() async throws {
+        let generation = generation
+        let now = Date()
+        let idle = await sensor.idleSeconds()
+        try checkGeneration(generation)
+        guard let snapshot else { growth.endSession(); return }
+        let revision = revision
+        let reason = try await quietReason(snapshot, now: now)
+        try checkGeneration(generation)
+        guard revision == self.revision else { return }
+        guard reason == nil, idle < 60 else { growth.endSession(); return }
+        pendingGrowth += try growth.open(now: now)
+        guard settings.memoryEnabled else { growth.endSession(); onStateChange?(); return }
+        pendingGrowth += try growth.observe(appID: snapshot.bundleId, appName: snapshot.appName,
+            now: now, lastInputAt: now.addingTimeInterval(-idle), memory: &memoryStore, lang: settings.lang)
+        onStateChange?()
+    }
+
+    private func showGrowth() async throws {
+        guard let milestone = pendingGrowth.first else { return }
+        let quip = Quip(lang: settings.lang, persona: settings.persona, text: milestone.text(lang: settings.lang), emoji: ["🎉"])
+        if said.isRepeat(quip.text, now: Date()) {
+            if let snapshot { log(snapshot, .mark, source: "growth", shown: false, reason: "repeat") }
+            pendingGrowth.removeFirst()
+            return
+        }
+        if try await displayCorner(quip, ruleID: "sprite-growth", source: "growth") {
+            pendingGrowth.removeFirst()
         }
     }
 
@@ -318,6 +430,7 @@ public final class SpriteBrain {
     }
 
     public func snapshot(_ snapshot: ContextSnapshot, windowID: UInt32, change: ContextChange) {
+        growth.foregroundApp(snapshot.bundleId)
         let id = windowID
         let screen = SpritePrompt.screen(in: snapshot)
         let key = stableHash("\(id)\n" + screen.lines.map { normalized($0.text) }.joined(separator: "\n"))
@@ -426,6 +539,10 @@ public final class SpriteBrain {
             }
             return
         }
+        try await trackActivity()
+        try checkGeneration(generation)
+        try await showGrowth()
+        try checkGeneration(generation)
         let level = settings.liveliness
         if level == .rowdy && kind == .followup {
             let allowed = await rowdyPrefetchAllowed(now: now)
@@ -638,6 +755,7 @@ public final class SpriteBrain {
                 framed: rect != nil, line: line, obstacles: obstacles, trackID: track))
             if result.shown {
                 try recordSaid(quip.text, now: Date())
+                try recordGrowth(.narration)
                 if generation == self.generation {
                     forget(memory.mark(key: .init(bundleId: snapshot.bundleId, text: quote), quip: quip, lineHint: lineIndex, now: Date()))
                     scheduler.recordShown(ruleID: cooldownRuleID, now: Date())
@@ -775,6 +893,7 @@ public final class SpriteBrain {
         let said = said
         var reason = "ok"
         do {
+            let memoryContext = try memoryContext(screenText: request.screen.text)
             _ = try await SpriteGenerator.generate(screen: request.screen, snapshot: request.snapshot,
                 app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "", exclude: request.exclude,
                 persona: request.persona, lang: request.lang, k: k, recent: said.recent(8),
@@ -784,7 +903,7 @@ public final class SpriteBrain {
                         Task { @MainActor in
                             self.log(request.snapshot, .mark, pick: index, source: "model", shown: false, reason: "quote-missing")
                         }
-                    }), catalog: request.catalog, isRepeat: { said.isRepeat($0, now: Date()) }) { mark in
+                    }), catalog: request.catalog, memoryContext: memoryContext, isRepeat: { said.isRepeat($0, now: Date()) }) { mark in
                     progress.accepted()
                     continuation.yield(mark)
                 }
@@ -940,6 +1059,7 @@ public final class SpriteBrain {
             switches: windowSwitches.count, typedRecently: now.timeIntervalSince(lastTyped) < 60)
         let recent = said.recent(8)
         let catalog = content.personas
+        let memoryContext = try memoryContext()
         minuteStats.begin(now: now)
         ambientTask = Task {
             defer {
@@ -948,7 +1068,7 @@ public final class SpriteBrain {
             }
             do {
                 let lines = try await SpriteAmbient.generate(signals: signals, persona: settings.persona,
-                    lang: settings.lang, recent: recent, generator: generator, catalog: catalog)
+                    lang: settings.lang, recent: recent, generator: generator, catalog: catalog, memoryContext: memoryContext)
                 try Task.checkCancellation()
                 guard generation == self.generation else { return }
                 ambientCache.store(lines, app: snapshot.bundleId, now: Date())
@@ -1021,6 +1141,7 @@ public final class SpriteBrain {
                 window: WindowGeometry(frame: snapshot.windowFrame, chromeHeight: chromeHeight), framed: false))
             if result.shown {
                 try recordSaid(quip.text, now: now)
+                try recordGrowth(.narration, now: now)
                 if generation == self.generation {
                     scheduler.recordShown(ruleID: nil, now: now)
                     lastShownAt = now
