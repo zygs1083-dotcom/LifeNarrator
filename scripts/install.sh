@@ -71,18 +71,16 @@ app="$install_dir/LifeNarrator.app"
 staging=$(mktemp -d "$install_dir/.LifeNarrator.XXXXXX")
 ditto "$work/unpacked/LifeNarrator.app" "$staging/new.app"
 xattr -dr com.apple.quarantine "$staging/new.app"
+# SIGTERM instead of an Apple Event: quitting another app with osascript asks for Automation permission.
 if pgrep -x LifeNarrator >/dev/null; then
-  osascript -e 'tell application id "dev.lifenarrator.app" to quit' &
-  quit_pid=$!
+  pkill -x LifeNarrator
   for ((i=0; i<10; i++)); do
-    if ! pgrep -x LifeNarrator >/dev/null && ! kill -0 "$quit_pid" 2>/dev/null; then break; fi
+    if ! pgrep -x LifeNarrator >/dev/null; then break; fi
     sleep 1
   done
-  if pgrep -x LifeNarrator >/dev/null || kill -0 "$quit_pid" 2>/dev/null; then
-    kill "$quit_pid" 2>/dev/null || true
+  if pgrep -x LifeNarrator >/dev/null; then
     fail "LifeNarrator did not quit within 10 seconds. Quit it and run the installer again."
   fi
-  wait "$quit_pid"
 fi
 if [[ -e $app ]]; then mv "$app" "$staging/previous.app"; fi
 installed=true
