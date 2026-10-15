@@ -105,6 +105,9 @@ private struct PersonaStub: TextGenerator {
         let chosen = picker.pick(for: builtin, lang: .zh, persona: persona, pack: pack(), now: epoch, using: &random, catalog: catalog)
         #expect(chosen?.text == "离线包台词")
         #expect(chosen?.persona == persona)
+        picker = QuipPicker()
+        #expect(picker.pick(for: builtin, lang: .zh, persona: persona, pack: pack(), now: epoch,
+            isRepeat: { $0 == "离线包台词" }, using: &random, catalog: catalog) == nil)
         let generated = rule(quips: [quip("真正的人设", persona: persona), quip("不要借这个", persona: fallback)])
         picker = QuipPicker()
         #expect(picker.pick(for: generated, lang: .zh, persona: persona, pack: pack(), now: epoch, using: &random, catalog: catalog)?.text == "真正的人设")
@@ -127,7 +130,7 @@ private struct LongSpriteStub: TextGenerator {
     let snapshot = semanticsSnapshot(["first phrase", "second phrase"])
     for lang in Lang.allCases {
         let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
-            app: "A", title: "T", exclude: [], persona: .teacher, lang: lang, k: 4, generator: LongSpriteStub(lang: lang), onMark: { _ in })
+            app: "A", title: "T", exclude: [], persona: .teacher, lang: lang, k: 4, generator: LongSpriteStub(lang: lang), isRepeat: { _ in false }, onMark: { _ in })
         #expect(marks.count == 1)
         #expect(marks.first?.quip.text.count == (lang == .zh ? 26 : 72))
         #expect(marks.first?.quip.persona == .teacher)

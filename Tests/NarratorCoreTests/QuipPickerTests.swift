@@ -107,3 +107,17 @@ func pack(rules: [Rule] = [], generic: [Quip] = []) -> QuipPack {
     picker.forget(ruleID: target.id)
     #expect(picker.pick(for: target, lang: .zh, persona: .sharp, pack: pack(), now: epoch, using: &random) != nil)
 }
+
+@Test func pickerChecksRenderedTextAcrossRulesAndReturnsNilWhenExhausted() {
+    var said = SaidHistory()
+    said.record("会议来了", now: epoch)
+    var picker = QuipPicker()
+    var random = SeededRandom(seed: 5)
+    let first = rule("first", quips: [quip("{label}来了"), quip("咖啡还没凉")])
+    let check: (String) -> Bool = { said.isRepeat($0, now: epoch) }
+    #expect(picker.pick(for: first, lang: .zh, persona: .sharp, pack: pack(), now: epoch,
+        isRepeat: check, using: &random)?.text == "咖啡还没凉")
+    let second = rule("second", quips: [quip("{label}来了")])
+    #expect(picker.pick(for: second, lang: .zh, persona: .sharp,
+        pack: pack(generic: [quip("会议来了！")]), now: epoch, isRepeat: check, using: &random) == nil)
+}

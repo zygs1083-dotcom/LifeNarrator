@@ -1,0 +1,1053 @@
+[
+  {
+    "id": "backup",
+    "zh": {
+      "lines": [
+        "备份任务说明",
+        "每晚 02:00 执行全量备份；若 40 分钟内未完成则判定超时，任务会被中止并在次日重试。超时不计为错误，但连续三次超时会触发警告邮件。",
+        "- 全量备份平均耗时 31 分钟，最长一次 39 分 50 秒。",
+        "- 增量备份平均 48 秒。",
+        "备份文件保留 30 天，之后自动删除。"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "39 分 50 秒",
+          "voices": {
+            "sharp": {
+              "t": "离超时就差十秒，刺激",
+              "e": "😬"
+            },
+            "gentle": {
+              "t": "再紧一点点就到终点",
+              "e": "😬"
+            },
+            "chuuni": {
+              "t": "沙漏只剩十秒",
+              "e": "😬"
+            }
+          }
+        },
+        {
+          "l": 1,
+          "q": "次日重试",
+          "voices": {
+            "sharp": {
+              "t": "今晚不行就明晚，佛系",
+              "e": "🧘"
+            },
+            "gentle": {
+              "t": "今晚先歇歇也好",
+              "e": "🧘"
+            },
+            "chuuni": {
+              "t": "明夜再启时之门",
+              "e": "🧘"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Backup job overview",
+        "A full backup runs nightly at 02:00. If it does not finish within 40 minutes it is marked as timed out, aborted and retried the next night. A timeout is not counted as an error, but three timeouts in a row send a warning email.",
+        "- Full backup: 31 min on average, 39 min 50 s at worst.",
+        "- Incremental backup: 48 s on average.",
+        "Backups are kept for 30 days and then deleted automatically."
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "39 min 50 s",
+          "voices": {
+            "sharp": {
+              "t": "Ten seconds from a timeout. Thrilling.",
+              "e": "😬"
+            },
+            "gentle": {
+              "t": "A close finish, little backup.",
+              "e": "😬"
+            },
+            "chuuni": {
+              "t": "The clock gate nearly closed!",
+              "e": "😬"
+            }
+          }
+        },
+        {
+          "l": 1,
+          "q": "retried the next night",
+          "voices": {
+            "sharp": {
+              "t": "Tomorrow is also a day, apparently.",
+              "e": "🧘"
+            },
+            "gentle": {
+              "t": "Rest now, try again tomorrow.",
+              "e": "🧘"
+            },
+            "chuuni": {
+              "t": "Nightfall resets the quest.",
+              "e": "🧘"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "headphones",
+    "zh": {
+      "lines": [
+        "无线降噪耳机 Pro 2",
+        "¥1,899 限时直降 ¥300",
+        "续航 30 小时，支持快充 10 分钟听 5 小时",
+        "已售 2.3 万 · 好评率 98%",
+        "加入购物车"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "限时直降 ¥300",
+          "voices": {
+            "sharp": {
+              "t": "先涨再降的老把戏？",
+              "e": "🧐"
+            },
+            "gentle": {
+              "t": "钱包要不要先躲躲",
+              "e": "🧐"
+            },
+            "chuuni": {
+              "t": "折扣结界开启了？",
+              "e": "🧐"
+            }
+          }
+        },
+        {
+          "l": 2,
+          "q": "10 分钟听 5 小时",
+          "voices": {
+            "sharp": {
+              "t": "比我充电效率高多了",
+              "e": "🔋"
+            },
+            "gentle": {
+              "t": "小歇一会又能唱了",
+              "e": "🔋"
+            },
+            "chuuni": {
+              "t": "闪充之力注入耳畔",
+              "e": "🔋"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Noise Cancelling Headphones Pro 2",
+        "$249 Limited time: $50 off",
+        "30-hour battery, 10-minute charge for 5 hours of playback",
+        "23k sold · 98% positive",
+        "Add to cart"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "$50 off",
+          "voices": {
+            "sharp": {
+              "t": "Was it ever not on sale?",
+              "e": "🧐"
+            },
+            "gentle": {
+              "t": "Shall we let the wallet breathe?",
+              "e": "🧐"
+            },
+            "chuuni": {
+              "t": "The discount portal beckons!",
+              "e": "🧐"
+            }
+          }
+        },
+        {
+          "l": 2,
+          "q": "10-minute charge for 5 hours",
+          "voices": {
+            "sharp": {
+              "t": "Charges faster than I wake up.",
+              "e": "🔋"
+            },
+            "gentle": {
+              "t": "Soon those songs can keep you company.",
+              "e": "🔋"
+            },
+            "chuuni": {
+              "t": "Lightning feeds the sound crystal.",
+              "e": "🔋"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "chat",
+    "zh": {
+      "lines": [
+        "李雯",
+        "方案我看了，整体可以",
+        "就是第三页的数据来源要补一下",
+        "还有，今天能发出去吗",
+        "好的，我马上改"
+      ],
+      "marks": [
+        {
+          "l": 3,
+          "q": "今天能发出去吗",
+          "voices": {
+            "sharp": {
+              "t": "“整体可以”的后半句来了",
+              "e": "😅"
+            },
+            "gentle": {
+              "t": "再添一小步就好了",
+              "e": "😅"
+            },
+            "chuuni": {
+              "t": "今日任务追加了",
+              "e": "😅"
+            }
+          }
+        },
+        {
+          "l": 4,
+          "q": "马上改",
+          "voices": {
+            "sharp": {
+              "t": "这个“马上”，大概率两小时",
+              "e": "⏳"
+            },
+            "gentle": {
+              "t": "改完记得歇一会",
+              "e": "⏳"
+            },
+            "chuuni": {
+              "t": "时间魔法正在吟唱",
+              "e": "⏳"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Maya",
+        "Read the proposal, overall fine",
+        "Page 3 needs a source for the numbers",
+        "Also, can it go out today?",
+        "Sure, on it now"
+      ],
+      "marks": [
+        {
+          "l": 3,
+          "q": "can it go out today",
+          "voices": {
+            "sharp": {
+              "t": "There's the other half of 'fine'.",
+              "e": "😅"
+            },
+            "gentle": {
+              "t": "One more step, nearly there.",
+              "e": "😅"
+            },
+            "chuuni": {
+              "t": "A bonus quest just appeared!",
+              "e": "😅"
+            }
+          }
+        },
+        {
+          "l": 4,
+          "q": "on it now",
+          "voices": {
+            "sharp": {
+              "t": "'Now' as in two hours from now.",
+              "e": "⏳"
+            },
+            "gentle": {
+              "t": "Take a breath between edits.",
+              "e": "⏳"
+            },
+            "chuuni": {
+              "t": "Time magic requires a longer incantation.",
+              "e": "⏳"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "terminal",
+    "zh": {
+      "lines": [
+        "构建任务输出",
+        "编译完成，用时 4 秒",
+        "测试已通过 127 项，跳过 1 项",
+        "警告：调试符号占用 2GB"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "用时 4 秒",
+          "voices": {
+            "sharp": {
+              "t": "咻，咖啡还没吹凉",
+              "e": "☕"
+            },
+            "gentle": {
+              "t": "一眨眼就做好啦",
+              "e": "☕"
+            },
+            "chuuni": {
+              "t": "瞬移术编译成功",
+              "e": "☕"
+            }
+          }
+        },
+        {
+          "l": 2,
+          "q": "跳过 1 项",
+          "voices": {
+            "sharp": {
+              "t": "谁偷偷请了假？",
+              "e": "🫥"
+            },
+            "gentle": {
+              "t": "留个小空位等它",
+              "e": "🫥"
+            },
+            "chuuni": {
+              "t": "有位勇者暂离队伍",
+              "e": "🫥"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Build output",
+        "Compilation finished in 4 seconds",
+        "127 tests passed, 1 skipped",
+        "Warning: debug symbols occupy 2GB"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "4 seconds",
+          "voices": {
+            "sharp": {
+              "t": "Who needs a coffee break?",
+              "e": "☕"
+            },
+            "gentle": {
+              "t": "Blink, and the build is ready.",
+              "e": "☕"
+            },
+            "chuuni": {
+              "t": "Compilation learned teleportation!",
+              "e": "☕"
+            }
+          }
+        },
+        {
+          "l": 2,
+          "q": "1 skipped",
+          "voices": {
+            "sharp": {
+              "t": "Someone took a tiny holiday.",
+              "e": "🫥"
+            },
+            "gentle": {
+              "t": "Saving a little seat for later.",
+              "e": "🫥"
+            },
+            "chuuni": {
+              "t": "One adventurer rests beside the campfire.",
+              "e": "🫥"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "ai-dialogue",
+    "zh": {
+      "lines": [
+        "和助手讨论周末安排",
+        "用户：想轻松点，不要排满",
+        "助手：上午逛三个展，下午爬山",
+        "用户：这叫轻松？"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "下午爬山",
+          "voices": {
+            "sharp": {
+              "t": "腿脚已经申请退出",
+              "e": "🥾"
+            },
+            "gentle": {
+              "t": "先给双脚放个假吧",
+              "e": "🥾"
+            },
+            "chuuni": {
+              "t": "体力条发出了抗议",
+              "e": "🥾"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "这叫轻松",
+          "voices": {
+            "sharp": {
+              "t": "问出了我的心声！",
+              "e": "😮"
+            },
+            "gentle": {
+              "t": "咱们把行程松一松",
+              "e": "😮"
+            },
+            "chuuni": {
+              "t": "休憩之名有待正名",
+              "e": "😮"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Planning a weekend with an assistant",
+        "User: Keep it restful, no packed schedule",
+        "Assistant: Three exhibitions, then a mountain hike",
+        "User: You call that restful?"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "mountain hike",
+          "voices": {
+            "sharp": {
+              "t": "My legs would like a word.",
+              "e": "🥾"
+            },
+            "gentle": {
+              "t": "Maybe leave room for a nap.",
+              "e": "🥾"
+            },
+            "chuuni": {
+              "t": "Stamina files a formal complaint!",
+              "e": "🥾"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "that restful",
+          "voices": {
+            "sharp": {
+              "t": "A fair cross examination.",
+              "e": "😮"
+            },
+            "gentle": {
+              "t": "Shall we loosen the plan?",
+              "e": "😮"
+            },
+            "chuuni": {
+              "t": "Rest demands a new definition.",
+              "e": "😮"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "news",
+    "zh": {
+      "lines": [
+        "小镇慢生活报",
+        "旧车站改成图书馆，周日开放",
+        "首批书架由居民捐出旧木桌制作",
+        "开馆当天提供免费修书服务"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "旧车站改成图书馆",
+          "voices": {
+            "sharp": {
+              "t": "这站终点是书里",
+              "e": "🚉"
+            },
+            "gentle": {
+              "t": "旧站台也有新故事",
+              "e": "🚉"
+            },
+            "chuuni": {
+              "t": "知识列车即将进站",
+              "e": "🚉"
+            }
+          }
+        },
+        {
+          "l": 2,
+          "q": "旧木桌",
+          "voices": {
+            "sharp": {
+              "t": "桌子退休还得上班？",
+              "e": "🌱"
+            },
+            "gentle": {
+              "t": "木纹里又长出故事",
+              "e": "🌱"
+            },
+            "chuuni": {
+              "t": "木之守卫转职成功",
+              "e": "🌱"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "The Slow Town Gazette",
+        "Old station becomes a library, opening Sunday",
+        "Residents donated old desks for the bookshelves",
+        "Free book repairs on opening day"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "becomes a library",
+          "voices": {
+            "sharp": {
+              "t": "Next stop: another chapter.",
+              "e": "🚉"
+            },
+            "gentle": {
+              "t": "Once a station, now a storybook.",
+              "e": "🚉"
+            },
+            "chuuni": {
+              "t": "Knowledge rails lead to distant worlds.",
+              "e": "🚉"
+            }
+          }
+        },
+        {
+          "l": 2,
+          "q": "old desks",
+          "voices": {
+            "sharp": {
+              "t": "Retirement comes with shelf duties?",
+              "e": "🌱"
+            },
+            "gentle": {
+              "t": "Those wooden friends get another story.",
+              "e": "🌱"
+            },
+            "chuuni": {
+              "t": "Wooden guardians accept a new calling.",
+              "e": "🌱"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "technical-docs",
+    "zh": {
+      "lines": [
+        "离线编辑同步机制",
+        "断网后改动保存在本地队列",
+        "恢复连接时按编辑顺序上传",
+        "同段冲突会保留两个版本供选择"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "本地队列",
+          "voices": {
+            "sharp": {
+              "t": "排好队，网线在赶路",
+              "e": "📥"
+            },
+            "gentle": {
+              "t": "没网也先替你收好",
+              "e": "📥"
+            },
+            "chuuni": {
+              "t": "离线护盾守住心血",
+              "e": "📥"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "保留两个版本",
+          "voices": {
+            "sharp": {
+              "t": "选择题还是留给你",
+              "e": "🌿"
+            },
+            "gentle": {
+              "t": "两份心血都没弄丢",
+              "e": "🌿"
+            },
+            "chuuni": {
+              "t": "分岔时间线已封存",
+              "e": "🌿"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Offline editing sync design",
+        "Changes wait in a local queue while offline",
+        "Edits upload in order when connectivity returns",
+        "Conflicts keep both versions for review"
+      ],
+      "marks": [
+        {
+          "l": 1,
+          "q": "local queue",
+          "voices": {
+            "sharp": {
+              "t": "Even edits know how to queue.",
+              "e": "📥"
+            },
+            "gentle": {
+              "t": "Your edits have somewhere to wait.",
+              "e": "📥"
+            },
+            "chuuni": {
+              "t": "Offline wards protect unfinished masterpieces.",
+              "e": "📥"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "both versions",
+          "voices": {
+            "sharp": {
+              "t": "A choose your own ending situation.",
+              "e": "🌿"
+            },
+            "gentle": {
+              "t": "Neither piece of work gets lost.",
+              "e": "🌿"
+            },
+            "chuuni": {
+              "t": "Two timelines await your judgment!",
+              "e": "🌿"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "settings",
+    "zh": {
+      "lines": [
+        "专注模式设置",
+        "工作日 09:00 自动开启",
+        "允许收藏联系人来电",
+        "休息提醒已关闭"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "收藏联系人",
+          "voices": {
+            "sharp": {
+              "t": "小门还给熟人留着",
+              "e": "🚪"
+            },
+            "gentle": {
+              "t": "重要的人还能找到你",
+              "e": "🚪"
+            },
+            "chuuni": {
+              "t": "白名单持有通行符",
+              "e": "🚪"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "休息提醒已关闭",
+          "voices": {
+            "sharp": {
+              "t": "椅子：那我加班了？",
+              "e": "🔕"
+            },
+            "gentle": {
+              "t": "要不要给自己留个铃",
+              "e": "🔕"
+            },
+            "chuuni": {
+              "t": "休憩精灵被静音了",
+              "e": "🔕"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Focus mode settings",
+        "Starts automatically at 09:00 on weekdays",
+        "Calls from favorite contacts are allowed",
+        "Break reminders are turned off"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "favorite contacts",
+          "voices": {
+            "sharp": {
+              "t": "VIP entrance survives focus mode.",
+              "e": "🚪"
+            },
+            "gentle": {
+              "t": "Your favorite people can still knock.",
+              "e": "🚪"
+            },
+            "chuuni": {
+              "t": "Trusted messengers hold the gate key.",
+              "e": "🚪"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "turned off",
+          "voices": {
+            "sharp": {
+              "t": "The chair just got overtime.",
+              "e": "🔕"
+            },
+            "gentle": {
+              "t": "Could a gentle nudge help?",
+              "e": "🔕"
+            },
+            "chuuni": {
+              "t": "Hush, someone muted our rest sprite.",
+              "e": "🔕"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "video",
+    "zh": {
+      "lines": [
+        "慢烤面包入门",
+        "视频时长 18 分钟",
+        "面团需冷藏发酵 16 小时",
+        "作者：新手也能轻松完成"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "16 小时",
+          "voices": {
+            "sharp": {
+              "t": "面团睡得比我香",
+              "e": "🍞"
+            },
+            "gentle": {
+              "t": "等它慢慢鼓起小肚子",
+              "e": "🍞"
+            },
+            "chuuni": {
+              "t": "酵母正在闭关修炼",
+              "e": "🍞"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "轻松完成",
+          "voices": {
+            "sharp": {
+              "t": "轻松的是等待部分？",
+              "e": "🧑‍🍳"
+            },
+            "gentle": {
+              "t": "第一炉也可以慢慢来",
+              "e": "🧑‍🍳"
+            },
+            "chuuni": {
+              "t": "初学者的面包试炼",
+              "e": "🧑‍🍳"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Slow bread for beginners",
+        "Video length: 18 minutes",
+        "Chill the dough for 16 hours",
+        "Creator: Easy even for first timers"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "16 hours",
+          "voices": {
+            "sharp": {
+              "t": "The dough gets more sleep than me.",
+              "e": "🍞"
+            },
+            "gentle": {
+              "t": "Let that dough dream in peace.",
+              "e": "🍞"
+            },
+            "chuuni": {
+              "t": "Yeast begins its long training arc.",
+              "e": "🍞"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "Easy even",
+          "voices": {
+            "sharp": {
+              "t": "Patience sold separately, I see.",
+              "e": "🧑‍🍳"
+            },
+            "gentle": {
+              "t": "First loaves can take time.",
+              "e": "🧑‍🍳"
+            },
+            "chuuni": {
+              "t": "A beginner enters the bread trial.",
+              "e": "🧑‍🍳"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "spreadsheet",
+    "zh": {
+      "lines": [
+        "社区野餐预算表",
+        "餐食预算 800，实际 760",
+        "装饰预算 100，实际 240",
+        "备用金余额 0"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "实际 240",
+          "voices": {
+            "sharp": {
+              "t": "气球比饭还有野心",
+              "e": "🎈"
+            },
+            "gentle": {
+              "t": "彩带今天有点兴奋",
+              "e": "🎈"
+            },
+            "chuuni": {
+              "t": "装饰军团扩张领地",
+              "e": "🎈"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "余额 0",
+          "voices": {
+            "sharp": {
+              "t": "兜里只剩一阵风",
+              "e": "🍃"
+            },
+            "gentle": {
+              "t": "下次留点余地就好",
+              "e": "🍃"
+            },
+            "chuuni": {
+              "t": "备用结界能量耗尽",
+              "e": "🍃"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Community picnic budget",
+        "Food budget 800, actual 760",
+        "Decoration budget 100, actual 240",
+        "Reserve balance 0"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "actual 240",
+          "voices": {
+            "sharp": {
+              "t": "Balloons have expensive ambitions.",
+              "e": "🎈"
+            },
+            "gentle": {
+              "t": "Ribbons seem rather excited today.",
+              "e": "🎈"
+            },
+            "chuuni": {
+              "t": "Decorations expand their colorful territory!",
+              "e": "🎈"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "balance 0",
+          "voices": {
+            "sharp": {
+              "t": "Poof, there goes the safety cushion.",
+              "e": "🍃"
+            },
+            "gentle": {
+              "t": "Next time, a cushion might help.",
+              "e": "🍃"
+            },
+            "chuuni": {
+              "t": "Reserve shields request an energy refill.",
+              "e": "🍃"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "email",
+    "zh": {
+      "lines": [
+        "主题：周末志愿者招募",
+        "本周六整理社区花园",
+        "工具和午餐由组织方提供",
+        "如遇下雨，活动改为室内种苗"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "午餐",
+          "voices": {
+            "sharp": {
+              "t": "饭票和花香一起领？",
+              "e": "🥪"
+            },
+            "gentle": {
+              "t": "忙完有人替你备好饭",
+              "e": "🥪"
+            },
+            "chuuni": {
+              "t": "补给已在任务终点",
+              "e": "🥪"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "室内种苗",
+          "voices": {
+            "sharp": {
+              "t": "小苗也有雨天备案",
+              "e": "🌧️"
+            },
+            "gentle": {
+              "t": "下雨也有小绿意陪着",
+              "e": "🌧️"
+            },
+            "chuuni": {
+              "t": "雨天开启育苗副本",
+              "e": "🌧️"
+            }
+          }
+        }
+      ]
+    },
+    "en": {
+      "lines": [
+        "Subject: Weekend garden volunteers",
+        "Help tidy the community garden this Saturday",
+        "Tools and lunch provided by the organizers",
+        "If it rains, plant seedlings indoors instead"
+      ],
+      "marks": [
+        {
+          "l": 2,
+          "q": "lunch provided",
+          "voices": {
+            "sharp": {
+              "t": "Will garden for sandwiches.",
+              "e": "🥪"
+            },
+            "gentle": {
+              "t": "Lunch awaits after all that work.",
+              "e": "🥪"
+            },
+            "chuuni": {
+              "t": "Provisions await beside the flower beds!",
+              "e": "🥪"
+            }
+          }
+        },
+        {
+          "l": 3,
+          "q": "plant seedlings indoors",
+          "voices": {
+            "sharp": {
+              "t": "Even seedlings have a backup venue.",
+              "e": "🌧️"
+            },
+            "gentle": {
+              "t": "Rain brings the seedlings under shelter.",
+              "e": "🌧️"
+            },
+            "chuuni": {
+              "t": "Rain unlocks a seedling side mission.",
+              "e": "🌧️"
+            }
+          }
+        }
+      ]
+    }
+  }
+]

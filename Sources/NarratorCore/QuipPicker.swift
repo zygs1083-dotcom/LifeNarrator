@@ -37,7 +37,7 @@ public struct QuipPicker: Sendable {
 
     public mutating func pick<R: RandomNumberGenerator>(for rule: Rule, lang: Lang, persona: Persona,
         pack: QuipPack, disabledBuiltinIds: Set<String> = [], now: Date, calendar: Calendar = .current,
-        using random: inout R, catalog: PersonaCatalog = .builtin) -> Quip? {
+        isRepeat: (String) -> Bool = { _ in false }, using random: inout R, catalog: PersonaCatalog = .builtin) -> Quip? {
         let key = Key(ruleID: rule.id, lang: lang, persona: persona)
         let current = When.current(at: now, calendar: calendar)
         let packPersona = catalog[persona].pack
@@ -48,16 +48,16 @@ public struct QuipPicker: Sendable {
             + (timedRule?.quips.filter { $0.lang == lang && $0.persona == packPersona && $0.when == current } ?? [])
         let preferTimed = !timed.isEmpty && Double.random(in: 0..<1, using: &random) < 0.7
         let pool = preferTimed ? timed : own.filter { $0.when == .any }
-        if let quip = take(pool, key: key, selection: preferTimed ? .timed(current) : .normal, rule: rule, now: now, using: &random) { return quip }
+        if let quip = take(pool, key: key, selection: preferTimed ? .timed(current) : .normal, rule: rule, now: now, isRepeat: isRepeat, using: &random) { return quip }
         let generic = (pack.generic[rule.sentiment.rawValue] ?? []).filter { $0.lang == lang && $0.persona == packPersona }
-        return take(generic, key: key, selection: .generic, rule: rule, now: now, using: &random)
+        return take(generic, key: key, selection: .generic, rule: rule, now: now, isRepeat: isRepeat, using: &random)
     }
 
     private mutating func take<R: RandomNumberGenerator>(_ pool: [Quip], key: Key, selection: Pool, rule: Rule, now: Date,
-                                                        using random: inout R) -> Quip? {
+                                                        isRepeat: (String) -> Bool, using random: inout R) -> Quip? {
         let available = pool.filter {
-            Self.render($0.text, rule: rule, lang: key.lang) != nil
-                && (used[key]?[$0.text].map { now.timeIntervalSince($0) >= 7200 } ?? true)
+            guard let text = Self.render($0.text, rule: rule, lang: key.lang), !isRepeat(text) else { return false }
+            return used[key]?[$0.text].map { now.timeIntervalSince($0) >= 7200 } ?? true
         }
         if available.isEmpty { return nil }
         let queueKey = QueueKey(key: key, pool: selection)
