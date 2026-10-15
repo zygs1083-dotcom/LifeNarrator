@@ -25,7 +25,7 @@ internal static class BuiltinModelChecks
         var modelPath = Path.GetFullPath(Environment.GetEnvironmentVariable("NARRATOR_TEST_MODEL")
             ?? throw new Exception("NARRATOR_TEST_MODEL must point to the W2b test GGUF"));
         var directory = Path.GetFullPath("artifacts/builtin-ui-test"); Directory.CreateDirectory(directory);
-        foreach (var name in new[] { "said.json", "growth.json", "memory.json", "overlays.jsonl" }) File.Delete(Path.Combine(directory, name));
+        foreach (var name in new[] { "said.json", "growth.json", "memory.json", "overlays.jsonl", "stderr.log" }) File.Delete(Path.Combine(directory, name));
         var modelCopy = Path.GetFullPath(Path.Combine(".dev-data", "builtin-ui-model", Path.GetFileName(modelPath)));
         Directory.CreateDirectory(Path.GetDirectoryName(modelCopy)!); File.Copy(modelPath, modelCopy, overwrite: true);
         var testModel = Catalog.Models[1] with { Url = new Uri(modelCopy), Size = new FileInfo(modelCopy).Length };
@@ -44,6 +44,8 @@ internal static class BuiltinModelChecks
         Box Line(JsonElement p) => rect with { Y = 100 + p.GetProperty("lineIndex").GetInt32() * 24 };
         var previousDebug = Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG");
         Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", "1");
+        var previousBacktrace = Environment.GetEnvironmentVariable("SWIFT_BACKTRACE");
+        Environment.SetEnvironmentVariable("SWIFT_BACKTRACE", "enable=yes,interactive=no");
         await using var brain = new BrainClient(Path.GetFullPath(executable), Path.Combine(directory, "stderr.log"), (method, p) =>
         {
             object? result = method switch
@@ -65,7 +67,9 @@ internal static class BuiltinModelChecks
             };
             return Task.FromResult(result);
         }, message => failed.TrySetResult(message));
+        using var observedProcess = System.Diagnostics.Process.GetProcessById(brain.ProcessID);
         Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", previousDebug);
+        Environment.SetEnvironmentVariable("SWIFT_BACKTRACE", previousBacktrace);
         object Show(JsonElement narration)
         {
             File.AppendAllText(Path.Combine(directory, "overlays.jsonl"), JsonSerializer.Serialize(narration) + "\n");
@@ -96,7 +100,16 @@ internal static class BuiltinModelChecks
                 await brain.Call("configure", configuration);
                 configured.TrySetResult();
             }
-            catch (Exception failure) { configured.TrySetException(failure); throw; }
+            catch (Exception failure)
+            {
+                if (failure is EndOfStreamException)
+                {
+                    await observedProcess.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                    File.WriteAllText(Path.Combine(directory, "exit-code.json"), JsonSerializer.Serialize(new { exitCode = observedProcess.ExitCode }));
+                    Console.WriteLine("Builtin brain exit code: " + observedProcess.ExitCode);
+                }
+                configured.TrySetException(failure); throw;
+            }
         }
         var window = new Window { Width = 780, Height = 660, Content = new ModelView(settings, Configure, () => Task.FromResult(0d)) };
         window.Show(); window.UpdateLayout();
