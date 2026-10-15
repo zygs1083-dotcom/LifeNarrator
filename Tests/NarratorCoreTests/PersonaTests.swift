@@ -13,9 +13,8 @@ import Testing
             #expect(!profile.fonts[lang].isEmpty)
         }
         #expect([Persona.sharp, .gentle, .chuuni].contains(profile.pack))
+        #expect(profile.examples == profile.id)
     }
-    #expect(catalog[.teacher].examples == .gentle)
-    #expect(catalog[.cat].examples == .sharp)
     #expect(catalog[.sharp].fonts.zh == ["Hannotate SC", "Hanzipen SC", "Yuanti SC", "PingFang SC"])
     #expect(catalog[.gentle].description.en == "Gentle: soft, comforting, quietly encouraging, like a kind little creature. Can be a bit clingy, never preachy.")
 }

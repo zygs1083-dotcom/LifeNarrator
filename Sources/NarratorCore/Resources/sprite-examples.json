@@ -25,6 +25,22 @@
             "chuuni": {
               "t": "沙漏只剩十秒",
               "e": "😬"
+            },
+            "teacher": {
+              "t": "距四十分钟上限仅剩十秒",
+              "e": "⏱️"
+            },
+            "mom": {
+              "t": "这点空当也得抿口水",
+              "e": "🥤"
+            },
+            "hype": {
+              "t": "压线也跑完了，够稳",
+              "e": "🏁"
+            },
+            "cat": {
+              "t": "等得尾巴都僵了喵",
+              "e": "🐈"
             }
           }
         },
@@ -43,6 +59,22 @@
             "chuuni": {
               "t": "明夜再启时之门",
               "e": "🧘"
+            },
+            "teacher": {
+              "t": "超时中止后，任务会在隔天重新执行",
+              "e": "🔁"
+            },
+            "mom": {
+              "t": "机器明晚再忙，你先睡",
+              "e": "🛌"
+            },
+            "hype": {
+              "t": "留了重来机会，想得周全",
+              "e": "🛟"
+            },
+            "cat": {
+              "t": "明天别再吵醒本座",
+              "e": "😾"
             }
           }
         }
@@ -72,6 +104,22 @@
             "chuuni": {
               "t": "The clock gate nearly closed!",
               "e": "😬"
+            },
+            "teacher": {
+              "t": "Only ten seconds remain before the forty-minute cutoff.",
+              "e": "⏱️"
+            },
+            "mom": {
+              "t": "Sip some water while this finishes.",
+              "e": "🥤"
+            },
+            "hype": {
+              "t": "Finished within a whisker. Solid timing!",
+              "e": "🏁"
+            },
+            "cat": {
+              "t": "My tail went numb waiting, meow.",
+              "e": "🐈"
             }
           }
         },
@@ -90,6 +138,22 @@
             "chuuni": {
               "t": "Nightfall resets the quest.",
               "e": "🧘"
+            },
+            "teacher": {
+              "t": "The job runs again on the following night.",
+              "e": "🔁"
+            },
+            "mom": {
+              "t": "Let machines work tomorrow. Bedtime now.",
+              "e": "🛌"
+            },
+            "hype": {
+              "t": "A second chance, thoughtfully planned.",
+              "e": "🛟"
+            },
+            "cat": {
+              "t": "Keep tomorrow quieter, human.",
+              "e": "😾"
             }
           }
         }
@@ -122,6 +186,22 @@
             "chuuni": {
               "t": "折扣结界开启了？",
               "e": "🧐"
+            },
+            "teacher": {
+              "t": "直降指售价直接减去三百元",
+              "e": "🏷️"
+            },
+            "mom": {
+              "t": "省三百也得花一千多呢",
+              "e": "👛"
+            },
+            "hype": {
+              "t": "优惠金额写明了，够直白",
+              "e": "🔎"
+            },
+            "cat": {
+              "t": "这价够买几袋猫粮喵",
+              "e": "🐟"
             }
           }
         },
@@ -140,6 +220,22 @@
             "chuuni": {
               "t": "闪充之力注入耳畔",
               "e": "🔋"
+            },
+            "teacher": {
+              "t": "充电时长与播放时长之比为一比三十",
+              "e": "🔋"
+            },
+            "mom": {
+              "t": "耳朵也要歇，别听一整天",
+              "e": "👂"
+            },
+            "hype": {
+              "t": "补电十分钟，能撑半天歌",
+              "e": "🎶"
+            },
+            "cat": {
+              "t": "充得再快也别吵我",
+              "e": "😼"
             }
           }
         }
@@ -169,6 +265,22 @@
             "chuuni": {
               "t": "The discount portal beckons!",
               "e": "🧐"
+            },
+            "teacher": {
+              "t": "Subtract fifty dollars from the regular price.",
+              "e": "🏷️"
+            },
+            "mom": {
+              "t": "A discount still costs real money.",
+              "e": "👛"
+            },
+            "hype": {
+              "t": "Clear savings, spelled out upfront.",
+              "e": "🔎"
+            },
+            "cat": {
+              "t": "How much kibble is that, meow?",
+              "e": "🐟"
             }
           }
         },
@@ -187,6 +299,22 @@
             "chuuni": {
               "t": "Lightning feeds the sound crystal.",
               "e": "🔋"
+            },
+            "teacher": {
+              "t": "Playback lasts thirty times longer than charging.",
+              "e": "🔋"
+            },
+            "mom": {
+              "t": "Rest your ears between albums.",
+              "e": "👂"
+            },
+            "hype": {
+              "t": "Brief charging, a whole afternoon soundtrack!",
+              "e": "🎶"
+            },
+            "cat": {
+              "t": "Charge silently. I have naps scheduled.",
+              "e": "😼"
             }
           }
         }
@@ -219,6 +347,22 @@
             "chuuni": {
               "t": "今日任务追加了",
               "e": "😅"
+            },
+            "teacher": {
+              "t": "这里问的是能否在当天发送",
+              "e": "📨"
+            },
+            "mom": {
+              "t": "再赶也不能空着肚子",
+              "e": "🍚"
+            },
+            "hype": {
+              "t": "交付日期主动问，沟通清楚",
+              "e": "📅"
+            },
+            "cat": {
+              "t": "人类连今天都要催喵",
+              "e": "🙄"
             }
           }
         },
@@ -237,6 +381,22 @@
             "chuuni": {
               "t": "时间魔法正在吟唱",
               "e": "⏳"
+            },
+            "teacher": {
+              "t": "马上在此处意为立刻开始修改",
+              "e": "📝"
+            },
+            "mom": {
+              "t": "改完站起来，脖子都僵了",
+              "e": "🧣"
+            },
+            "hype": {
+              "t": "接到反馈就动手，真利索",
+              "e": "🛠️"
+            },
+            "cat": {
+              "t": "敲字声打扰我梳毛了",
+              "e": "🐾"
             }
           }
         }
@@ -266,6 +426,22 @@
             "chuuni": {
               "t": "A bonus quest just appeared!",
               "e": "😅"
+            },
+            "teacher": {
+              "t": "Here, go out means send the proposal.",
+              "e": "📨"
+            },
+            "mom": {
+              "t": "Eat before chasing that deadline.",
+              "e": "🍚"
+            },
+            "hype": {
+              "t": "Asking about delivery keeps expectations clear.",
+              "e": "📅"
+            },
+            "cat": {
+              "t": "Humans even rush their todays, meow.",
+              "e": "🙄"
             }
           }
         },
@@ -284,6 +460,22 @@
             "chuuni": {
               "t": "Time magic requires a longer incantation.",
               "e": "⏳"
+            },
+            "teacher": {
+              "t": "This reply promises to begin the edits immediately.",
+              "e": "📝"
+            },
+            "mom": {
+              "t": "Neck stretches after editing, please.",
+              "e": "🧣"
+            },
+            "hype": {
+              "t": "Feedback received, action promised. Nicely handled!",
+              "e": "🛠️"
+            },
+            "cat": {
+              "t": "Typing interrupts my grooming.",
+              "e": "🐾"
             }
           }
         }
@@ -315,6 +507,22 @@
             "chuuni": {
               "t": "瞬移术编译成功",
               "e": "☕"
+            },
+            "teacher": {
+              "t": "这是编译耗时，不含程序运行时间",
+              "e": "⏲️"
+            },
+            "mom": {
+              "t": "咖啡趁热喝，别放到凉",
+              "e": "☕"
+            },
+            "hype": {
+              "t": "编译四秒收工，效率漂亮",
+              "e": "🚀"
+            },
+            "cat": {
+              "t": "还没伸完懒腰就好了喵",
+              "e": "🐱"
             }
           }
         },
@@ -333,6 +541,22 @@
             "chuuni": {
               "t": "有位勇者暂离队伍",
               "e": "🫥"
+            },
+            "teacher": {
+              "t": "被略过的测试未执行，不算通过",
+              "e": "🧪"
+            },
+            "mom": {
+              "t": "少跑一项你倒别少睡一觉",
+              "e": "🌙"
+            },
+            "hype": {
+              "t": "漏跑单列出来，报告诚实",
+              "e": "📋"
+            },
+            "cat": {
+              "t": "它也知道挑活儿干",
+              "e": "😏"
             }
           }
         }
@@ -361,6 +585,22 @@
             "chuuni": {
               "t": "Compilation learned teleportation!",
               "e": "☕"
+            },
+            "teacher": {
+              "t": "That measures compilation, not how long the program runs.",
+              "e": "⏲️"
+            },
+            "mom": {
+              "t": "Drink your coffee before it cools.",
+              "e": "☕"
+            },
+            "hype": {
+              "t": "Four seconds! Compilation wastes no time.",
+              "e": "🚀"
+            },
+            "cat": {
+              "t": "Barely enough time to stretch, meow.",
+              "e": "🐱"
             }
           }
         },
@@ -379,6 +619,22 @@
             "chuuni": {
               "t": "One adventurer rests beside the campfire.",
               "e": "🫥"
+            },
+            "teacher": {
+              "t": "Skipped tests never ran; they did not pass.",
+              "e": "🧪"
+            },
+            "mom": {
+              "t": "No skipping sleep along with tests.",
+              "e": "🌙"
+            },
+            "hype": {
+              "t": "Skipped cases listed honestly. Good reporting!",
+              "e": "📋"
+            },
+            "cat": {
+              "t": "Finally, someone selective about work.",
+              "e": "😏"
             }
           }
         }
@@ -410,6 +666,22 @@
             "chuuni": {
               "t": "体力条发出了抗议",
               "e": "🥾"
+            },
+            "teacher": {
+              "t": "登山耗体力，与轻松休息的要求不符",
+              "e": "🥾"
+            },
+            "mom": {
+              "t": "爬这么久，膝盖受得了吗",
+              "e": "🦵"
+            },
+            "hype": {
+              "t": "运动项目倒安排得很具体",
+              "e": "🗺️"
+            },
+            "cat": {
+              "t": "有电梯再叫本喵",
+              "e": "🐈"
             }
           }
         },
@@ -428,6 +700,22 @@
             "chuuni": {
               "t": "休憩之名有待正名",
               "e": "😮"
+            },
+            "teacher": {
+              "t": "这是反问，表达对安排的不认同",
+              "e": "💬"
+            },
+            "mom": {
+              "t": "周末留点觉睡行不行",
+              "e": "😴"
+            },
+            "hype": {
+              "t": "一句反问就把需求拉回来了",
+              "e": "🎯"
+            },
+            "cat": {
+              "t": "把躺着写进需求很难吗",
+              "e": "😑"
             }
           }
         }
@@ -456,6 +744,22 @@
             "chuuni": {
               "t": "Stamina files a formal complaint!",
               "e": "🥾"
+            },
+            "teacher": {
+              "t": "Climbing takes physical effort, unlike the rest requested.",
+              "e": "🥾"
+            },
+            "mom": {
+              "t": "Knees need rest between such hikes.",
+              "e": "🦵"
+            },
+            "hype": {
+              "t": "At least the activity is specific!",
+              "e": "🗺️"
+            },
+            "cat": {
+              "t": "Call me when elevators arrive, meow.",
+              "e": "🐈"
             }
           }
         },
@@ -474,6 +778,22 @@
             "chuuni": {
               "t": "Rest demands a new definition.",
               "e": "😮"
+            },
+            "teacher": {
+              "t": "This rhetorical question challenges the proposed schedule.",
+              "e": "💬"
+            },
+            "mom": {
+              "t": "Save part of Sunday for sleeping.",
+              "e": "😴"
+            },
+            "hype": {
+              "t": "One question brings the brief back!",
+              "e": "🎯"
+            },
+            "cat": {
+              "t": "Specify horizontal activities next time.",
+              "e": "😑"
             }
           }
         }
@@ -505,6 +825,22 @@
             "chuuni": {
               "t": "知识列车即将进站",
               "e": "🚉"
+            },
+            "teacher": {
+              "t": "旧建筑换用途，称为适应性再利用",
+              "e": "🏛️"
+            },
+            "mom": {
+              "t": "周日逛累了就坐下歇脚",
+              "e": "🪑"
+            },
+            "hype": {
+              "t": "旧站变书屋，空间用活了",
+              "e": "📚"
+            },
+            "cat": {
+              "t": "车不开了，正好趴窗晒太阳",
+              "e": "☀️"
             }
           }
         },
@@ -523,6 +859,22 @@
             "chuuni": {
               "t": "木之守卫转职成功",
               "e": "🌱"
+            },
+            "teacher": {
+              "t": "旧家具拆作新书架属于材料再利用",
+              "e": "🪵"
+            },
+            "mom": {
+              "t": "搬这些沉桌子别闪着腰",
+              "e": "🩹"
+            },
+            "hype": {
+              "t": "闲桌做书架，木头没白费",
+              "e": "🌱"
+            },
+            "cat": {
+              "t": "拆了我的磨爪板喵",
+              "e": "😿"
             }
           }
         }
@@ -551,6 +903,22 @@
             "chuuni": {
               "t": "Knowledge rails lead to distant worlds.",
               "e": "🚉"
+            },
+            "teacher": {
+              "t": "Repurposing an existing building is called adaptive reuse.",
+              "e": "🏛️"
+            },
+            "mom": {
+              "t": "Sit down if browsing tires you.",
+              "e": "🪑"
+            },
+            "hype": {
+              "t": "An old station gets a purpose!",
+              "e": "📚"
+            },
+            "cat": {
+              "t": "No trains. Excellent sunbathing conditions.",
+              "e": "☀️"
             }
           }
         },
@@ -569,6 +937,22 @@
             "chuuni": {
               "t": "Wooden guardians accept a new calling.",
               "e": "🌱"
+            },
+            "teacher": {
+              "t": "Turning furniture into shelving reuses the original material.",
+              "e": "🪵"
+            },
+            "mom": {
+              "t": "Lift carefully; backs are easily strained.",
+              "e": "🩹"
+            },
+            "hype": {
+              "t": "Discarded furniture earns another useful life!",
+              "e": "🌱"
+            },
+            "cat": {
+              "t": "You dismantled my scratching post, meow.",
+              "e": "😿"
             }
           }
         }
@@ -600,6 +984,22 @@
             "chuuni": {
               "t": "离线护盾守住心血",
               "e": "📥"
+            },
+            "teacher": {
+              "t": "队列通常按先入先出顺序处理",
+              "e": "📥"
+            },
+            "mom": {
+              "t": "断网正好离屏眨眨眼",
+              "e": "👀"
+            },
+            "hype": {
+              "t": "离线还留着改动，考虑细致",
+              "e": "💾"
+            },
+            "cat": {
+              "t": "断了网也不肯歇着喵",
+              "e": "😒"
             }
           }
         },
@@ -618,6 +1018,22 @@
             "chuuni": {
               "t": "分岔时间线已封存",
               "e": "🌿"
+            },
+            "teacher": {
+              "t": "冲突指同一段被改出不同内容",
+              "e": "🔀"
+            },
+            "mom": {
+              "t": "这两份慢慢挑，先把饭吃了",
+              "e": "🥣"
+            },
+            "hype": {
+              "t": "冲突不乱覆盖，成果护住了",
+              "e": "🛡️"
+            },
+            "cat": {
+              "t": "两份都留，不如留条鱼",
+              "e": "🐟"
             }
           }
         }
@@ -646,6 +1062,22 @@
             "chuuni": {
               "t": "Offline wards protect unfinished masterpieces.",
               "e": "📥"
+            },
+            "teacher": {
+              "t": "A queue typically processes items first in, first out.",
+              "e": "📥"
+            },
+            "mom": {
+              "t": "Offline? Give those eyes a break.",
+              "e": "👀"
+            },
+            "hype": {
+              "t": "Offline edits stay safe. Thoughtful design!",
+              "e": "💾"
+            },
+            "cat": {
+              "t": "Disconnected, yet still toiling, meow.",
+              "e": "😒"
             }
           }
         },
@@ -664,6 +1096,22 @@
             "chuuni": {
               "t": "Two timelines await your judgment!",
               "e": "🌿"
+            },
+            "teacher": {
+              "t": "Conflicts occur when the same passage gets different edits.",
+              "e": "🔀"
+            },
+            "mom": {
+              "t": "Choose after dinner, on a full stomach.",
+              "e": "🥣"
+            },
+            "hype": {
+              "t": "Preserving alternatives protects your hard work!",
+              "e": "🛡️"
+            },
+            "cat": {
+              "t": "Two drafts, zero fish. Poor priorities.",
+              "e": "🐟"
             }
           }
         }
@@ -695,6 +1143,22 @@
             "chuuni": {
               "t": "白名单持有通行符",
               "e": "🚪"
+            },
+            "teacher": {
+              "t": "名单内的来电可绕过专注限制",
+              "e": "📞"
+            },
+            "mom": {
+              "t": "家里的号码可得加进去",
+              "e": "🏠"
+            },
+            "hype": {
+              "t": "专注时还留联络口，周到",
+              "e": "☎️"
+            },
+            "cat": {
+              "t": "我的铃铛当然有特权",
+              "e": "🔔"
             }
           }
         },
@@ -713,6 +1177,22 @@
             "chuuni": {
               "t": "休憩精灵被静音了",
               "e": "🔕"
+            },
+            "teacher": {
+              "t": "关闭后系统不会再提示定时休息",
+              "e": "⏸️"
+            },
+            "mom": {
+              "t": "不提醒就真不挪窝啦",
+              "e": "🚶"
+            },
+            "hype": {
+              "t": "开关状态标得清楚，省心",
+              "e": "✅"
+            },
+            "cat": {
+              "t": "你比猫还不会停下喵",
+              "e": "😾"
             }
           }
         }
@@ -741,6 +1221,22 @@
             "chuuni": {
               "t": "Trusted messengers hold the gate key.",
               "e": "🚪"
+            },
+            "teacher": {
+              "t": "Listed callers can bypass focus restrictions.",
+              "e": "📞"
+            },
+            "mom": {
+              "t": "Add family so home can reach you.",
+              "e": "🏠"
+            },
+            "hype": {
+              "t": "Focus with a way through. Considerate!",
+              "e": "☎️"
+            },
+            "cat": {
+              "t": "My bell requires no permission.",
+              "e": "🔔"
             }
           }
         },
@@ -759,6 +1255,22 @@
             "chuuni": {
               "t": "Hush, someone muted our rest sprite.",
               "e": "🔕"
+            },
+            "teacher": {
+              "t": "Disabling reminders stops automatic prompts to take breaks.",
+              "e": "⏸️"
+            },
+            "mom": {
+              "t": "Get up even without a reminder.",
+              "e": "🚶"
+            },
+            "hype": {
+              "t": "The toggle state is clearly labeled!",
+              "e": "✅"
+            },
+            "cat": {
+              "t": "Even cats know when to pause, meow.",
+              "e": "😾"
             }
           }
         }
@@ -790,6 +1302,22 @@
             "chuuni": {
               "t": "酵母正在闭关修炼",
               "e": "🍞"
+            },
+            "teacher": {
+              "t": "低温会减慢酵母活动，延长发酵",
+              "e": "🧫"
+            },
+            "mom": {
+              "t": "等面团的时候自己也吃点",
+              "e": "🍽️"
+            },
+            "hype": {
+              "t": "肯花一夜慢发，耐心足",
+              "e": "🍞"
+            },
+            "cat": {
+              "t": "发一夜还不如我睡得香喵",
+              "e": "💤"
             }
           }
         },
@@ -808,6 +1336,22 @@
             "chuuni": {
               "t": "初学者的面包试炼",
               "e": "🧑‍🍳"
+            },
+            "teacher": {
+              "t": "能是助动词，此处表达能力",
+              "e": "📖"
+            },
+            "mom": {
+              "t": "烤箱烫手，取盘戴好手套",
+              "e": "🧤"
+            },
+            "hype": {
+              "t": "特意照顾新手，这点贴心",
+              "e": "🤝"
+            },
+            "cat": {
+              "t": "说得容易，你先烤来尝尝",
+              "e": "😼"
             }
           }
         }
@@ -836,6 +1380,22 @@
             "chuuni": {
               "t": "Yeast begins its long training arc.",
               "e": "🍞"
+            },
+            "teacher": {
+              "t": "Cold slows yeast activity, extending fermentation time.",
+              "e": "🧫"
+            },
+            "mom": {
+              "t": "Feed yourself while the dough rests.",
+              "e": "🍽️"
+            },
+            "hype": {
+              "t": "Overnight fermentation takes admirable patience!",
+              "e": "🍞"
+            },
+            "cat": {
+              "t": "Rising overnight? My naps win, meow.",
+              "e": "💤"
             }
           }
         },
@@ -854,6 +1414,22 @@
             "chuuni": {
               "t": "A beginner enters the bread trial.",
               "e": "🧑‍🍳"
+            },
+            "teacher": {
+              "t": "Even emphasizes inclusion of an unexpectedly inexperienced group.",
+              "e": "📖"
+            },
+            "mom": {
+              "t": "Wear oven mitts for hot trays.",
+              "e": "🧤"
+            },
+            "hype": {
+              "t": "Beginners explicitly welcomed. Such a kindness!",
+              "e": "🤝"
+            },
+            "cat": {
+              "t": "Big promises. Bake me proof.",
+              "e": "😼"
             }
           }
         }
@@ -885,6 +1461,22 @@
             "chuuni": {
               "t": "装饰军团扩张领地",
               "e": "🎈"
+            },
+            "teacher": {
+              "t": "装饰超支一百四十元，即百分之一百四十",
+              "e": "🧮"
+            },
+            "mom": {
+              "t": "装饰买这么多，菜钱够吗",
+              "e": "💸"
+            },
+            "hype": {
+              "t": "实际支出逐项记，账目明白",
+              "e": "🧾"
+            },
+            "cat": {
+              "t": "花在彩带上也不给我喵",
+              "e": "🎀"
             }
           }
         },
@@ -903,6 +1495,22 @@
             "chuuni": {
               "t": "备用结界能量耗尽",
               "e": "🍃"
+            },
+            "teacher": {
+              "t": "备用金耗尽，已无额外支出余量",
+              "e": "📊"
+            },
+            "mom": {
+              "t": "一分不留，临时买药咋办",
+              "e": "💊"
+            },
+            "hype": {
+              "t": "见底也如实记，没藏窟窿",
+              "e": "🔍"
+            },
+            "cat": {
+              "t": "空账本可垫不了猫窝",
+              "e": "📦"
             }
           }
         }
@@ -931,6 +1539,22 @@
             "chuuni": {
               "t": "Decorations expand their colorful territory!",
               "e": "🎈"
+            },
+            "teacher": {
+              "t": "Decorations exceed their budget by 140, or 140 percent.",
+              "e": "🧮"
+            },
+            "mom": {
+              "t": "Decorations cost more; can everyone eat?",
+              "e": "💸"
+            },
+            "hype": {
+              "t": "Itemized spending makes this budget readable!",
+              "e": "🧾"
+            },
+            "cat": {
+              "t": "Ribbons got funding. I did not, meow.",
+              "e": "🎀"
             }
           }
         },
@@ -949,6 +1573,22 @@
             "chuuni": {
               "t": "Reserve shields request an energy refill.",
               "e": "🍃"
+            },
+            "teacher": {
+              "t": "No reserve remains to cover unexpected expenses.",
+              "e": "📊"
+            },
+            "mom": {
+              "t": "What about money for sudden emergencies?",
+              "e": "💊"
+            },
+            "hype": {
+              "t": "Zero recorded openly. Admirably transparent accounting!",
+              "e": "🔍"
+            },
+            "cat": {
+              "t": "Empty accounts make terrible cat beds.",
+              "e": "📦"
             }
           }
         }
@@ -980,6 +1620,22 @@
             "chuuni": {
               "t": "补给已在任务终点",
               "e": "🥪"
+            },
+            "teacher": {
+              "t": "这里由组织方提供，无需自备餐食",
+              "e": "🥪"
+            },
+            "mom": {
+              "t": "干活前问清有没有热饭",
+              "e": "🍲"
+            },
+            "hype": {
+              "t": "连中饭都备好，组织到位",
+              "e": "🧺"
+            },
+            "cat": {
+              "t": "菜单没鱼就别算我",
+              "e": "🐠"
             }
           }
         },
@@ -998,6 +1654,22 @@
             "chuuni": {
               "t": "雨天开启育苗副本",
               "e": "🌧️"
+            },
+            "teacher": {
+              "t": "幼苗移到屋里可避开雨水直接冲刷",
+              "e": "🌱"
+            },
+            "mom": {
+              "t": "下雨挪屋里好，别淋感冒",
+              "e": "🧥"
+            },
+            "hype": {
+              "t": "雨天还有替代安排，靠谱",
+              "e": "☔"
+            },
+            "cat": {
+              "t": "种苗可以，别占本喵的窗台",
+              "e": "🪴"
             }
           }
         }
@@ -1026,6 +1698,22 @@
             "chuuni": {
               "t": "Provisions await beside the flower beds!",
               "e": "🥪"
+            },
+            "teacher": {
+              "t": "The organizers supply the meal; volunteers need not pack one.",
+              "e": "🥪"
+            },
+            "mom": {
+              "t": "Ask whether a warm meal is included.",
+              "e": "🍲"
+            },
+            "hype": {
+              "t": "Lunch covered too. Well organized!",
+              "e": "🧺"
+            },
+            "cat": {
+              "t": "No fish on offer? Count me out.",
+              "e": "🐠"
             }
           }
         },
@@ -1044,6 +1732,22 @@
             "chuuni": {
               "t": "Rain unlocks a seedling side mission.",
               "e": "🌧️"
+            },
+            "teacher": {
+              "t": "Sheltering seedlings prevents direct exposure to heavy rain.",
+              "e": "🌱"
+            },
+            "mom": {
+              "t": "Stay dry; bring a jacket.",
+              "e": "🧥"
+            },
+            "hype": {
+              "t": "Rain contingency sorted. Thorough planning!",
+              "e": "☔"
+            },
+            "cat": {
+              "t": "Seedlings may stay. My windowsill cannot, meow.",
+              "e": "🪴"
             }
           }
         }

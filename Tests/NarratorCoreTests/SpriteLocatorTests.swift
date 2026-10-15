@@ -18,17 +18,17 @@ import Testing
                 let hit = try #require(SpriteLocator.locate(quote: mark.q, lineHint: mark.l, in: lines))
                 #expect(hit.lineIndex == mark.l)
                 #expect(String(lines[hit.lineIndex].text[hit.range]) == mark.q)
-                for persona in PersonaCatalog.builtin.profiles.map(\.id) {
-                    let voice = try #require(mark.voices[PersonaCatalog.builtin[persona].examples.rawValue])
-                    if lang == .zh { #expect(voice.t.count <= 14) }
-                    else { #expect(voice.t.split(whereSeparator: \.isWhitespace).count < 8) }
+                for profile in PersonaCatalog.builtin.profiles {
+                    let voice = try #require(mark.voices[profile.id.rawValue])
+                    if lang == .zh { #expect(voice.t.count <= profile.limit.zh) }
+                    else { #expect(voice.t.split(whereSeparator: \.isWhitespace).count < profile.limit.en) }
                     #expect(!voice.t.contains(mark.q))
                     #expect(!voice.t.contains(where: QuipValidator.isEmoji))
                     #expect(voice.e.count == 1 && QuipValidator.isEmoji(voice.e.first!))
                 }
             }
             for persona in PersonaCatalog.builtin.profiles.map(\.id) {
-                let openings = screen.marks.map { String($0.voices[PersonaCatalog.builtin[persona].examples.rawValue]!.t.prefix(2)) }
+                let openings = screen.marks.map { String($0.voices[persona.rawValue]!.t.prefix(2)) }
                 #expect(Set(openings).count == openings.count)
             }
         }
@@ -44,7 +44,7 @@ import Testing
             for scene in SpriteExample.pool {
                 let screen = lang == .zh ? scene.zh : scene.en
                 for mark in screen.marks {
-                    let text = mark.voices[PersonaCatalog.builtin[persona].examples.rawValue]!.t.lowercased()
+                    let text = mark.voices[persona.rawValue]!.t.lowercased()
                     let fragments: Set<String>
                     let opening: String
                     if lang == .zh {
@@ -54,7 +54,8 @@ import Testing
                     } else {
                         let words = englishWords.matches(in: text, range: NSRange(text.startIndex..., in: text))
                             .map { String(text[Range($0.range, in: text)!]) }
-                        fragments = Set(words.filter { $0.count > 3 })
+                        // Cat examples deliberately use "meow" in about half their lines.
+                        fragments = Set(words.filter { $0.count > 3 && !(persona == .cat && $0 == "meow") })
                         opening = words.first!
                     }
                     for fragment in fragments { phrases[fragment, default: 0] += 1 }
@@ -68,6 +69,16 @@ import Testing
                 #expect(count <= 2, "\(lang.rawValue)/\(persona.rawValue): \(opening) starts \(count) lines")
             }
         }
+    }
+}
+
+@Test func catExamplesUseMeowInAboutHalfOfEachLanguage() {
+    for lang in Lang.allCases {
+        let texts = SpriteExample.pool.flatMap { scene in
+            (lang == .zh ? scene.zh : scene.en).marks.map { $0.voices["cat"]!.t }
+        }
+        let count = texts.filter { $0.contains(lang == .zh ? "喵" : "meow") }.count
+        #expect((0.4...0.6).contains(Double(count) / Double(texts.count)))
     }
 }
 
