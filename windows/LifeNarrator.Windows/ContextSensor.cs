@@ -79,6 +79,7 @@ internal sealed class ContextSensor : IDisposable
             {
                 // UIA providers and windows can disappear between calls; expose the failure.
                 failed("UIA: " + error.Message);
+                if (Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG") == "1") Console.Error.WriteLine(error);
             }
         }
         if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);

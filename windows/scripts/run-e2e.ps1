@@ -27,6 +27,11 @@ public static class E2EWindow {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] static extern uint SendInput(uint n, Input[] inputs, int size);
+    public static void ActiveMouse() {
+        var right = new Input { mouse = new Mouse { x = 1, flags = 1 } };
+        var left = new Input { mouse = new Mouse { x = -1, flags = 1 } };
+        if (SendInput(2, new[] { right, left }, 40) != 2) throw new Exception("SendInput mouse failed");
+    }
     public static void Click() {
         var down = new Input { mouse = new Mouse { flags = 2 } };
         var up = new Input { mouse = new Mouse { flags = 4 } };
@@ -119,7 +124,7 @@ try {
     $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'Swift' }) -join ';'
     Remove-Item (Join-Path $data 'said.json'), (Join-Path $data 'brain.log') -ErrorAction SilentlyContinue
     $shell = Start-Process ./artifacts/shell/LifeNarrator.exe -PassThru -RedirectStandardOutput artifacts/shell.stdout.log -RedirectStandardError artifacts/shell.stderr.log
-    Wait-For 'tracked model mark' { @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor }).Count -gt 0 }
+    Wait-For 'tracked model mark' { [E2EWindow]::ActiveMouse(); @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor }).Count -gt 0 }
     $before = Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor } | Select-Object -Last 1
     $textBefore = Probe 'before'
     Assert-Aligned $before.anchor $textBefore
@@ -154,6 +159,7 @@ try {
     Remove-Item (Join-Path $data 'said.json'), (Join-Path $data 'brain.log') -ErrorAction SilentlyContinue
     $shell = Start-Process ./artifacts/shell/LifeNarrator.exe -PassThru -RedirectStandardOutput artifacts/e2e-ocr.stdout.log -RedirectStandardError artifacts/e2e-ocr.stderr.log
     Wait-For 'OCR snapshot and model mark' {
+        [E2EWindow]::ActiveMouse()
         (Select-String artifacts/e2e-ocr.stderr.log -Pattern '\[sensor\] snapshot source=ocr' -Quiet) -and
         (Select-String artifacts/e2e-ocr.stderr.log -Pattern 'textRect kind=ocr' -Quiet) -and
         @(Overlay-Records artifacts/e2e-ocr.stderr.log | Where-Object { $_.action -eq 'show' -and !$_.trackID -and $_.anchor }).Count -gt 0
