@@ -56,3 +56,4 @@ Console.WriteLine("PASS: text and rounded production bubbles rendered; negative-
 UIChecks.Run();
 
 CompanionChecks.Run();
+ModelDownloadChecks.Run(args.Length > 0 ? args[0] : null);

@@ -76,6 +76,14 @@
           </Track>
         </ControlTemplate></Setter>
       </ControlTheme>
+      <ControlTheme x:Key="{x:Type ProgressBar}" TargetType="ProgressBar">
+        <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
+        <Setter Property="Template"><ControlTemplate>
+          <Border Background="{DynamicResource Stroke}" CornerRadius="3" ClipToBounds="True">
+            <Border Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="3"/>
+          </Border>
+        </ControlTemplate></Setter>
+      </ControlTheme>
       <ControlTheme x:Key="{x:Type Slider}" TargetType="Slider">
         <Setter Property="MinHeight" Value="28"/><Setter Property="Template"><ControlTemplate>
           <Panel>

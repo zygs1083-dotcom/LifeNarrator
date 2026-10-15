@@ -19,20 +19,90 @@ internal sealed class ModelView : StackPanel
         text = new Texts(settings); Spacing = 10;
         error.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
         Render();
+        AttachedToVisualTree += (_, _) => { foreach (var download in settings.Downloaders) download.Changed += RefreshDownloads; RefreshDownloads(); };
+        DetachedFromVisualTree += (_, _) => { foreach (var download in settings.Downloaders) download.Changed -= RefreshDownloads; };
     }
     void Render()
     {
+        downloadRefresh.Clear();
         var body = Views.Stack(ModelChoices());
         if (settings.Provider.Kind == "api") body.Children.Add(ProviderEditor());
+        if (settings.Provider.Kind == "builtin") body.Children.Add(BuiltinEditor());
         Children.Clear(); Children.Add(Views.Card(text["provider"], body));
     }
 
     internal Control ModelChoices() => Views.Choices([
         ("api", text["provider.api"], text["provider.api.hint"]),
         ("none", text["provider.none"], text["provider.none.hint"]),
-        ("builtin", text["provider.builtin"], text["comingSoon"])], settings.Provider.Kind,
-        id => Run(async () => { settings.Provider.Kind = id; await configure(); }), disabled: "builtin",
+        ("builtin", text["provider.builtin"], text["provider.builtin.hint"])], settings.Provider.Kind,
+        id => Run(async () => { settings.Provider.Kind = id; await configure(); }),
         selectionChanged: Render);
+
+    readonly List<Action> downloadRefresh = [];
+    void RefreshDownloads() { foreach (var refresh in downloadRefresh) refresh(); }
+
+    Control BuiltinEditor()
+    {
+        var body = Views.Stack(Views.Caption(text["model.windows.hint"]));
+        body.Children.Add(Views.Choices(settings.Downloaders.Select((d, i) =>
+            (d.Model.Name, text[i == 0 ? "model.standard" : "model.fast"], (d.Model.Size >= 1e9 ? $"{d.Model.Size / 1e9:0.00} GB · " : $"{d.Model.Size / 1e6:0.00} MB · ") + text[i == 0 ? "model.standard.hint" : "model.fast.hint"])),
+            settings.BuiltinModel, name => Run(async () => { settings.BuiltinModel = name; await configure(); }), selectionChanged: Render));
+        foreach (var download in settings.Downloaders)
+        {
+            var source = new ComboBox { ItemsSource = new[] { "huggingface.co", "hf-mirror.com" },
+                SelectedItem = download.Source, HorizontalAlignment = HorizontalAlignment.Stretch };
+            AutomationProperties.SetName(source, text["model.source"]);
+            source.SelectionChanged += (_, _) => download.Source = (string)source.SelectedItem!;
+            var status = Views.Label("");
+            var progress = new ProgressBar { Minimum = 0, Maximum = 100, Height = 6 };
+            AutomationProperties.SetName(progress, download.Model.Name);
+            var start = Views.Button(text["model.download"], () => Run(async () =>
+            {
+                await download.Start(download.Model.FromSource(download.Source));
+                if (download.State == ModelDownloadState.Ready && settings.Provider.Kind == "builtin" && settings.BuiltinModel == download.Model.Name)
+                    await configure();
+            }));
+            var pause = Views.Button(text["model.pause"], () => Run(download.Pause));
+            var delete = Views.Button(text["delete"], () => Run(async () =>
+            {
+                if (settings.Provider.Kind == "builtin" && settings.BuiltinModel == download.Model.Name)
+                {
+                    var configuration = settings.Provider.Kind;
+                    settings.Provider.Kind = "none";
+                    try { await configure(); }
+                    finally { settings.Provider.Kind = configuration; }
+                }
+                download.Delete(); await configure();
+            }));
+            AutomationProperties.SetAutomationId(start, "download-" + download.Model.Name);
+            AutomationProperties.SetAutomationId(pause, "pause-" + download.Model.Name);
+            AutomationProperties.SetAutomationId(delete, "delete-" + download.Model.Name);
+            var failure = Views.Label("");
+            failure.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
+            void Refresh()
+            {
+                var state = download.State;
+                status.Text = text[state switch
+                {
+                    ModelDownloadState.Downloading => "model.downloading",
+                    ModelDownloadState.Verifying => "model.verifying",
+                    ModelDownloadState.Ready => "model.ready",
+                    _ => "model.notDownloaded"
+                }] + (state == ModelDownloadState.Downloading ? $" {download.Progress:P0}" : "");
+                progress.Value = download.Progress * 100;
+                progress.IsIndeterminate = state == ModelDownloadState.Verifying;
+                progress.IsVisible = state is ModelDownloadState.Downloading or ModelDownloadState.Verifying;
+                source.IsVisible = start.IsVisible = state == ModelDownloadState.NotDownloaded;
+                start.Content = text[download.HasPartial ? "model.resume" : "model.download"];
+                pause.IsVisible = state == ModelDownloadState.Downloading;
+                delete.IsVisible = state == ModelDownloadState.Ready || (state == ModelDownloadState.NotDownloaded && download.HasPartial);
+                failure.Text = download.Error; failure.IsVisible = download.Error != null;
+            }
+            downloadRefresh.Add(Refresh); Refresh();
+            body.Children.Add(Views.Card(download.Model.Name, status, progress, source, Views.Row(start, Views.Row(pause, delete)), failure));
+        }
+        return body;
+    }
 
     internal Control ProviderEditor()
     {

@@ -147,5 +147,19 @@
   "updates.available": "New version available: %@",
   "updates.install": "Update now",
   "updates.downloading": "Downloading update… %d%%",
-  "updates.installFailed": "Update installation failed; view installation log"
+  "updates.installFailed": "Update installation failed; view installation log",
+  "provider.builtin.hint": "Offline, screen text stays on this PC",
+  "model.windows.hint": "Fast is recommended on Windows. Standard is slower without a dedicated GPU. The selected model activates when its download is ready.",
+  "model.standard": "Standard",
+  "model.fast": "Fast · Recommended for Windows",
+  "model.standard.hint": "Better quality, slower",
+  "model.fast.hint": "Less memory, faster",
+  "model.source": "Download source",
+  "model.download": "Download",
+  "model.resume": "Resume",
+  "model.pause": "Pause",
+  "model.notDownloaded": "Not downloaded",
+  "model.downloading": "Downloading",
+  "model.verifying": "Verifying",
+  "model.ready": "Ready"
 }

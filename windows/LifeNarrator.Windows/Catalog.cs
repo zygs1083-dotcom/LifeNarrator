@@ -13,6 +13,7 @@ internal sealed record PersonaPreset(string Id, string Emoji, Localized Name, Lo
 
 internal static class Catalog
 {
+    public static readonly DownloadableModel[] Models = Read<DownloadableModel[]>("models.json");
     public static readonly ProviderPreset[] Providers = Read<ProviderPreset[]>("providers.json");
     public static readonly PersonaPreset[] Personas = Read<PersonaPreset[]>("personas.json");
     public static T Read<T>(string name)

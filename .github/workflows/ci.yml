@@ -30,6 +30,7 @@ jobs:
           path: |
             artifacts/bubble-*.png
             artifacts/ui-headless-*.png
+            artifacts/model-download-test/*.log
           if-no-files-found: error
 
   windows:
