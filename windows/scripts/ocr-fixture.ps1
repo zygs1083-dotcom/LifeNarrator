@@ -10,9 +10,9 @@ $font = [System.Drawing.Font]::new('Segoe UI', 26)
 try {
     $graphics.Clear([System.Drawing.Color]::White)
     $graphics.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
-    $graphics.DrawString('LifeNarrator visible English paragraph', $font, [System.Drawing.Brushes]::Black, 70, 180)
-    $graphics.DrawString('Only pixels are drawn in this window.', $font, [System.Drawing.Brushes]::Black, 70, 260)
-    $graphics.DrawString('No accessibility text is provided.', $font, [System.Drawing.Brushes]::Black, 70, 340)
+    $graphics.DrawString('LifeNarrator visible English paragraph', $font, [System.Drawing.Brushes]::Black, 70, 20)
+    $graphics.DrawString('Only pixels are drawn in this window.', $font, [System.Drawing.Brushes]::Black, 70, 100)
+    $graphics.DrawString('No accessibility text is provided.', $font, [System.Drawing.Brushes]::Black, 70, 180)
 } finally { $graphics.Dispose(); $font.Dispose() }
 $form.BackgroundImage = $image
 try { [System.Windows.Forms.Application]::Run($form) }

@@ -56,6 +56,16 @@ internal static partial class Native
             .ToDictionary(x => x.Key, x => (value & x.Value) != 0);
     }
     [DllImport("user32.dll", SetLastError = true)] static extern bool PrintWindow(nint window, nint dc, uint flags);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool GetClientRect(nint window, out WinRect rect);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool ClientToScreen(nint window, ref ClientPoint point);
+    [StructLayout(LayoutKind.Sequential)] struct ClientPoint { public int X, Y; }
+    public static Box ClientFrame(nint window)
+    {
+        if (!GetClientRect(window, out var rect)) throw new Win32Exception();
+        var origin = new ClientPoint();
+        if (!ClientToScreen(window, ref origin)) throw new Win32Exception();
+        return rect.Box.Offset(origin.X, origin.Y);
+    }
     internal record WindowImage(int Width, int Height, byte[] Pixels);
     public static WindowImage CaptureWindow(nint window)
     {

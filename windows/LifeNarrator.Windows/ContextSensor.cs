@@ -152,8 +152,7 @@ internal sealed class ContextSensor : IDisposable
         var stack = new Stack<IUIAutomationElement>();
         stack.Push(root);
         var count = 0;
-        var contentTop = Math.Min(frame.Y + 88, frame.Y + frame.H);
-        var content = new Box(frame.X, contentTop, frame.W, frame.Y + frame.H - contentTop);
+        var content = display.Logical(Native.ClientFrame(window));
         var foundDocument = false;
         while (stack.TryPop(out var element) && count++ < 4000)
         {
@@ -390,7 +389,8 @@ internal sealed class ContextSensor : IDisposable
                             bounds = track.Display.Logical(Box.From(union));
                         }
                         else bounds = track.Display.Logical(Physical(entry.Element.CurrentBoundingRectangle));
-                        samples.Add(new(id, new Box(bounds.X - track.Origin.X, bounds.Y - track.Origin.Y, bounds.W, bounds.H)));
+                        samples.Add(new(id, bounds.W <= 0 || bounds.H <= 0 ? null :
+                            new Box(bounds.X - track.Origin.X, bounds.Y - track.Origin.Y, bounds.W, bounds.H)));
                     }
                     catch (COMException error) when (error.HResult == unchecked((int)0x80040201))
                     { samples.Add(new(id, null)); } // UIA_E_ELEMENTNOTAVAILABLE

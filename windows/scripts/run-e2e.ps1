@@ -165,6 +165,9 @@ try {
     @{ scroll = @{ before = $before; after = $after; textBefore = $textBefore; textAfter = $textAfter; offscreenRemoved = $true }
        ocr = @{ snapshot = $true; mark = $ocrMark }; screenshots = @('e2e-before.png', 'e2e-after.png', 'e2e-offscreen.png', 'e2e-ocr.png') } |
         ConvertTo-Json -Depth 10 | Set-Content artifacts/e2e.json
+} catch {
+    Screenshot 'e2e-failure.png'
+    throw
 } finally {
     $env:LIFENARRATOR_DEBUG = $oldDebug
     $env:PATH = $oldPath
