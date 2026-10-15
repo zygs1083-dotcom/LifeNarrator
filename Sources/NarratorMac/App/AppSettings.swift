@@ -41,6 +41,7 @@ public struct AppSettings: Codable {
     public var liveliness: Liveliness = .lively
     public var markGap: Double = 2
     public var memoryEnabled = true
+    public var spriteName = ""
     public var paused = false
     public var blacklist = [
         "com.1password.1password", "com.agilebits.onepassword7", "com.agilebits.onepassword-osx",
@@ -60,12 +61,13 @@ public struct AppSettings: Codable {
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
+        case spriteName, memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         memoryEnabled = try c.decodeIfPresent(Bool.self, forKey: .memoryEnabled) ?? true
+        spriteName = try c.decodeIfPresent(String.self, forKey: .spriteName) ?? ""
         automaticUpdates = try c.decodeIfPresent(Bool.self, forKey: .automaticUpdates) ?? true
         liveliness = try c.decodeIfPresent(Liveliness.self, forKey: .liveliness) ?? .lively
         markGap = try c.decodeIfPresent(Double.self, forKey: .markGap) ?? 2
@@ -88,7 +90,7 @@ public struct AppSettings: Codable {
 
 extension BubbleStyle: Codable {
     private enum CodingKeys: String, CodingKey {
-        case shape, size, theme, textEffects, animation, emojiDensity, font, dwell, maxOnScreen
+        case shape, size, theme, textEffects, animation, emojiDensity, emoji, font, dwell, maxOnScreen
     }
 
     public init(from decoder: any Decoder) throws {
@@ -107,6 +109,7 @@ extension BubbleStyle: Codable {
         textEffects = TextEffects(rawValue: try c.decode(Int.self, forKey: .textEffects))
         animation = try value(BubbleAnimation.self, .animation)
         emojiDensity = try value(EmojiDensity.self, .emojiDensity)
+        emoji = try c.decodeIfPresent(String.self, forKey: .emoji)
         let fontName = try c.decode(String.self, forKey: .font)
         if fontName == "persona" { font = .persona }
         else { font = .fixed(try value(NarratorFont.self, .font)) }
@@ -122,6 +125,7 @@ extension BubbleStyle: Codable {
         try c.encode(textEffects.rawValue, forKey: .textEffects)
         try c.encode(animation.rawValue, forKey: .animation)
         try c.encode(emojiDensity.rawValue, forKey: .emojiDensity)
+        try c.encodeIfPresent(emoji, forKey: .emoji)
         switch font {
         case .persona: try c.encode("persona", forKey: .font)
         case .fixed(let font): try c.encode(font.rawValue, forKey: .font)

@@ -10,14 +10,19 @@ public struct MenuBarView: View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
                 IconChip(symbol: "text.bubble.fill", hue: AppTheme.hue(320))
-                Text(store.text("app.name")).font(AppTheme.font(.cardTitle))
+                Text(verbatim: store.spriteDisplayName).font(AppTheme.font(.cardTitle)).lineLimit(1)
                 Spacer(minLength: 0)
-                Badge(text: status, hue: AppTheme.hue(store.settings.paused ? 42 : 150))
+                if let growth = store.growthState { Badge(text: "Lv.\(growth.level)", hue: AppTheme.hue(320)) }
                 if !store.screenRecordingGranted {
                     Circle().fill(AppTheme.hue(42).text).frame(width: 6, height: 6)
                         .help(store.text("screenRecording.title"))
                         .accessibilityLabel(store.text("screenRecording.title"))
                 }
+            }
+            if let growth = store.growthState { GrowthExperienceView(growth: growth, language: store.settings.language) }
+            HStack {
+                Badge(text: status, hue: AppTheme.hue(store.settings.paused ? 42 : 150))
+                Spacer()
             }
             LabeledContent(store.text("sprite.onDuty")) {
                 Toggle(store.text("sprite.onDuty"), isOn: Binding(get: { !store.settings.paused }, set: {

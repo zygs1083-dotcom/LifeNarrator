@@ -38,7 +38,8 @@ struct BubbleAppearance {
         default: .zero
         }
         var a = BubbleAppearance(shape: shape, size: size, theme: theme, group: group, effects: effects, font: font, text: text, emoji: emoji, rotation: rotation, contentSize: .zero, tail: nil, tailBelowBody: 0)
-        a.measure(maxWidth: maxWidth ?? size.maxWidth)
+        let width = maxWidth ?? size.maxWidth
+        a.measure(maxWidth: shape == .star ? width / 2 : width)
         return a
     }
 
@@ -62,6 +63,8 @@ struct BubbleAppearance {
             CGSize(width: contentSize.width + 2 * size.stickerPaperInset, height: contentSize.height + 2 * size.stickerPaperInset)
         case .note:
             CGSize(width: max(contentSize.width, 2.2 * (size.fontSize + size.lineSpacing)), height: contentSize.height + 8)
+        case .star:
+            CGSize(width: contentSize.width * 2, height: contentSize.height * 2.8)
         }
     }
 
@@ -71,6 +74,7 @@ struct BubbleAppearance {
         case .cloud: CGPoint(x: 0.25 * contentSize.height, y: 0.45 * contentSize.height)
         case .sticker: CGPoint(x: size.stickerPaperInset, y: size.stickerPaperInset)
         case .note: CGPoint(x: (outerSize.width - contentSize.width) / 2, y: 8)
+        case .star: CGPoint(x: contentSize.width / 2, y: contentSize.height * 0.9)
         }
     }
 
@@ -78,7 +82,7 @@ struct BubbleAppearance {
     var bodyRect: CGRect {
         switch shape {
         case .text, .rounded, .speech: CGRect(origin: .zero, size: contentSize)
-        case .cloud, .sticker, .note: CGRect(origin: .zero, size: outerSize)
+        case .cloud, .sticker, .note, .star: CGRect(origin: .zero, size: outerSize)
         }
     }
 
@@ -258,6 +262,11 @@ struct BubbleBodyView: View {
             RoundedRectangle(cornerRadius: 2)
                 .fill(fill)
                 .shadow(color: .black.opacity(0.20), radius: 4, x: 0, y: 2)
+        case .star:
+            StarShape().fill(fill)
+                .overlay(StarShape().stroke(stroke, style: StrokeStyle(lineWidth: a.size.strokeWidth, lineJoin: .round)))
+                .compositingGroup()
+                .shadow(color: .black.opacity(0.22), radius: 8, x: 0, y: 3)
         }
     }
 }

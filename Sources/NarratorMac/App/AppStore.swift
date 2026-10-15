@@ -76,6 +76,9 @@ public final class AppStore: ObservableObject {
                 if case .ready = state { self.pregenerator.schedule() }
             }
         }
+        // Memory settings remain available before accessibility permission is granted.
+        engine = try NarratorEngine(store: self)
+        engine!.configure()
     }
 
     public func start() {
@@ -116,7 +119,6 @@ public final class AppStore: ObservableObject {
             return
         }
         perform {
-            engine = try NarratorEngine(store: self)
             try engine!.start()
         }
     }
@@ -189,6 +191,14 @@ public final class AppStore: ObservableObject {
 
     public var memories: [Memory] { engine?.memories ?? [] }
     public var growthState: GrowthState? { engine?.growthState }
+    public func isUnlocked(_ unlock: GrowthUnlock) -> Bool {
+        growthState?.unlocked.contains(unlock) == true
+    }
+
+    public var spriteDisplayName: String {
+        let name = settings.spriteName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return isUnlocked(.spriteName) && !name.isEmpty ? name : text("tab.sprite")
+    }
 
     @discardableResult
     public func addMemory(kind: Memory.Kind, text: String) throws -> Memory? {

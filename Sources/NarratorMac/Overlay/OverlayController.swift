@@ -478,11 +478,7 @@ public final class OverlayController: NSObject {
             group = style.theme.palette[index]
             groupIndex = index
         }
-        let emoji: [String] = switch style.emojiDensity {
-        case .none: []
-        case .moderate: Array(n.emoji.prefix(1))
-        case .many: n.emoji
-        }
+        let emoji = style.displayedEmoji(n.emoji)
         var appearance = BubbleAppearance.make(
             shape: style.shape, size: size, theme: style.theme, group: group, effects: style.textEffects,
             font: BubbleFonts.font(choice: style.font, persona: n.persona, language: n.language, size: size.fontSize, catalog: personas),
