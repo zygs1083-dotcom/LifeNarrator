@@ -79,7 +79,6 @@ internal sealed class ContextSensor : IDisposable
             {
                 // UIA providers and windows can disappear between calls; expose the failure.
                 failed("UIA: " + error.Message);
-                if (Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG") == "1") Console.Error.WriteLine(error);
             }
         }
         if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);
@@ -139,10 +138,11 @@ internal sealed class ContextSensor : IDisposable
         var previous = snapshot;
         if (scrollRoot == null)
         {
-            scrollRoot = root;
-            scrollEvents = new ScrollEvents(scrolled);
-            automation.AddPropertyChangedEventHandler(root, TreeScope.TreeScope_Subtree, null, scrollEvents,
+            var handler = new ScrollEvents(scrolled);
+            automation.AddPropertyChangedEventHandler(root, TreeScope.TreeScope_Subtree, null, handler,
                 [30053, 30054]); // ScrollPattern horizontal/vertical scroll percent
+            scrollRoot = root;
+            scrollEvents = handler;
         }
         var collected = new List<Entry>();
         var seen = new HashSet<(string, Box)>();
