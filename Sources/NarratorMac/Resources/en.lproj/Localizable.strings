@@ -163,3 +163,14 @@
 "persona.custom.noModel" = "Choose a model in Models first.";
 "persona.custom.downloadModel" = "Download the built-in model or configure an API model first.";
 "persona.custom.configureModel" = "Enter a valid API URL and model name in Models first.";
+"updates.title" = "Updates";
+"updates.automatic" = "Automatically check for updates";
+"updates.check" = "Check for updates";
+"updates.checking" = "Checking for updates…";
+"updates.latest" = "You’re up to date";
+"updates.available" = "New version available: %@";
+"updates.install" = "Update now";
+"updates.downloading" = "Downloading update… %d%%";
+"onboarding.accessibility.open" = "Open Accessibility Settings";
+"screenRecording.repair" = "Already enabled but still prompted? macOS may have a record from an older version. Select LifeNarrator in the list, click “−” to remove it, then “+” to add it again. Or run this command in Terminal: tccutil reset ScreenCapture dev.lifenarrator.app";
+"screenRecording.copyCommand" = "Copy command";

@@ -12,7 +12,7 @@
 
 ![测试聊天窗口上框住的名字和"猪领导"旁白](docs/images/boss-bubble.png)
 
-> **当前状态：** v0.7 预览版，可以在 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator.zip`。
+> **当前状态：** v0.7 预览版，可以在 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator.dmg`。
 
 ## 功能
 
@@ -39,20 +39,28 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator.zip`，解压后把 `LifeNarrator.app` 拖进"应用程序"。
-2. 应用没有 Apple 开发者签名。macOS 14 上右键点它选"打开"；macOS 15 及以上先打开一次，再到"系统设置 → 隐私与安全性"里点"仍要打开"。
-3. 在欢迎窗口选好模型，授予辅助功能权限。
+**方式一：DMG。** 从 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator.dmg`，打开后把 `LifeNarrator.app` 拖到“应用程序”快捷方式上。应用使用自签名证书，尚未公证：macOS 14 上右键点它选“打开”；macOS 15 及以上先打开一次，再到“系统设置 → 隐私与安全性”里点“仍要打开”。
 
-人生旁白只在菜单栏显示，没有程序坞图标。**⌥⇧N** 添加规则，**⌥⇧P** 暂停小精灵。菜单栏太满放不下图标时（带刘海的 MacBook 上很常见），从"应用程序"或聚焦搜索再打开一次人生旁白，就会弹出设置窗口。
+**方式二：一行命令。** 在终端运行：
 
-从 v0.1.4 起，发布版都用同一张自签名证书签名，更新后辅助功能权限会保留。从更早的版本更新时，需要在"隐私与安全性 → 辅助功能"里把人生旁白删掉再重新添加一次。
+```sh
+curl -fsSL https://raw.githubusercontent.com/zygs1083-dotcom/LifeNarrator/main/scripts/install.sh | bash
+```
+
+脚本会下载最新版本、校验 SHA-256、请正在运行的应用退出，安装到 `/Applications`（不可写时装到 `~/Applications`），去掉隔离属性并打开应用，因此不用去系统设置放行。要安装指定版本，把末尾的 `bash` 换成 `LIFENARRATOR_VERSION=vX.Y.Z bash`。
+
+在欢迎窗口选好模型，授予辅助功能权限。录屏权限是可选的；如果开关已经打开却仍然不生效，在权限列表里把人生旁白删掉再重新添加，或从应用的权限提示卡片复制重置命令，在终端运行。
+
+人生旁白只在菜单栏显示，没有程序坞图标。**⌥⇧N** 添加规则，**⌥⇧P** 暂停小精灵。菜单栏太满放不下图标时（带刘海的 MacBook 上很常见），从“应用程序”或聚焦搜索再打开一次人生旁白，就会弹出设置窗口。
+
+**更新：** 在“设置 → 通用”里点“检查更新 → 立即更新”。默认启动时和每隔 24 小时自动检查，也可以在这里关闭。应用会校验下载包的 SHA-256，并确认新包满足当前应用的指定签名要求，再替换并重启。发布版使用同一张证书，辅助功能和录屏权限会保留。从 v0.1.4 之前的版本更新时，需要在权限列表里把人生旁白删掉再重新添加一次。
 
 ## 从源码构建
 
 ```sh
 swift build
 swift test
-scripts/bundle.sh   # 需要 Xcode，生成 dist/LifeNarrator.app 和 dist/LifeNarrator.zip
+scripts/bundle.sh   # 需要 Xcode，在 dist/ 生成 app、ZIP、DMG 和校验和
 ```
 
 ## 许可证

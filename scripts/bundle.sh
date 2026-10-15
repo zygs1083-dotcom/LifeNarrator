@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build LifeNarrator.app (ad-hoc signed) and zip it into dist/.
+# Build LifeNarrator.app, ZIP, DMG and SHA-256 checksums in dist/.
 # Usage: scripts/bundle.sh [--debug]   (--debug uses bundle id dev.lifenarrator.debug)
 # SIGN_IDENTITY picks the signing certificate; CI sets it, local builds stay ad-hoc.
 set -euo pipefail
@@ -52,4 +52,10 @@ EOF
 
 codesign --force --deep --sign "${SIGN_IDENTITY:--}" "$APP"
 (cd dist && rm -f LifeNarrator.zip && ditto -c -k --keepParent LifeNarrator.app LifeNarrator.zip)
-echo "dist/LifeNarrator.app  dist/LifeNarrator.zip"
+DMG_ROOT=$(mktemp -d)
+trap 'rm -rf "$DMG_ROOT"' EXIT
+cp -R "$APP" "$DMG_ROOT/"
+ln -s /Applications "$DMG_ROOT/Applications"
+hdiutil create -volname LifeNarrator -srcfolder "$DMG_ROOT" -format UDZO -ov dist/LifeNarrator.dmg
+(cd dist && shasum -a 256 LifeNarrator.dmg LifeNarrator.zip > checksums.txt)
+echo "dist/LifeNarrator.app  dist/LifeNarrator.zip  dist/LifeNarrator.dmg  dist/checksums.txt"
