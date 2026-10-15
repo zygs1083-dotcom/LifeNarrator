@@ -140,7 +140,7 @@ internal sealed class ContextSensor : IDisposable
         {
             var handler = new ScrollEvents(scrolled);
             automation.AddPropertyChangedEventHandler(root, TreeScope.TreeScope_Subtree, null, handler,
-                [30053, 30054]); // ScrollPattern horizontal/vertical scroll percent
+                [UIA_PropertyIds.UIA_ScrollHorizontalScrollPercentPropertyId, UIA_PropertyIds.UIA_ScrollVerticalScrollPercentPropertyId]);
             scrollRoot = root;
             scrollEvents = handler;
         }
