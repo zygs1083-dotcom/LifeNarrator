@@ -12,7 +12,7 @@ import time
 executable, model = map(Path, sys.argv[1:])
 directory = Path('artifacts/builtin-model-test').resolve()
 directory.mkdir(parents=True, exist_ok=True)
-for name in ('said.json', 'growth.json', 'memories.json'):
+for name in ('said.json', 'growth.json', 'memory.json'):
     (directory / name).unlink(missing_ok=True)
 environment = os.environ.copy()
 environment['LIFENARRATOR_DEBUG'] = '1'
@@ -46,10 +46,15 @@ def send(value):
 def call(identifier, method, params):
     send({'id': identifier, 'method': method, 'params': params})
 
+resources = Path(__file__).resolve().parents[2] / 'Sources/NarratorCore/Resources'
+examples = json.loads((resources / 'sprite-examples.json').read_text(encoding='utf-8'))
+# Exercise inference and RPC independently of a small model's ability to distinguish few-shot examples.
+texts = [scene['zh']['lines'][mark['l']] for scene in examples for mark in scene['zh']['marks']]
+builtin = json.loads((resources / 'quips.json').read_text(encoding='utf-8'))
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
 line = {'x': 100, 'y': 100, 'w': 700, 'h': 24}
 settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='sharp',
-                lang='zh', disabledBuiltinIds=[], maxOnScreen=3, ownProcessID=999, memoryEnabled=False)
+                lang='zh', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=3, ownProcessID=999, memoryEnabled=False)
 call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
 started = time.monotonic()
@@ -76,11 +81,9 @@ try:
                 raise RuntimeError(str(value))
             if value['id'] == 1:
                 call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Fixture', pid=1,
-                     windowTitle='聊天', windowFrame=frame, contentFrame=frame, screenIndex=0,
-                     textLines=[dict(text=text, rect={**line, 'y': 100 + index * 80}, role='text')
-                                for index, text in enumerate(['张三：今晚把100份周报写完，不许下班。', '小王：可是现在已经凌晨3点了。',
-                                                              '张三：辛苦一下，这周加班不算工资。', '小王：我的咖啡已经喝到第八杯了。',
-                                                              '小王：马上改。'])],
+                     windowTitle='标记集成测试', windowFrame=frame, contentFrame=frame, screenIndex=0,
+                     textLines=[dict(text=text, rect={**line, 'y': 100 + index * 24}, role='text')
+                                for index, text in enumerate(texts)],
                      textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
                      capturedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())), windowID=7,
                      change=dict(appChanged=True, windowChanged=True, hostChanged=True)))
@@ -95,11 +98,11 @@ try:
         elif method == 'sensor.lastTypedAt':
             result = '2020-01-01T00:00:00Z'
         elif method == 'sensor.textRect':
-            result = dict(rect={**line, 'y': 100 + params['lineIndex'] * 80}, kind='bounds')
+            result = dict(rect={**line, 'y': 100 + params['lineIndex'] * 24}, kind='bounds')
         elif method == 'sensor.markTrack':
             result = 'fixture-track'
         elif method == 'sensor.unframedRect':
-            result = {**line, 'y': 100 + params['lineIndex'] * 80}
+            result = {**line, 'y': 100 + params['lineIndex'] * 24}
         elif method == 'sensor.placementLine':
             result = params['rect']
         elif method == 'sensor.placementObstacles':

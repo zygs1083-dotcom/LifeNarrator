@@ -1,10 +1,10 @@
 $ErrorActionPreference = 'Stop'
-$destination = Join-Path $PSScriptRoot '../../.dev-data/models/Qwen3-1.7B-Q8_0.gguf'
+$destination = Join-Path $PSScriptRoot '../../.dev-data/models/Qwen3.5-0.8B-Q4_K_M.gguf'
 New-Item (Split-Path $destination) -ItemType Directory -Force | Out-Null
 if (!(Test-Path $destination)) {
-    Invoke-WebRequest 'https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/90862c4b9d2787eaed51d12237eafdfe7c5f6077/Qwen3-1.7B-Q8_0.gguf' -OutFile $destination
+    Invoke-WebRequest 'https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/6ab461498e2023f6e3c1baea90a8f0fe38ab64d0/Qwen3.5-0.8B-Q4_K_M.gguf' -OutFile $destination
 }
-if ((Get-FileHash $destination -Algorithm SHA256).Hash -ne '061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a') {
+if ((Get-FileHash $destination -Algorithm SHA256).Hash -ne 'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517') {
     throw 'Test model SHA-256 mismatch'
 }
 $path = (Resolve-Path $destination).Path
