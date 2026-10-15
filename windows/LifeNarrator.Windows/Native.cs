@@ -6,7 +6,7 @@ using Avalonia.Platform;
 
 namespace LifeNarrator.Windows;
 
-internal static class Native
+internal static partial class Native
 {
     const int ExStyle = -20;
     const long Layered = 0x80000, Transparent = 0x20, Topmost = 0x8, ToolWindow = 0x80, NoActivate = 0x8000000;

@@ -1,9 +1,68 @@
-# T19 Windows spike
+# Windows shell (W1a)
+
+`LifeNarrator.exe` is a single-instance .NET 8 / Avalonia tray application. It owns
+`brain/narrator-brain.exe` and communicates over the bidirectional protocol below.
+The tray provides pause, liveliness, seven built-in personas, and exit. A brain
+failure turns the icon red, exposes the last six stderr lines in the menu, and
+enables **重启大脑**. Restart is manual. Settings/onboarding/installer are W1b.
+
+Settings live in `%APPDATA%\LifeNarrator\settings.json`, alongside brain data and
+`brain.log`. First launch writes the offline defaults. An API configuration is:
+
+```json
+{
+  "liveliness": "lively", "persona": "gentle", "lang": "zh", "paused": false,
+  "markGap": 2, "dwell": 3, "maxOnScreen": 3, "blacklist": [],
+  "provider": {
+    "kind": "api", "presetId": "custom-openai", "model": "your-model",
+    "baseURL": "http://localhost:8080/v1", "structured": "json_object"
+  }
+}
+```
+
+`provider.kind` is `none` or `api`; preset IDs come from the shared provider catalog.
+Keys are generic Windows credentials named `LifeNarrator/<presetId>`, stored by
+`CredentialStore.Write` / read by `CredentialStore.Read`; they never enter settings.
+W1a has no credential entry UI. Edit settings while the shell is stopped.
+
+UIA lives on a dedicated MTA thread with a 4000-element control-view traversal.
+Foreground/location WinEvents, low-level keyboard/mouse hooks, and a 3-second
+active-user poll drive snapshots. Visible TextPattern ranges are split by line;
+subranges use UIA bounds or explicitly tagged proportional estimates. OCR and
+scroll-following remain W2. Each monitor has a transparent, topmost, click-through,
+nonactivating overlay. The brain owns size-tier and placement calculations.
+
+Coordinates retain a monitor's physical origin and divide distances from that
+origin by its scale. All geometry in one snapshot/layout uses that monitor's map;
+the overlay maps local logical distances back through Avalonia's render scale.
+Negative monitor origins are preserved. Moving between monitor maps dismisses old
+marks and captures a new snapshot. Monitor configuration is captured on startup;
+restart after changing the display topology/scaling. Mixed-DPI and real UIA
+coverage still require Windows hardware checks.
+
+## Build and verify
+
+```sh
+swift test
+dotnet build windows/LifeNarrator.Windows -c Release
+dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- .build/debug/narrator-brain
+```
+
+On Windows, after packaging and publishing as below, copy `artifacts/brain` into
+`artifacts/shell/brain` to run the app. CI's `run-e2e.ps1` does this automatically,
+starts the loopback SSE stub, presets API settings, opens the T19 Edge fixture, and
+requires `source=model ... show=true` within 90 seconds. It saves
+`e2e-overlay.png`, `e2e-brain.log`, `e2e.json`, and shell/stub stderr in the
+`windows-spike` artifact. The protocol checks exercise concurrent requests and
+nested layout calls against the actual packaged brain before GUI verification.
+
+## Retained T19 spike harness
 
 The full T20b brain and W1 layout/port contract is in [brain-protocol.md](brain-protocol.md).
 The standalone T19 `ping` / `matchRules` harness below remains supported.
 
-This is a technical verification harness, not an application. The shared Swift core stays in-process on macOS; this executable only establishes the future Windows stdio boundary.
+The shared Swift core stays in-process on macOS. The four T19 modes are retained
+under `LifeNarrator.exe --spike overlay|uia|brain|ocr`; they do not start the tray.
 
 ## Run
 

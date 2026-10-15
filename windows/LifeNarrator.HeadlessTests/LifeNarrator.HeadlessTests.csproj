@@ -9,5 +9,9 @@
     <PackageReference Include="Avalonia.Headless" Version="11.3.10" />
     <PackageReference Include="Avalonia.Skia" Version="11.3.10" />
     <Compile Include="../LifeNarrator.Windows/BubbleSample.cs" Link="BubbleSample.cs" />
+    <Compile Include="../LifeNarrator.Windows/BubbleVisual.cs" Link="BubbleVisual.cs" />
+    <Compile Include="../LifeNarrator.Windows/Protocol.cs" Link="Protocol.cs" />
+    <Compile Include="../LifeNarrator.Windows/BrainClient.cs" Link="BrainClient.cs" />
+    <Compile Include="../LifeNarrator.Windows/Settings.cs" Link="Settings.cs" />
   </ItemGroup>
 </Project>
