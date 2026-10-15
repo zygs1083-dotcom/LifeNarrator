@@ -87,6 +87,7 @@ public final class ChatEngine {
         rule: the user's instruction to compile, or null. For rule, explain what you learned in reply.
         setting: {liveliness: quiet/lively/rowdy or null, paused: bool or null, persona: id or null}, or null.
         Only change settings when the user explicitly asks. Available personas: \(catalog.profiles.map { "\($0.id.rawValue): \($0.name[settings.lang])" }.joined(separator: "; ")).
+        Memory storage is \(settings.memoryEnabled ? "enabled" : "disabled; explain that remembering requires enabling memory in Settings").
         Current settings: \(settings.liveliness.rawValue), paused=\(settings.paused), persona=\(settings.persona.rawValue).
         memories: [{kind: fact/preference/nickname, text: at most 40 characters}]. Only store facts the user personally tells you, never screen text, quotes, or inferred facts. Use [] otherwise.
         forget: exact text from a known memory to delete, or null. For recall, answer from known memories only.

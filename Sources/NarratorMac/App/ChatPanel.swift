@@ -77,12 +77,11 @@ final class ChatPanelController: NSObject, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         fade = Task {
             let duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 0.0 : 0.18
-            NSAnimationContext.runAnimationGroup { animation in
+            await NSAnimationContext.runAnimationGroup { animation in
                 animation.duration = duration
                 panel.animator().alphaValue = 0
             }
-            do { try await Task.sleep(for: .seconds(duration)) }
-            catch { return }
+            if Task.isCancelled { return }
             panel.orderOut(nil)
         }
     }
@@ -159,7 +158,7 @@ struct ChatPanelView: View {
                 }
                 HStack(spacing: 8) {
                     TextField(store.text("chat.placeholder"), text: $model.input, axis: .vertical)
-                        .textFieldStyle(.plain).lineLimit(1...3).focused($focused)
+                        .textFieldStyle(.plain).lineLimit(1...3).focused($focused).disabled(model.sending)
                         .accessibilityLabel(store.text("chat.placeholder"))
                         .onSubmit { model.send(model.input, store: store) }
                     Button { model.send(model.input, store: store) } label: {
@@ -197,7 +196,7 @@ struct ChatPanelView: View {
                 Button(store.text("chat.quick.\(key)")) { model.send(store.text("chat.quick.\(key)"), store: store) }
                     .buttonStyle(AppTheme.CapsuleButton(filled: false))
             }
-        }.font(AppTheme.font(.caption)).disabled(model.sending)
+        }.fixedSize().font(AppTheme.font(.caption)).disabled(model.sending)
     }
 
     private func reply(_ text: String, id: String) -> some View {

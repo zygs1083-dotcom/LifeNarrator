@@ -721,7 +721,8 @@ public final class OverlayController: NSObject {
                 MainActor.assumeIsolated { _ = self.handleInteraction(event) }
             }!,
             NSEvent.addLocalMonitorForEvents(matching: mask) { event in
-                MainActor.assumeIsolated { self.handleInteraction(event) ? nil : event }
+                let handled = MainActor.assumeIsolated { self.handleInteraction(event) }
+                return handled ? nil : event
             }!,
         ]
     }
