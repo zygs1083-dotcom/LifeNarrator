@@ -49,7 +49,7 @@ def call(identifier, method, params):
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
 line = {'x': 100, 'y': 100, 'w': 700, 'h': 24}
 settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='gentle',
-                lang='zh', disabledBuiltinIds=[], maxOnScreen=8, ownProcessID=999, memoryEnabled=False)
+                lang='zh', disabledBuiltinIds=[], maxOnScreen=1, ownProcessID=999, memoryEnabled=False)
 call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
 started = time.monotonic()
@@ -77,7 +77,9 @@ try:
             if value['id'] == 1:
                 call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Fixture', pid=1,
                      windowTitle='工作备忘', windowFrame=frame, contentFrame=frame, screenIndex=0,
-                     textLines=[dict(text='会议又延长了两个小时，咖啡已经凉了，今天还要加班写周报。', rect=line, role='text')],
+                     textLines=[dict(text=text, rect={**line, 'y': 100 + index * 80}, role='text')
+                                for index, text in enumerate(['这杯咖啡售价999元。', '现在下单，预计2099年发货。',
+                                                              '今日会议预计持续八小时。', '本周计划每天加班到凌晨三点。'])],
                      textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
                      capturedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())), windowID=7,
                      change=dict(appChanged=True, windowChanged=True, hostChanged=True)))
