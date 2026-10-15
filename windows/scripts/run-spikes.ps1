@@ -5,7 +5,7 @@ foreach ($mode in @('spike-overlay', 'spike-uia', 'spike-brain', 'spike-ocr')) {
     $originalPath = $env:PATH
     if ($mode -eq 'spike-brain') { $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'Swift' }) -join ';' }
     try {
-        & ./artifacts/shell/LifeNarrator.Windows.exe $mode 2>&1 | Tee-Object "artifacts/$mode.log"
+        & ./artifacts/shell/LifeNarrator.exe --spike ($mode -replace '^spike-', '') 2>&1 | Tee-Object "artifacts/$mode.log"
         $modeExit = $LASTEXITCODE
     } finally { $env:PATH = $originalPath }
     $results += @{ mode = $mode; exitCode = $modeExit; elapsedSeconds = $watch.Elapsed.TotalSeconds }

@@ -27,7 +27,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-bubble-headless
-          path: artifacts/bubble-headless.png
+          path: artifacts/bubble-*.png
           if-no-files-found: error
 
   windows:
@@ -48,6 +48,8 @@ jobs:
       - run: swift test
       - run: swift build -c release --product narrator-brain
       - run: windows/scripts/package-brain.ps1
+      - name: Shell brain protocol checks
+        run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- artifacts/brain/narrator-brain.exe
       - name: Publish shell
         if: ${{ !cancelled() }}
         run: |
@@ -58,6 +60,8 @@ jobs:
             ConvertTo-Json | Set-Content artifacts/shell-size.json
       - run: windows/scripts/run-spikes.ps1
         if: ${{ !cancelled() }}
+      - name: Windows shell end-to-end
+        run: windows/scripts/run-e2e.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

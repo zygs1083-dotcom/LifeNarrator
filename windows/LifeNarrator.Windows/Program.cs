@@ -10,23 +10,32 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        Directory.CreateDirectory(Artifact.DirectoryPath);
-        switch (args.Single())
+        if (args.Length == 0)
         {
-            case "spike-overlay":
-                return AppBuilder.Configure<OverlayApp>().UsePlatformDetect()
-                    .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Software],
-                        CompositionMode = [Win32CompositionMode.RedirectionSurface] })
-                    .StartWithClassicDesktopLifetime(args);
-            case "spike-uia":
+            using var single = new Mutex(true, "Local\\LifeNarrator.Windows", out var first);
+            if (!first) return 0;
+            try { return Builder<ShellApp>().StartWithClassicDesktopLifetime(args); }
+            finally { single.ReleaseMutex(); }
+        }
+        if (args.Length != 2 || args[0] != "--spike") throw new ArgumentException("Expected --spike overlay|uia|brain|ocr");
+        Directory.CreateDirectory(Artifact.DirectoryPath);
+        switch (args[1])
+        {
+            case "overlay":
+                return Builder<OverlayApp>().StartWithClassicDesktopLifetime(args);
+            case "uia":
                 AppBuilder.Configure<Application>().UsePlatformDetect().SetupWithoutStarting();
                 UiaSpike.Run(); break;
-            case "spike-brain": BrainSpike.Run().GetAwaiter().GetResult(); break;
-            case "spike-ocr": OcrSpike.Run().GetAwaiter().GetResult(); break;
-            default: throw new ArgumentException("Expected spike-overlay, spike-uia, spike-brain or spike-ocr");
+            case "brain": BrainSpike.Run().GetAwaiter().GetResult(); break;
+            case "ocr": OcrSpike.Run().GetAwaiter().GetResult(); break;
+            default: throw new ArgumentException("Expected --spike overlay|uia|brain|ocr");
         }
         return 0;
     }
+
+    static AppBuilder Builder<T>() where T : Application, new() => AppBuilder.Configure<T>().UsePlatformDetect()
+        .With(new Win32PlatformOptions { RenderingMode = [Win32RenderingMode.Software],
+            CompositionMode = [Win32CompositionMode.RedirectionSurface] });
 }
 
 public sealed class OverlayApp : Application
