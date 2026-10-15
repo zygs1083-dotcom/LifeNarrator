@@ -108,15 +108,16 @@ struct ChatPanelView: View {
                 Badge(text: "Lv.\(store.growthState?.level ?? 1)", hue: AppTheme.hue(320))
             }.padding(16)
             Rectangle().fill(AppTheme.cardStroke).frame(height: 1)
+            if let narration = model.context.narration {
+                Text(store.text("chat.context") + narration)
+                    .font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+                    .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 16).padding(.top, 12)
+            }
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        if let narration = model.context.narration {
-                            Text(store.text("chat.context") + narration)
-                                .font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
-                                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                                .background(AppTheme.accentSoft, in: RoundedRectangle(cornerRadius: 10))
-                        }
                         if model.turns.isEmpty {
                             Text(store.text("chat.empty")).font(AppTheme.font(.body)).foregroundStyle(AppTheme.textSecondary)
                                 .frame(maxWidth: .infinity, alignment: .center).padding(.vertical, 28)
@@ -206,7 +207,7 @@ struct ChatPanelView: View {
                                     language: store.settings.language.lang.rawValue, size: style.size.fontSize, catalog: store.personas)
         let appearance = BubbleAppearance.make(shape: style.shape, size: style.size, theme: style.theme, group: group,
             effects: style.textEffects, font: font, text: text, emoji: [], quipID: id, maxWidth: 240)
-        return BubbleBodyView(appearance: appearance).accessibilityLabel(text)
+        return BubbleBodyView(appearance: appearance).accessibilityElement(children: .ignore).accessibilityLabel(text)
     }
 }
 
