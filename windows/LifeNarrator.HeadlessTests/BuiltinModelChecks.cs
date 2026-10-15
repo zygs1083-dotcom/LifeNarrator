@@ -25,7 +25,7 @@ internal static class BuiltinModelChecks
         var modelPath = Path.GetFullPath(Environment.GetEnvironmentVariable("NARRATOR_TEST_MODEL")
             ?? throw new Exception("NARRATOR_TEST_MODEL must point to the W2b test GGUF"));
         var directory = Path.GetFullPath("artifacts/builtin-ui-test"); Directory.CreateDirectory(directory);
-        foreach (var name in new[] { "said.json", "growth.json", "memory.json" }) File.Delete(Path.Combine(directory, name));
+        foreach (var name in new[] { "said.json", "growth.json", "memory.json", "overlays.jsonl" }) File.Delete(Path.Combine(directory, name));
         var modelCopy = Path.GetFullPath(Path.Combine(".dev-data", "builtin-ui-model", Path.GetFileName(modelPath)));
         Directory.CreateDirectory(Path.GetDirectoryName(modelCopy)!); File.Copy(modelPath, modelCopy, overwrite: true);
         var testModel = Catalog.Models[1] with { Url = new Uri(modelCopy), Size = new FileInfo(modelCopy).Length };
@@ -43,6 +43,8 @@ internal static class BuiltinModelChecks
         var failed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var rect = new Box(100, 100, 700, 24);
         Box Line(JsonElement p) => rect with { Y = 100 + p.GetProperty("lineIndex").GetInt32() * 24 };
+        var previousDebug = Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG");
+        Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", "1");
         await using var brain = new BrainClient(Path.GetFullPath(executable), Path.Combine(directory, "stderr.log"), (method, p) =>
         {
             object? result = method switch
@@ -64,10 +66,14 @@ internal static class BuiltinModelChecks
             };
             return Task.FromResult(result);
         }, message => failed.TrySetResult(message));
+        Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", previousDebug);
         object Show(JsonElement narration)
         {
-            if (narration.GetProperty("ruleID").GetString() != "sprite-model" || !narration.TryGetProperty("anchor", out var anchor) || anchor.ValueKind == JsonValueKind.Null)
-                throw new Exception("Expected anchored model mark");
+            File.AppendAllText(Path.Combine(directory, "overlays.jsonl"), JsonSerializer.Serialize(narration) + "\n");
+            if (narration.GetProperty("ruleID").GetString() != "sprite-model")
+                return new { shown = true, placement = "right" };
+            if (!narration.TryGetProperty("anchor", out var anchor) || anchor.ValueKind == JsonValueKind.Null)
+                throw new Exception("Expected anchored model mark: " + narration);
             shown.TrySetResult(narration.Clone());
             return new { shown = true, placement = "right" };
         }
