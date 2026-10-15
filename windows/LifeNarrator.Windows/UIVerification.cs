@@ -13,7 +13,9 @@ namespace LifeNarrator.Windows;
 
 public sealed partial class ShellApp
 {
-    [DllImport("user32.dll")] static extern bool EnumWindows(Func<nint, nint, bool> callback, nint param);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    delegate bool EnumWindowCallback(nint window, nint param);
+    [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowCallback callback, nint param);
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(nint window, out uint processID);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(nint window, StringBuilder text, int length);
     [DllImport("user32.dll", SetLastError = true)] static extern bool PostMessage(nint window, uint message, nint wParam, nint lParam);
