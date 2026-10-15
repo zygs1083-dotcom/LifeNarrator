@@ -92,14 +92,14 @@ public enum SpriteTick: String, Sendable {
     }
 
     public static func prefetchAllowed(level: Liveliness, succeeded: Bool, located: Int,
-                                       queued: Int, requests: Int, budgetAllowed: Bool) -> Bool {
-        level == .rowdy && succeeded && located > 0 && queued < 3
+                                       queued: Int, requests: Int, budgetAllowed: Bool, idleFor: TimeInterval) -> Bool {
+        idleFor < 60 && level == .rowdy && succeeded && located > 0 && queued < 3
             && requests < requestsPerScreen(level: level) && budgetAllowed
     }
 
     public static func ambientAllowed(level: Liveliness, dwell: TimeInterval, sinceLast: TimeInterval,
-                                      exhausted: Bool, typing: Bool, hasModel: Bool) -> Bool {
-        level != .quiet && dwell >= 8 && sinceLast >= (level == .rowdy ? 10 : 30)
+                                      exhausted: Bool, typing: Bool, hasModel: Bool, idleFor: TimeInterval) -> Bool {
+        idleFor < 60 && level != .quiet && dwell >= 8 && sinceLast >= (level == .rowdy ? 10 : 30)
             && exhausted && !typing && hasModel
     }
 

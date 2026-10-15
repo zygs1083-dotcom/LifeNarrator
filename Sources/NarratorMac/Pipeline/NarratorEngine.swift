@@ -349,6 +349,7 @@ public final class NarratorEngine {
 
     private func tick(_ kind: SpriteTick, switching: Bool, generation: Int) async throws {
         guard let snapshot, let screenKey, generation == self.generation else { return }
+        if kind == .followup && store.settings.liveliness == .rowdy && idleSeconds >= 60 { return }
         let now = Date()
         if let reason = try quietReason(snapshot, now: now) {
             log(snapshot, kind, shown: false, reason: reason)
@@ -391,7 +392,7 @@ public final class NarratorEngine {
         let prefetch = SpriteTick.prefetchAllowed(level: level, succeeded: true,
             located: locatedByScreen[screenKey] ?? 0, queued: queuedPlaces.count,
             requests: memory.screenStatus(key: screenKey, now: now)?.requests ?? 0,
-            budgetAllowed: requestAllowed(now: now))
+            budgetAllowed: requestAllowed(now: now), idleFor: idleSeconds)
         if (marks.isEmpty && attempts.contains(where: { $0.reason == "request" }) || prefetch), let generator {
             log(snapshot, kind, source: "model", shown: false, reason: "waiting-model")
             enqueueModel(ModelRequest(snapshot: snapshot, screen: screen, key: screenKey, windowID: windowID!,
@@ -762,12 +763,16 @@ public final class NarratorEngine {
         }
     }
 
+    private var idleSeconds: TimeInterval {
+        CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: UInt32.max)!)
+    }
+
     private func rowdyPrefetchAllowed(now: Date) -> Bool {
         guard let screenKey else { return false }
         return SpriteTick.prefetchAllowed(level: store.settings.liveliness, succeeded: true,
             located: locatedByScreen[screenKey] ?? 0, queued: queuedPlaces.count,
             requests: memory.screenStatus(key: screenKey, now: now)?.requests ?? 0,
-            budgetAllowed: requestAllowed(now: now))
+            budgetAllowed: requestAllowed(now: now), idleFor: idleSeconds)
     }
 
     private func startCadence() {
@@ -780,6 +785,7 @@ public final class NarratorEngine {
                     try await Task.sleep(for: .seconds(1))
                     try Task.checkCancellation()
                     guard generation == self.generation else { return }
+                    if idleSeconds >= 60 { continue }
                     if rowdyPrefetchAllowed(now: Date()) {
                         try await tick(.followup, switching: false, generation: generation)
                     }
@@ -802,14 +808,15 @@ public final class NarratorEngine {
     }
 
     private func ambientPulse() throws {
-        guard let snapshot, let screenKey, try quietReason(snapshot, now: Date()) == nil else { return }
+        guard idleSeconds < 60, let snapshot, let screenKey, try quietReason(snapshot, now: Date()) == nil else { return }
         let now = Date()
         let settings = store.settings
         let exhausted = locatedByScreen[screenKey] == 0 || emptyScreens.contains(screenKey)
             || (memory.screenStatus(key: screenKey, now: now)?.requests ?? 0) >= SpriteTick.requestsPerScreen(level: settings.liveliness)
         guard SpriteTick.ambientAllowed(level: settings.liveliness, dwell: now.timeIntervalSince(enteredWindowAt),
             sinceLast: now.timeIntervalSince(lastShownAt ?? enteredWindowAt), exhausted: exhausted,
-            typing: try sensor.isTyping(now: now), hasModel: !ProcessInfo.processInfo.isLowPowerModeEnabled),
+            typing: try sensor.isTyping(now: now), hasModel: !ProcessInfo.processInfo.isLowPowerModeEnabled,
+            idleFor: idleSeconds),
             queuedPlaces.isEmpty, modelTask == nil, !requestPending,
             let generator = try store.textGenerator() else { return }
         guard scheduler.canShow(ruleID: nil, now: now) else { return }

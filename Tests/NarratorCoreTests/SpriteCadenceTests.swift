@@ -4,9 +4,9 @@ import Testing
 
 @Test func rowdyPrefetchRequiresSuccessfulLocatedBatchRoomScreenAllowanceAndBudget() {
     func allowed(level: Liveliness = .rowdy, succeeded: Bool = true, located: Int = 1,
-                 queued: Int = 2, requests: Int = 7, budget: Bool = true) -> Bool {
+                 queued: Int = 2, requests: Int = 7, budget: Bool = true, idleFor: Double = 0) -> Bool {
         SpriteTick.prefetchAllowed(level: level, succeeded: succeeded, located: located,
-            queued: queued, requests: requests, budgetAllowed: budget)
+            queued: queued, requests: requests, budgetAllowed: budget, idleFor: idleFor)
     }
     #expect(allowed())
     #expect(allowed(queued: 0))
@@ -17,6 +17,9 @@ import Testing
     #expect(!allowed(queued: 3))
     #expect(!allowed(requests: 8))
     #expect(!allowed(budget: false))
+    for (idleFor, expected) in [(59.999, true), (60.0, false), (3600.0, false), (0.0, true)] {
+        #expect(allowed(idleFor: idleFor) == expected)
+    }
 }
 
 @Test func cadenceModelBudgetsFollowLevelsAndRenewAfterOneMinute() {
@@ -49,9 +52,9 @@ import Testing
 
 @Test func ambientTriggerRequiresDwellSilenceExhaustionNoTypingAndModel() {
     func allowed(level: Liveliness = .rowdy, dwell: Double = 8, silence: Double = 10,
-                 exhausted: Bool = true, typing: Bool = false, hasModel: Bool = true) -> Bool {
+                 exhausted: Bool = true, typing: Bool = false, hasModel: Bool = true, idleFor: Double = 0) -> Bool {
         SpriteTick.ambientAllowed(level: level, dwell: dwell, sinceLast: silence,
-            exhausted: exhausted, typing: typing, hasModel: hasModel)
+            exhausted: exhausted, typing: typing, hasModel: hasModel, idleFor: idleFor)
     }
     #expect(allowed())
     #expect(!allowed(level: .quiet, silence: 60))
@@ -62,6 +65,11 @@ import Testing
     #expect(!allowed(exhausted: false))
     #expect(!allowed(typing: true))
     #expect(!allowed(hasModel: false))
+    for level in [Liveliness.rowdy, .lively] {
+        for (idleFor, expected) in [(59.999, true), (60.0, false), (3600.0, false), (0.0, true)] {
+            #expect(allowed(level: level, silence: 30, idleFor: idleFor) == expected)
+        }
+    }
 }
 
 @Test func openerRequiresRowdyAppOrSiteAndTenMinuteRuleCooldown() {
