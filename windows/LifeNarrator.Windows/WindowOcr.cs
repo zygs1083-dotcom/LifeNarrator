@@ -16,9 +16,10 @@ internal sealed class WindowOcr
     public WindowOcr(Action<bool> unavailable)
     {
         var languages = OcrEngine.AvailableRecognizerLanguages;
-        var language = languages.FirstOrDefault(x => x.LanguageTag is "zh-Hans" or "zh-CN" or "zh-Hans-CN")
+        var language = languages.FirstOrDefault(x => x.LanguageTag.StartsWith("zh-Hans", StringComparison.OrdinalIgnoreCase) || x.LanguageTag == "zh-CN")
             ?? languages.FirstOrDefault(x => x.LanguageTag == "en-US");
-        engine = language == null ? null : OcrEngine.TryCreateFromLanguage(language);
+        engine = language == null ? null : OcrEngine.TryCreateFromLanguage(language)
+            ?? throw new InvalidOperationException($"Cannot create OCR engine for {language.LanguageTag}");
         unavailable(engine == null);
     }
 

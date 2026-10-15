@@ -13,7 +13,7 @@ internal static class FollowProbe
         for (var i = 0; i < elements.Length; i++)
         {
             var pattern = (IUIAutomationTextPattern)elements.GetElement(i).GetCurrentPattern(10014);
-            var range = pattern.DocumentRange.FindText("LifeNarrator visible English paragraph", 0, 0);
+            var range = pattern.DocumentRange.FindText("visible English paragraph", 0, 0);
             if (range == null) continue;
             var rectangles = (double[])range.GetBoundingRectangles();
             if (rectangles.Length < 4) continue;

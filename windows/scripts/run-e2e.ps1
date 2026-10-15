@@ -27,6 +27,11 @@ public static class E2EWindow {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] static extern uint SendInput(uint n, Input[] inputs, int size);
+    public static void Click() {
+        var down = new Input { mouse = new Mouse { flags = 2 } };
+        var up = new Input { mouse = new Mouse { flags = 4 } };
+        if (SendInput(2, new[] { down, up }, 40) != 2) throw new Exception("SendInput click failed");
+    }
     public static void Wheel(int delta) {
         var input = new Input { mouse = new Mouse { data = unchecked((uint)delta), flags = 0x800 } };
         if (SendInput(1, new[] { input }, 40) != 1) throw new Exception("SendInput wheel failed");
@@ -68,6 +73,12 @@ function Probe($name) {
     Copy-Item artifacts/e2e-probe.json "artifacts/e2e-$name-text.json"
     return (Get-Content artifacts/e2e-probe.json -Raw | ConvertFrom-Json).rect
 }
+function Assert-Aligned($anchor, $text) {
+    if ([Math]::Abs(($anchor.x + 5) - $text.x) -gt 3 -or
+        [Math]::Abs(($anchor.y + 3) - $text.y) -gt 3 -or
+        [Math]::Abs(($anchor.w - 10) - $text.w) -gt 3 -or
+        [Math]::Abs(($anchor.h - 6) - $text.h) -gt 3) { throw 'Highlight does not enclose the independent UIA quote rectangle' }
+}
 function Assert-Pink($name, $anchor) {
     $bitmap = [System.Drawing.Bitmap]::new((Join-Path (Resolve-Path artifacts).Path $name))
     $pink = 0
@@ -102,6 +113,7 @@ try {
     $window = Get-Process msedge | Where-Object { $_.MainWindowTitle -like '*LifeNarrator follow fixture*' } | Select-Object -First 1
     if (![E2EWindow]::SetForegroundWindow($window.MainWindowHandle)) { throw 'Cannot foreground Edge fixture' }
     [E2EWindow]::SetCursorPos(700, 500) | Out-Null
+    [E2EWindow]::Click()
     Start-Sleep -Seconds 2
     $env:LIFENARRATOR_DEBUG = '1'
     $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'Swift' }) -join ';'
@@ -110,6 +122,7 @@ try {
     Wait-For 'tracked model mark' { @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor }).Count -gt 0 }
     $before = Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor } | Select-Object -Last 1
     $textBefore = Probe 'before'
+    Assert-Aligned $before.anchor $textBefore
     Start-Sleep -Milliseconds 250
     Screenshot 'e2e-before.png'
     Assert-Pink 'e2e-before.png' $before.anchor
@@ -118,6 +131,7 @@ try {
     Start-Sleep -Milliseconds 1200
     $after = Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'follow' -and $_.id -eq $before.id } | Select-Object -Last 1
     $textAfter = Probe 'after'
+    Assert-Aligned $after.anchor $textAfter
     Screenshot 'e2e-after.png'
     Assert-Pink 'e2e-after.png' $after.anchor
     $textDelta = $textAfter.y - $textBefore.y

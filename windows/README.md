@@ -36,7 +36,8 @@ Launch at login is enabled by default via the current user Run registry key.
 UIA lives on a dedicated MTA thread with a 4000-element control-view traversal.
 Foreground/location WinEvents, low-level keyboard/mouse hooks, and a 3-second
 active-user poll drive snapshots. Visible TextPattern ranges are split by line;
-subranges use UIA bounds or explicitly tagged proportional estimates. Text anchors retain their UIA element/range on that thread. Wheel, navigation-key,
+subranges use UIA bounds or explicitly tagged proportional estimates. Text anchors
+retain their UIA element/range on that thread. Wheel, navigation-key,
 and ScrollPattern notifications drive at most 60 follow reads per second until one
 second after the last event. UIA connection/transaction timeouts are 100 ms;
 expired elements and offscreen anchors lose their decoration immediately and the
@@ -67,14 +68,15 @@ dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- .build/deb
 
 On Windows, after packaging and publishing as below, copy `artifacts/brain` into
 `artifacts/shell/brain` to run the app. CI's `run-e2e.ps1` does this automatically,
-starts the loopback SSE stub, presets API settings, opens the T19 Edge fixture, and
+starts the loopback SSE stub, presets API settings, opens a long Edge fixture, and
 requires a tracked model mark within 90 seconds. It sends a wheel event and
 compares the independent UIA text displacement against the highlight and bubble
 (to within 3 physical pixels), verifies painted pink pixels, then uses PageDown to
 verify removal. An image-only WinForms window must produce an OCR snapshot,
 word-based `textRect`, and a painted mark. It saves `e2e-before.png`,
 `e2e-after.png`, `e2e-offscreen.png`, `e2e-ocr.png`, geometry JSON and logs in the
-`windows-shell-e2e` and `windows-spike` artifacts. The protocol checks exercise concurrent requests and
+`windows-shell-e2e` and `windows-spike` artifacts. The protocol checks exercise
+concurrent requests and
 nested layout calls against the actual packaged brain before GUI verification.
 
 ## Retained T19 spike harness

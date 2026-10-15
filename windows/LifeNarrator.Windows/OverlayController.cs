@@ -33,7 +33,7 @@ internal sealed class OverlayController : IDisposable
     readonly Action<string> failed;
     public ContextSensor Sensor { private get; set; } = null!;
     DateTimeOffset followUntil;
-    bool following;
+    readonly SemaphoreSlim followGate = new(1);
     int revision;
     public DisplayMap[] Displays => surfaces.Select(x => x.Map).ToArray();
 
@@ -66,6 +66,7 @@ internal sealed class OverlayController : IDisposable
         {
             if (DateTimeOffset.UtcNow > followUntil || !bubbles.Any(x => x.Dismissed == null && x.Narration.TrackID != null))
             { followTimer.Stop(); return; }
+            if (followGate.CurrentCount == 0) return;
             try { await Follow(); }
             catch (Exception error) { followTimer.Stop(); failed("Follow: " + error.Message); }
         });
@@ -196,13 +197,12 @@ internal sealed class OverlayController : IDisposable
 
     async Task Follow()
     {
-        if (following) return;
-        var active = bubbles.Where(x => x.Dismissed == null && x.Narration.TrackID != null).ToArray();
-        if (active.Length == 0) return;
-        following = true;
-        var currentRevision = revision;
+        await followGate.WaitAsync();
         try
         {
+            var active = bubbles.Where(x => x.Dismissed == null && x.Narration.TrackID != null).ToArray();
+            if (active.Length == 0) return;
+            var currentRevision = revision;
             var samples = await Sensor.ReadTracks(active.Select(x => x.Narration.TrackID!).ToArray());
             if (currentRevision != revision) return;
             foreach (var sample in samples)
@@ -224,7 +224,7 @@ internal sealed class OverlayController : IDisposable
                 if (Math.Abs(dx) >= .5 || Math.Abs(dy) >= .5) Log("follow", bubble);
             }
         }
-        finally { following = false; }
+        finally { followGate.Release(); }
     }
 
     static void Translate(Bubble bubble, double dx, double dy)
@@ -282,7 +282,9 @@ internal sealed class OverlayController : IDisposable
 
     public void Dispose()
     {
+        revision++;
         timer.Stop(); followTimer.Stop();
+        bubbles.Clear();
         foreach (var surface in surfaces) surface.Window.Close();
     }
 }

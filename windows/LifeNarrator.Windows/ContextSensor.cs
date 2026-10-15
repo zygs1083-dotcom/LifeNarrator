@@ -40,7 +40,7 @@ internal sealed class ContextSensor : IDisposable
     int requested = 1;
     DateTimeOffset lastRead, lastScroll;
     DisplayMap display = null!;
-    bool hasTextPattern;
+    bool hasTextPattern, visualLinesRequested;
 
     public ContextSensor(DisplayMap[] displays, Action<string, object> emit, Action<string> failed,
         Func<DateTimeOffset> lastTypedAt, Func<DateTimeOffset> scrollAt, Action scrolled, Action<bool> ocrUnavailable)
@@ -101,7 +101,7 @@ internal sealed class ContextSensor : IDisposable
             lines.Clear(); tracks.Clear();
             if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);
             scrollRoot = null;
-            hasTextPattern = false;
+            hasTextPattern = false; visualLinesRequested = false;
             emit("windowChanged", new { });
         }
         if (window == 0) { snapshot = null; return; }
@@ -157,13 +157,17 @@ internal sealed class ContextSensor : IDisposable
         var count = 0;
         var contentTop = Math.Min(frame.Y + 88, frame.Y + frame.H);
         var content = new Box(frame.X, contentTop, frame.W, frame.Y + frame.H - contentTop);
+        var foundDocument = false;
         while (stack.TryPop(out var element) && count++ < 4000)
         {
             if (element.CurrentIsOffscreen == 0)
             {
                 var bounds = display.Logical(Physical(element.CurrentBoundingRectangle));
-                if (element.CurrentControlType == 50030 && bounds.W > 0 && bounds.H > 0)
+                if (!foundDocument && element.CurrentControlType == 50030 && bounds.W > 0 && bounds.H > 0)
+                {
                     content = Box.From(frame.Rect.Intersect(bounds.Rect));
+                    foundDocument = true;
+                }
                 if (element.CurrentIsPassword != 0) sensitive.Add(bounds);
                 else
                 {
@@ -203,7 +207,9 @@ internal sealed class ContextSensor : IDisposable
         hasTextPattern = foundTextPattern;
         var focused = automation.GetFocusedElement();
         var secure = focused.CurrentIsPassword != 0;
-        if (lines.Count(x => x.Line.Role == "text" && content.Rect.Contains(x.Line.Rect.Rect)) < 3 && !secure)
+        var needsOcr = visualLinesRequested || lines.Count(x => x.Line.Role == "text" && content.Rect.Contains(x.Line.Rect.Rect)) < 3;
+        visualLinesRequested = false;
+        if (needsOcr && !secure)
         {
             var recognized = ocr.Read(window, display.Physical(frame), display);
             if (recognized.Length > 0)
@@ -299,7 +305,7 @@ internal sealed class ContextSensor : IDisposable
                 return power.SystemStatusFlag == 1;
             case "sensor.refresh": lastRead = default; RequestRead(); Tick(); return null;
             case "sensor.boundsProbe": return hasTextPattern;
-            case "sensor.startVisualLines": RequestRead(); return null;
+            case "sensor.startVisualLines": visualLinesRequested = true; RequestRead(); return null;
             case "sensor.markTrack":
                 var tracked = lines[p.GetProperty("lineIndex").GetInt32()];
                 if (tracked.Element == null) return null;
