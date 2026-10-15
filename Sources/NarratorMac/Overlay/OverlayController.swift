@@ -103,6 +103,7 @@ final class ScreenOverlay {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.ignoresMouseEvents = true
+        panel.acceptsMouseMovedEvents = true
         panel.hasShadow = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         let host = NSHostingView(rootView: OverlayRootView(model: model))
@@ -121,6 +122,7 @@ public final class OverlayController: NSObject {
     public var personas: PersonaCatalog = .builtin
     public var style: BubbleStyle
     public var liveliness: Liveliness = .lively
+    var onChat: ((String, CGRect) -> Void)?
 
     private var screens: [CGDirectDisplayID: ScreenOverlay] = [:]
     private let baseHue = Double.random(in: 0..<360)
@@ -378,6 +380,7 @@ public final class OverlayController: NSObject {
                 followMoved += 1
             }
         }
+        updateMouseEvents()
     }
 
     /// Something other than the text, or its stand-in, is hit. Once the text itself is hit, the stand-in is dropped,
@@ -566,9 +569,10 @@ public final class OverlayController: NSObject {
                 try await Task.sleep(for: .seconds(textDelay + BubbleTransitions.entranceDuration(animation) + duration))
                 remove(n.id, from: overlay)
             }
-        case .untilDismissed:
-            installDismissMonitors()
+        case .untilDismissed: break
         }
+        installDismissMonitors()
+        updateMouseEvents()
         lastShownColor = groupIndex
         return true
     }
@@ -666,6 +670,7 @@ public final class OverlayController: NSObject {
                 restack(bubble.windowID, on: overlay)
             }
         }
+        updateMouseEvents()
         if screens.values.allSatisfy({ $0.model.bubbles.isEmpty }) {
             removeDismissMonitors()
         }
@@ -710,16 +715,45 @@ public final class OverlayController: NSObject {
     /// Coordinator decision 6: in "until dismissed" mode any key or click anywhere dismisses everything.
     private func installDismissMonitors() {
         guard dismissMonitors.isEmpty else { return }
-        let mask: NSEvent.EventTypeMask = [.keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+        let mask: NSEvent.EventTypeMask = [.mouseMoved, .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown]
         dismissMonitors = [
-            NSEvent.addGlobalMonitorForEvents(matching: mask) { _ in
-                MainActor.assumeIsolated { self.dismissAll() }
+            NSEvent.addGlobalMonitorForEvents(matching: mask) { event in
+                MainActor.assumeIsolated { _ = self.handleInteraction(event) }
             }!,
             NSEvent.addLocalMonitorForEvents(matching: mask) { event in
-                MainActor.assumeIsolated { self.dismissAll() }
-                return event
+                let handled = MainActor.assumeIsolated { self.handleInteraction(event) }
+                return handled ? nil : event
             }!,
         ]
+    }
+
+    private func hoveredBubble(in overlay: ScreenOverlay) -> PlacedBubble? {
+        let mouse = NSEvent.mouseLocation
+        let point = CGPoint(x: mouse.x - overlay.panel.frame.minX, y: overlay.panel.frame.maxY - mouse.y)
+        return overlay.model.bubbles.reversed().first { !$0.leaving && $0.frame.contains(point) }
+    }
+
+    private func updateMouseEvents() {
+        for overlay in screens.values {
+            overlay.panel.ignoresMouseEvents = hoveredBubble(in: overlay) == nil
+        }
+    }
+
+    private func handleInteraction(_ event: NSEvent) -> Bool {
+        updateMouseEvents()
+        if event.type == .mouseMoved { return false }
+        if event.type == .leftMouseDown {
+            for overlay in screens.values {
+                if let bubble = hoveredBubble(in: overlay) {
+                    let frame = CGRect(x: overlay.panel.frame.minX + bubble.frame.minX,
+                        y: overlay.panel.frame.maxY - bubble.frame.maxY, width: bubble.frame.width, height: bubble.frame.height)
+                    onChat?(bubble.appearance.text, frame)
+                    return true
+                }
+            }
+        }
+        if style.dwell == .untilDismissed { dismissAll() }
+        return false
     }
 
     private func removeDismissMonitors() {

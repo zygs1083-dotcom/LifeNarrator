@@ -232,3 +232,17 @@
 "theme.starry" = "星空";
 "emoji.selection" = "表情";
 "emoji.automatic" = "跟随旁白";
+"chat.open" = "和小精灵聊聊";
+"shortcut.chat" = "和小精灵聊聊";
+"chat.subtitle" = "陪你聊两句";
+"chat.context" = "你刚才说：";
+"chat.empty" = "想聊什么？我在呢。";
+"chat.placeholder" = "和小精灵说句话…";
+"chat.send" = "发送";
+"chat.thinking" = "想一想…";
+"chat.screen" = "附上当前屏幕文字";
+"chat.privacy" = "对话、记忆和上下文将发送到所选服务；附上的屏幕文字会过滤输入框、邮箱、电话和网址。";
+"chat.quick.again" = "再说一句";
+"chat.quick.quiet" = "安静点";
+"chat.quick.more" = "多说点";
+"chat.quick.recall" = "你记得我什么";

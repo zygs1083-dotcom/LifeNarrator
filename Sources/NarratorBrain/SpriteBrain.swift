@@ -79,6 +79,8 @@ public final class SpriteBrain {
     private let saidURL: URL
     private var said: SaidHistory
     private var memoryStore: MemoryStore
+    public let chat: ChatEngine
+    private var recentChatQuotes: [String] = []
     private var growth: GrowthTracker
     private var pendingGrowth: [GrowthMilestone] = []
     private var growthTask: Task<Void, Never>?
@@ -161,6 +163,7 @@ public final class SpriteBrain {
         let directory = saidURL.deletingLastPathComponent()
         memoryStore = try MemoryStore(url: directory.appendingPathComponent("memory.json"))
         growth = try GrowthTracker(url: directory.appendingPathComponent("growth.json"))
+        chat = try ChatEngine(url: directory.appendingPathComponent("chat.json"))
         quips = try SpriteQuips.loadBuiltin()
     }
 
@@ -230,6 +233,46 @@ public final class SpriteBrain {
             runTick(.snapshot, switching: false)
             startCadence()
         }
+    }
+
+    public func chatContext(snapshot: ContextSnapshot?, narration: String? = nil) async throws -> ChatContext {
+        let secureFocused = try await sensor.isSecureFocused()
+        guard let snapshot, !snapshot.secureFocused, !secureFocused,
+              !settings.blacklist.contains(snapshot.bundleId) else { return ChatContext(narration: narration) }
+        var title = snapshot.windowTitle ?? ""
+        for range in SpritePrompt.privacyRanges(in: title).reversed() { title.replaceSubrange(range, with: "***") }
+        return ChatContext(title: title, quotes: recentChatQuotes, narration: narration,
+                           screen: SpritePrompt.screen(in: snapshot).text)
+    }
+
+    public func sendChat(_ input: String, context: ChatContext, includeScreen: Bool = false) async throws -> ChatTurn {
+        guard let generator = try generator.get() else { throw ChatEngine.Failure.modelUnavailable }
+        let entries = settings.memoryEnabled ? try memoryStore.chat() : []
+        return try await chat.send(input, context: context, includeScreen: includeScreen, settings: settings,
+            catalog: content.personas, memories: entries,
+            relationship: growth.state.relationship(lang: settings.lang, now: Date()), generator: generator) { intent in
+                switch intent.intent {
+                case .rule: try await self.host.saveRule(input: intent.rule!)
+                case .setting: try await self.host.applySetting(intent.setting!)
+                case .forget:
+                    if self.settings.memoryEnabled {
+                        for entry in self.memories where entry.text == intent.forget {
+                            try self.deleteMemory(id: entry.id)
+                        }
+                    }
+                case .chat, .remember, .recall: break
+                }
+                var remembered = false
+                if self.settings.memoryEnabled {
+                    for entry in intent.memories {
+                        if try self.addMemory(kind: Memory.Kind(rawValue: entry.kind.rawValue)!, text: entry.text, source: .chat) != nil {
+                            remembered = true
+                        }
+                    }
+                }
+                try self.recordGrowth(.chat)
+                return remembered
+            }
     }
 
     @discardableResult
@@ -761,7 +804,11 @@ public final class SpriteBrain {
                     scheduler.recordShown(ruleID: cooldownRuleID, now: Date())
                     lastShownAt = Date()
                     screenCount += 1
-                    if anchor != nil { shownPlaces.append((narrationID, quote)) }
+                    if anchor != nil {
+                        shownPlaces.append((narrationID, quote))
+                        recentChatQuotes.append(quote)
+                        recentChatQuotes = Array(recentChatQuotes.suffix(5))
+                    }
                     await overlay.follow()
                 }
             }

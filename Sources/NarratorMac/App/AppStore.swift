@@ -14,7 +14,7 @@ public final class AppStore: ObservableObject {
                 onboardingWindow?.title = text("app.name")
                 settingsWindow?.title = text("app.name")
             }
-            if oldValue.inputShortcut != settings.inputShortcut || oldValue.pauseShortcut != settings.pauseShortcut {
+            if oldValue.inputShortcut != settings.inputShortcut || oldValue.pauseShortcut != settings.pauseShortcut || oldValue.chatShortcut != settings.chatShortcut {
                 registerShortcuts()
             }
             if oldValue.persona != settings.persona || oldValue.bubbleStyle.font != settings.bubbleStyle.font {
@@ -44,6 +44,7 @@ public final class AppStore: ObservableObject {
     private var shortcutTasks: [Task<Void, Never>] = []
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var chatPanel: ChatPanelController?
     private var inputPanel: InputPanelController?
     private var engine: NarratorEngine?
     private var downloadSubscriptions: [AnyCancellable] = []
@@ -189,6 +190,23 @@ public final class AppStore: ObservableObject {
         inputPanel!.show()
     }
 
+    public func showChat(narration: String? = nil, near frame: CGRect? = nil) {
+        guard let engine else { return }
+        Task {
+            do {
+                let context = try await engine.chatContext(narration: narration)
+                if chatPanel == nil { chatPanel = ChatPanelController(store: self) }
+                chatPanel!.show(context: context, near: frame)
+            } catch { self.error = String(describing: error) }
+        }
+    }
+
+    var chatTurns: [ChatTurn] { engine!.chatTurns }
+
+    func sendChat(_ input: String, context: ChatContext, includeScreen: Bool) async throws -> ChatTurn {
+        try await engine!.sendChat(input, context: context, includeScreen: includeScreen)
+    }
+
     public var memories: [Memory] { engine?.memories ?? [] }
     public var growthState: GrowthState? { engine?.growthState }
     public func isUnlocked(_ unlock: GrowthUnlock) -> Bool {
@@ -315,6 +333,13 @@ public final class AppStore: ObservableObject {
             shortcutTasks.append(Task { [weak self] in
                 for await event in KeyboardShortcuts.events(for: shortcut) where event == .keyUp {
                     self?.showInput()
+                }
+            })
+        }
+        if let shortcut = settings.chatShortcut {
+            shortcutTasks.append(Task { [weak self] in
+                for await event in KeyboardShortcuts.events(for: shortcut) where event == .keyUp {
+                    self?.showChat()
                 }
             })
         }

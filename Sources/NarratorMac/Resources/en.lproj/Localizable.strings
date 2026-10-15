@@ -232,3 +232,17 @@
 "theme.starry" = "Starry sky";
 "emoji.selection" = "Emoji";
 "emoji.automatic" = "Follow the aside";
+"chat.open" = "Chat with your sprite";
+"shortcut.chat" = "Chat with your sprite";
+"chat.subtitle" = "A little company";
+"chat.context" = "You just said: ";
+"chat.empty" = "What’s on your mind? I’m here.";
+"chat.placeholder" = "Say something…";
+"chat.send" = "Send";
+"chat.thinking" = "Thinking…";
+"chat.screen" = "Attach current screen text";
+"chat.privacy" = "Chat, memories and context go to your selected service. Attached screen text filters input fields, emails, phone numbers and URLs.";
+"chat.quick.again" = "Say another";
+"chat.quick.quiet" = "Be quieter";
+"chat.quick.more" = "Talk more";
+"chat.quick.recall" = "What do you remember?";

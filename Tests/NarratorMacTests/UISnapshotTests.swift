@@ -1,5 +1,6 @@
 import AppKit
 import NarratorCore
+import NarratorBrain
 import SwiftUI
 import XCTest
 @testable import NarratorMac
@@ -121,9 +122,19 @@ final class UISnapshotTests: XCTestCase {
             try render(view, dark: false, size: NSSize(width: 600, height: 64))
                 .write(to: directory.appendingPathComponent("ui-input-\(name)-light.png"))
         }
+        let chatModel = ChatPanelModel(turns: [
+            ChatTurn(user: "我讨厌开会，记住啦", reply: "记下了，开会是你的头号天敌。",
+                     notice: "我会记住你告诉我的事，随时可以在设置里看或删"),
+            ChatTurn(user: "你记得我什么", reply: "你讨厌开会，这件事我可没忘。")
+        ])
+        chatModel.context = ChatContext(narration: "会议又来报到了")
+        for dark in [false, true] {
+            try render(ChatPanelView(store: store, model: chatModel), dark: dark, size: NSSize(width: 400, height: 520))
+                .write(to: directory.appendingPathComponent("ui-chat-\(dark ? "dark" : "light").png"))
+        }
         for paused in [false, true] {
             store.settings.paused = paused
-            try render(MenuBarView(store: store), dark: false, size: NSSize(width: 240, height: 320))
+            try render(MenuBarView(store: store), dark: false, size: NSSize(width: 240, height: 360))
                 .write(to: directory.appendingPathComponent("ui-menu-\(paused ? "paused" : "onDuty")-light.png"))
         }
     }
@@ -183,9 +194,23 @@ final class UISnapshotTests: XCTestCase {
                 }
                 try data.saveSettings(settings)
                 let store = try AppStore()
+                let chatModel = ChatPanelModel(turns: [ChatTurn(
+                    user: zh ? "你记得我什么" : "What do you remember?",
+                    reply: filled ? (zh ? "你喜欢茉莉花茶，我记着呢。" : "You enjoy jasmine tea. I remember.")
+                                  : (zh ? "还没记住你的事，聊聊吧。" : "Tell me a little about yourself."))])
+                let chat = ChatPanelView(store: store, model: chatModel)
+                let personaName = store.personas[store.settings.persona].name[language.lang]
+                XCTAssertEqual(chat.displayName, filled ? settings.spriteName : personaName)
+                if filled {
+                    store.settings.spriteName = "   "
+                    XCTAssertEqual(chat.displayName, personaName)
+                    store.settings.spriteName = settings.spriteName
+                }
                 for dark in [false, true] {
                     let mode = dark ? "dark" : "light"
                     let state = filled ? "filled" : "empty"
+                    try render(chat, dark: dark, size: NSSize(width: 400, height: 520))
+                        .write(to: directory.appendingPathComponent("ui-chat-lv\(growth.level)-\(lang)-\(mode).png"))
                     let memory = AppSettingsView(store: store, tab: .memory)
                     try render(memory, dark: dark)
                         .write(to: directory.appendingPathComponent("ui-memory-\(state)-\(lang)-\(mode).png"))
@@ -196,7 +221,7 @@ final class UISnapshotTests: XCTestCase {
                         .groupBoxStyle(.card).frame(width: 740, height: 340).background(AppTheme.windowBackground)
                     try render(card, dark: dark, size: NSSize(width: 740, height: 340))
                         .write(to: directory.appendingPathComponent("ui-growth-lv\(growth.level)-\(lang)-\(mode).png"))
-                    try render(MenuBarView(store: store), dark: dark, size: NSSize(width: 240, height: 320))
+                    try render(MenuBarView(store: store), dark: dark, size: NSSize(width: 240, height: 360))
                         .write(to: directory.appendingPathComponent("ui-menu-lv\(growth.level)-\(lang)-\(mode).png"))
                     let appearance = AppSettingsView(store: store, tab: .appearance)
                     let unlock = filled ? "unlocked" : "locked"

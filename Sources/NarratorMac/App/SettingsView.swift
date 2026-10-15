@@ -217,6 +217,10 @@ struct GeneralSettingsView: View {
                     KeyboardShortcuts.Recorder("", shortcut: $store.settings.pauseShortcut)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }.frame(minHeight: 28)
+                LabeledContent(store.text("shortcut.chat")) {
+                    KeyboardShortcuts.Recorder("", shortcut: $store.settings.chatShortcut)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }.frame(minHeight: 28)
                 LabeledContent(store.text("shortcut.input")) {
                     KeyboardShortcuts.Recorder("", shortcut: $store.settings.inputShortcut)
                         .frame(maxWidth: .infinity, alignment: .trailing)

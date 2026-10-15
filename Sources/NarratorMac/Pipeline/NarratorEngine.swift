@@ -12,6 +12,7 @@ public final class NarratorEngine {
     private let host: MacBrainHost
     private var windowID: CGWindowID?
     private var bundleID: String?
+    private var chatSnapshot: ContextSnapshot?
 
     init(store: AppStore) throws {
         self.store = store
@@ -22,6 +23,7 @@ public final class NarratorEngine {
             if self.windowID != id || self.sensorPort.lines != snapshot.textLines { self.sensorPort.tracks = [:] }
             self.windowID = id
             self.bundleID = snapshot.bundleId
+            if snapshot.pid != getpid() { self.chatSnapshot = snapshot }
             self.sensorPort.lines = snapshot.textLines
             self.brain.snapshot(snapshot, windowID: id, change: change)
         }, onWindowFrame: { [unowned self] in self.brain.windowFrameChanged($0) },
@@ -34,6 +36,7 @@ public final class NarratorEngine {
         sensorPort = MacBrainSensor(sensor: sensor, host: host)
         brain = try SpriteBrain(sensor: sensorPort, overlay: MacBrainOverlay(overlay: overlay, sensor: sensorPort),
             host: host, saidURL: store.directory.said)
+        overlay.onChat = { [unowned store] text, frame in store.showChat(narration: text, near: frame) }
         brain.onStateChange = { [unowned store] in store.objectWillChange.send() }
         sensor.onScroll = { [unowned self] event in
             guard let bundleID = self.bundleID else { return }
@@ -71,6 +74,16 @@ public final class NarratorEngine {
             systemOne: systemOne, ownProcessID: getpid(), memoryEnabled: settings.memoryEnabled),
             content: BrainContent(rules: store.rules, builtin: store.builtin, personas: store.personas),
             generator: generator)
+    }
+
+    var chatTurns: [ChatTurn] { brain.chat.turns }
+
+    func chatContext(narration: String?) async throws -> ChatContext {
+        try await brain.chatContext(snapshot: chatSnapshot, narration: narration)
+    }
+
+    func sendChat(_ input: String, context: ChatContext, includeScreen: Bool) async throws -> ChatTurn {
+        try await brain.sendChat(input, context: context, includeScreen: includeScreen)
     }
 
     public var memories: [Memory] { brain.memories }

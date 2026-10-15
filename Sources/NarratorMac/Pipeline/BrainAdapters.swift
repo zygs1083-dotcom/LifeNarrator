@@ -73,6 +73,19 @@ final class MacBrainHost: BrainHost {
 
     init(store: AppStore) { self.store = store }
 
+    func saveRule(input: String) async throws {
+        _ = try await store.compile(input, generator: try store.textGenerator())
+    }
+
+    func applySetting(_ setting: ChatSetting) async throws {
+        var updated = store.settings
+        if let liveliness = setting.liveliness { updated.liveliness = liveliness }
+        if let paused = setting.paused { updated.paused = paused }
+        if let persona = setting.persona { updated.persona = persona }
+        try store.directory.saveSettings(updated)
+        store.settings = updated
+    }
+
     func report(_ error: any Error) async { reportNow(error) }
 
     func reportNow(_ error: any Error) {

@@ -79,6 +79,21 @@ public struct MemoryStore: Sendable {
         return try use((nickname.map { [$0] } ?? []) + episodes, now: now)
     }
 
+    public mutating func chat(now: Date = Date()) throws -> [Memory] {
+        let selected = memories.sorted {
+            if $0.pinned != $1.pinned { return $0.pinned }
+            if $0.lastUsedAt != $1.lastUsedAt { return $0.lastUsedAt > $1.lastUsedAt }
+            return $0.createdAt > $1.createdAt
+        }.prefix(20)
+        for entry in selected {
+            let index = memories.firstIndex { $0.id == entry.id }!
+            memories[index].lastUsedAt = now
+            memories[index].uses += 1
+        }
+        if !selected.isEmpty { try save() }
+        return Array(selected)
+    }
+
     private mutating func use(_ candidates: [Memory], now: Date) throws -> [Memory] {
         var tokens = 0.0
         let selected = candidates.filter { entry in

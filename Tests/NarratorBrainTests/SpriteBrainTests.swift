@@ -83,6 +83,9 @@ private actor BrainGenerator: TextGenerator {
 }
 
 @MainActor private final class BrainTestHost: BrainHost {
+    func saveRule(input: String) async throws {}
+    func applySetting(_ setting: ChatSetting) async throws {}
+
     var errors: [String] = []
     func report(_ error: any Error) async { errors.append(String(describing: error)) }
 }

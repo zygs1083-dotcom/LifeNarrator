@@ -1,5 +1,6 @@
 import Foundation
 import NarratorCore
+import NarratorBrain
 @testable import NarratorMac
 import XCTest
 
@@ -15,6 +16,7 @@ final class LlamaGrammarTests: XCTestCase {
     }
 
     func testSchemasSelectTheirGrammar() throws {
+        XCTAssertEqual(try LlamaGrammar.grammar(for: ChatEngine.schema), LlamaGrammar.chat)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.quipsSchema), LlamaGrammar.quips)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.spriteMarksSchema), LlamaGrammar.spriteMarks)
         XCTAssertEqual(try LlamaGrammar.grammar(for: GenerationPrompts.compiledRuleSchema), LlamaGrammar.compiledRule)
