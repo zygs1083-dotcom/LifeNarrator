@@ -21,9 +21,9 @@ internal static class SettingsChecks
         var provider = "ci-" + Guid.NewGuid();
         const string key = "fixture-密钥-😺";
         if (CredentialStore.Read(provider) != "") throw new Exception("Unexpected existing credential");
+        CredentialStore.Write(provider, key);
         try
         {
-            CredentialStore.Write(provider, key);
             if (CredentialStore.Read(provider) != key) throw new Exception("Credential round trip failed");
             CredentialStore.Write(provider, "");
             if (CredentialStore.Read(provider) != "") throw new Exception("Empty credential round trip failed");

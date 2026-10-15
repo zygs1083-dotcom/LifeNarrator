@@ -31,7 +31,7 @@ public sealed class ShellApp : Application
         desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         status = new NativeMenuItem { Header = "人生旁白", IsEnabled = false };
-        details = new NativeMenuItem { Header = "", IsVisible = false, IsEnabled = false };
+        details = new NativeMenuItem { Header = "错误详情", IsVisible = false };
         pause = Item("在岗", async () => { settings.Paused = !settings.Paused; await Configure(); });
         var levelMenu = new NativeMenu();
         foreach (var (id, label) in new[] { ("quiet", "安静"), ("lively", "热闹"), ("rowdy", "吵闹") })
@@ -140,7 +140,10 @@ public sealed class ShellApp : Application
         status.Header = error == null ? (paused ? "已暂停" : "小精灵在岗") : "人生旁白出错";
         tray.ToolTipText = error == null ? (string)status.Header! : "人生旁白出错：" + error.Split('\n')[0];
         tray.Icon = error != null ? MakeIcon(225, 55, 75) : paused ? MakeIcon(140, 140, 140) : MakeIcon(42, 166, 100);
-        details.Header = error ?? ""; details.IsVisible = error != null;
+        details.IsVisible = error != null;
+        var errors = new NativeMenu();
+        foreach (var line in error?.Split('\n') ?? []) errors.Items.Add(new NativeMenuItem(line) { IsEnabled = false });
+        details.Menu = errors;
         restart.IsEnabled = error != null;
         pause.Header = paused ? "在岗" : "暂停";
         foreach (var (id, item) in levels) item.IsChecked = id == settings?.Liveliness;
