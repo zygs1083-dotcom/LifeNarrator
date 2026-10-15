@@ -178,3 +178,29 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
         #expect(recorder.marks.map(\.lineIndex) == [0, 3, 4])
     }
 }
+
+@Test func spriteGenerationCombinesCustomCatalogRecentAndRepeatFilter() async throws {
+    struct CatalogStub: TextGenerator {
+        let focus: String
+        func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
+            #expect(system!.contains(focus))
+            #expect(system!.contains("不超过 22 个汉字"))
+            #expect(schema == GenerationPrompts.spriteMarksLongSchema)
+            #expect(prompt.hasPrefix("最多 2 处。\n"))
+            #expect(prompt.hasSuffix("最近说过的话（别再用一样的句式、开头和梗）：「older remark」"))
+            return "{\"marks\":[{\"l\":0,\"q\":\"first phrase\",\"t\":\"旧句\",\"e\":\"🌷\"},{\"l\":1,\"q\":\"second phrase\",\"t\":\""
+                + String(repeating: "字", count: 26) + "\",\"e\":\"🌷\"}]}"
+        }
+    }
+    var profile = PersonaCatalog.builtin[.teacher]
+    profile.id = Persona(rawValue: "custom.generation")
+    profile.examples = .chuuni
+    let snapshot = generationSnapshot(["first phrase", "second phrase"])
+    let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
+        app: "A", title: "T", exclude: [], persona: profile.id, lang: .zh, k: 2, recent: ["older remark"],
+        generator: CatalogStub(focus: profile.focus!.zh), catalog: PersonaCatalog(custom: [profile]),
+        isRepeat: { $0 == "旧句" }, onMark: { _ in })
+    #expect(marks.count == 1)
+    #expect(marks.first?.quip.text.count == 26)
+    #expect(marks.first?.quip.persona == profile.id)
+}

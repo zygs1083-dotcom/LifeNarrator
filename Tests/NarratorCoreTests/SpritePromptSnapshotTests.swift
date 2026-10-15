@@ -34,8 +34,6 @@ import Testing
 0| first phrase
 1| second phrase
 
-这次最多挑 3 处。
-
 例子：
 屏幕：
 0| 小镇慢生活报
@@ -93,8 +91,6 @@ Screen:
 0| first phrase
 1| second phrase
 
-Pick at most 4 spots this time.
-
 Examples:
 Screen:
 0| The Slow Town Gazette
@@ -137,7 +133,7 @@ Output:
 
 @Test func spritePromptSamplesTwoScenesAndKeepsSystemFixedAcrossRequests() {
     for lang in Lang.allCases {
-        for persona in Persona.allCases {
+        for persona in PersonaCatalog.builtin.profiles.map(\.id) {
             let screen = SpriteScreen(lines: [(0, "current screen")], tokens: 10)
             var firstRandom = SeededRandom(seed: 15)
             let first = GenerationPrompts.spriteMarks(app: "A", title: "one", screen: screen,
@@ -151,6 +147,10 @@ Output:
             let next = GenerationPrompts.spriteMarks(app: "B", title: "two", screen: .init(lines: [], tokens: 0),
                 exclude: ["old quote"], persona: persona, lang: lang, k: 8, recent: recent, using: &nextRandom)
             #expect(first.system == next.system)
+            #expect(first.user.hasPrefix(lang == .zh ? "最多 3 处。\n" : "At most 3 spots.\n"))
+            #expect(next.user.hasPrefix(lang == .zh ? "最多 8 处。\n" : "At most 8 spots.\n"))
+            #expect(!first.user.contains("这次最多挑"))
+            #expect(!first.user.contains("spots this time."))
             #expect(!first.system.contains("0|"))
             #expect(!first.system.contains("recent-"))
             for user in [first.user, next.user] {
@@ -166,6 +166,30 @@ Output:
             #expect(!next.user.contains("recent-9"))
             #expect(first.user.components(separatedBy: lang == .zh ? "例子：" : "Examples:").last
                 != next.user.components(separatedBy: lang == .zh ? "例子：" : "Examples:").last)
+        }
+    }
+}
+
+@Test func spriteExamplesUseCatalogVoiceForNewAndCustomPersonas() {
+    var custom = PersonaCatalog.builtin[.gentle]
+    custom.id = Persona(rawValue: "custom.examples")
+    custom.examples = .chuuni
+    let catalog = PersonaCatalog(custom: [custom])
+    for lang in Lang.allCases {
+        for (persona, voice) in [(Persona.teacher, Persona.gentle), (.mom, .gentle), (.hype, .gentle),
+                                  (.cat, .sharp), (custom.id, .chuuni)] {
+            let screen = SpriteScreen(lines: [(0, "current screen")], tokens: 10)
+            var random = SeededRandom(seed: 15)
+            let prompt = GenerationPrompts.spriteMarks(app: "A", title: "T", screen: screen, exclude: [],
+                persona: persona, lang: lang, k: 3, recent: ["recent remark"], using: &random, catalog: catalog)
+            var expectedRandom = SeededRandom(seed: 15)
+            let expected = GenerationPrompts.spriteMarks(app: "A", title: "T", screen: screen, exclude: [],
+                persona: voice, lang: lang, k: 3, recent: ["recent remark"], using: &expectedRandom)
+            #expect(prompt.user == expected.user)
+            for scene in SpriteExample.pool {
+                #expect(scene.prompt(lang: lang, persona: persona, catalog: catalog)
+                    == scene.prompt(lang: lang, persona: voice))
+            }
         }
     }
 }

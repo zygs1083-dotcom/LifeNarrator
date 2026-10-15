@@ -18,8 +18,8 @@ import Testing
                 let hit = try #require(SpriteLocator.locate(quote: mark.q, lineHint: mark.l, in: lines))
                 #expect(hit.lineIndex == mark.l)
                 #expect(String(lines[hit.lineIndex].text[hit.range]) == mark.q)
-                for persona in Persona.allCases {
-                    let voice = try #require(mark.voices[persona.rawValue])
+                for persona in PersonaCatalog.builtin.profiles.map(\.id) {
+                    let voice = try #require(mark.voices[PersonaCatalog.builtin[persona].examples.rawValue])
                     if lang == .zh { #expect(voice.t.count <= 14) }
                     else { #expect(voice.t.split(whereSeparator: \.isWhitespace).count < 8) }
                     #expect(!voice.t.contains(mark.q))
@@ -27,8 +27,8 @@ import Testing
                     #expect(voice.e.count == 1 && QuipValidator.isEmoji(voice.e.first!))
                 }
             }
-            for persona in Persona.allCases {
-                let openings = screen.marks.map { String($0.voices[persona.rawValue]!.t.prefix(2)) }
+            for persona in PersonaCatalog.builtin.profiles.map(\.id) {
+                let openings = screen.marks.map { String($0.voices[PersonaCatalog.builtin[persona].examples.rawValue]!.t.prefix(2)) }
                 #expect(Set(openings).count == openings.count)
             }
         }
@@ -38,13 +38,13 @@ import Testing
 @Test func spriteExamplePoolLimitsRepeatedPhrasesAndOpeningsAcrossScenes() throws {
     let englishWords = try NSRegularExpression(pattern: "[a-z]+(?:['’][a-z]+)*")
     for lang in Lang.allCases {
-        for persona in Persona.allCases {
+        for persona in PersonaCatalog.builtin.profiles.map(\.id) {
             var phrases: [String: Int] = [:]
             var openings: [String: Int] = [:]
             for scene in SpriteExample.pool {
                 let screen = lang == .zh ? scene.zh : scene.en
                 for mark in screen.marks {
-                    let text = mark.voices[persona.rawValue]!.t.lowercased()
+                    let text = mark.voices[PersonaCatalog.builtin[persona].examples.rawValue]!.t.lowercased()
                     let fragments: Set<String>
                     let opening: String
                     if lang == .zh {
