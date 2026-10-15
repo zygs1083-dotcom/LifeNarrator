@@ -49,12 +49,13 @@ def call(identifier, method, params):
 resources = Path(__file__).resolve().parents[2] / 'Sources/NarratorCore/Resources'
 examples = json.loads((resources / 'sprite-examples.json').read_text(encoding='utf-8'))
 # Exercise inference and RPC independently of a small model's ability to distinguish few-shot examples.
-texts = [scene['zh']['lines'][mark['l']] for scene in examples for mark in scene['zh']['marks']]
+texts = ['This is the first test phrase for model inference.'] + [
+    scene['en']['lines'][mark['l']] for scene in examples for mark in scene['en']['marks']]
 builtin = json.loads((resources / 'quips.json').read_text(encoding='utf-8'))
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
 line = {'x': 100, 'y': 100, 'w': 700, 'h': 24}
 settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='sharp',
-                lang='zh', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=8, ownProcessID=999, memoryEnabled=False)
+                lang='en', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=8, ownProcessID=999, memoryEnabled=False)
 call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
 started = time.monotonic()
@@ -81,7 +82,7 @@ try:
                 raise RuntimeError(str(value))
             if value['id'] == 1:
                 call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Fixture', pid=1,
-                     windowTitle='标记集成测试', windowFrame=frame, contentFrame=frame, screenIndex=0,
+                     windowTitle='Model integration fixture', windowFrame=frame, contentFrame=frame, screenIndex=0,
                      textLines=[dict(text=text, rect={**line, 'y': 100 + index * 24}, role='text')
                                 for index, text in enumerate(texts)],
                      textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
