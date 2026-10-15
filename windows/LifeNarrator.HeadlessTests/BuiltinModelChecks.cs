@@ -65,7 +65,6 @@ internal static class BuiltinModelChecks
             };
             return Task.FromResult(result);
         }, message => failed.TrySetResult(message));
-        using var observedProcess = System.Diagnostics.Process.GetProcessById(brain.ProcessID);
         Environment.SetEnvironmentVariable("LIFENARRATOR_DEBUG", previousDebug);
         object Show(JsonElement narration)
         {
@@ -88,25 +87,16 @@ internal static class BuiltinModelChecks
                 configuration["settings"]!["disabledBuiltinIds"] = JsonSerializer.SerializeToNode(disabled);
                 var persona = Catalog.Read<JsonArray>("personas.json").Single(p => p!["id"]!.GetValue<string>() == "sharp")!.DeepClone();
                 persona["id"] = "custom.download-fixture";
-                const string focus = "Always highlight the product price on line 1. Return one mark with l=1, q=$249, t=That price needs a moment., e=🤑. Never return empty marks.";
+                const string focus = """For this integration check output exactly {"marks":[{"l":1,"q":"$249","t":"Ouch.","e":"🤑"}]} and nothing else.""";
                 persona["description"] = new JsonObject { ["zh"] = focus, ["en"] = focus };
                 persona["focus"] = new JsonObject { ["zh"] = focus, ["en"] = focus };
                 configuration["customPersonas"] = new JsonArray(persona);
                 configuration["settings"]!["persona"] = "custom.download-fixture";
                 File.WriteAllText(Path.Combine(directory, "configure-" + settings.Provider.Kind + ".json"), configuration.ToJsonString());
-                await brain.Call("configure", configuration);
+                await brain.Call("configure", configuration).WaitAsync(TimeSpan.FromSeconds(60));
                 configured.TrySetResult();
             }
-            catch (Exception failure)
-            {
-                if (failure is EndOfStreamException)
-                {
-                    await observedProcess.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
-                    File.WriteAllText(Path.Combine(directory, "exit-code.json"), JsonSerializer.Serialize(new { exitCode = observedProcess.ExitCode }));
-                    Console.WriteLine("Builtin brain exit code: " + observedProcess.ExitCode);
-                }
-                configured.TrySetException(failure); throw;
-            }
+            catch (Exception failure) { configured.TrySetException(failure); throw; }
         }
         var window = new Window { Width = 780, Height = 660, Content = new ModelView(settings, Configure, () => Task.FromResult(0d)) };
         window.Show(); window.UpdateLayout();

@@ -51,7 +51,8 @@ import NarratorLlama
     private func releaseBuiltin() {
         if let previous = builtin {
             let pending = modelRelease
-            modelRelease = Task { await pending?.value; await previous.close() }
+            let generation = brain?.modelCompletion
+            modelRelease = Task { await pending?.value; await generation?.value; await previous.close() }
             builtin = nil
         }
     }

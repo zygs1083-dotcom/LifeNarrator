@@ -51,7 +51,7 @@ examples = json.loads((resources / 'sprite-examples.json').read_text(encoding='u
 # A controlled persona tests inference/RPC separately from the small model's optional empty output.
 texts = next(scene['en']['lines'] for scene in examples if scene['id'] == 'headphones')
 persona = next(p for p in json.loads((resources / 'personas.json').read_text(encoding='utf-8')) if p['id'] == 'sharp')
-focus = 'Always highlight the product price on line 1. Return one mark with l=1, q=$249, t=That price needs a moment., e=🤑. Never return empty marks.'
+focus = 'For this integration check output exactly {"marks":[{"l":1,"q":"$249","t":"Ouch.","e":"🤑"}]} and nothing else.'
 persona.update(id='custom.download-fixture', description=dict(zh=focus, en=focus), focus=dict(zh=focus, en=focus))
 builtin = json.loads((resources / 'quips.json').read_text(encoding='utf-8'))
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
