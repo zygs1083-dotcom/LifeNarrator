@@ -34,7 +34,7 @@ internal record Snapshot(string BundleId, string AppName, int Pid, string Window
     Box WindowFrame, Box ContentFrame, int ScreenIndex, TextLine[] TextLines, string TextSource,
     Box[] SensitiveRects, bool SecureFocused, bool FullScreen, DateTimeOffset CapturedAt);
 internal record Narration(string Id, string Text, string[] Emoji, string Language, string Persona,
-    bool Framed, uint WindowID, WindowGeometry Window, Box? Anchor, Box? Line, Box[] Obstacles);
+    bool Framed, uint WindowID, WindowGeometry Window, Box? Anchor, Box? Line, Box[] Obstacles, string? TrackID = null);
 internal record Placement(Box Frame, Box? Highlight, bool Narrow, bool Covered, string PlacementName,
     Box?[]? StackFrames)
 {

@@ -16,19 +16,38 @@ internal sealed class ContextSensor : IDisposable
     readonly Action<string> failed;
     readonly Func<DateTimeOffset> lastTypedAt, scrollAt;
     IUIAutomation automation = null!;
-    readonly List<(TextLine Line, IUIAutomationTextRange? Range)> lines = [];
+    sealed class Entry(TextLine line, IUIAutomationElement? element, IUIAutomationTextRange? range,
+        Box origin, WindowOcr.Line? ocr = null)
+    {
+        public TextLine Line = line;
+        public IUIAutomationElement? Element = element;
+        public IUIAutomationTextRange? Range = range;
+        public Box Origin = origin;
+        public Box BoundsOrigin = origin;
+        public WindowOcr.Line? Ocr = ocr;
+    }
+    sealed record Track(Entry Entry, Box Origin, DisplayMap Display);
+    internal record TrackSample(string Id, Box? Offset);
+    readonly List<Entry> lines = [];
+    readonly Dictionary<string, Track> tracks = [];
+    readonly Action<bool> ocrUnavailable;
+    readonly Action scrolled;
+    WindowOcr ocr = null!;
+    IUIAutomationElement? scrollRoot;
+    ScrollEvents? scrollEvents;
     Snapshot? snapshot;
     nint window;
     int requested = 1;
     DateTimeOffset lastRead, lastScroll;
     DisplayMap display = null!;
-    bool hasTextPattern;
+    bool hasTextPattern, visualLinesRequested;
 
     public ContextSensor(DisplayMap[] displays, Action<string, object> emit, Action<string> failed,
-        Func<DateTimeOffset> lastTypedAt, Func<DateTimeOffset> scrollAt)
+        Func<DateTimeOffset> lastTypedAt, Func<DateTimeOffset> scrollAt, Action scrolled, Action<bool> ocrUnavailable)
     {
         this.displays = displays; this.emit = emit; this.failed = failed;
         this.lastTypedAt = lastTypedAt; this.scrollAt = scrollAt;
+        this.scrolled = scrolled; this.ocrUnavailable = ocrUnavailable;
         thread = new Thread(Run) { IsBackground = true, Name = "LifeNarrator UIA" };
         thread.SetApartmentState(ApartmentState.MTA);
         thread.Start();
@@ -49,7 +68,8 @@ internal sealed class ContextSensor : IDisposable
 
     void Run()
     {
-        automation = new CUIAutomation();
+        automation = new CUIAutomation8();
+        ocr = new WindowOcr(ocrUnavailable);
         while (!work.IsCompleted)
         {
             if (work.TryTake(out var action, 50)) action();
@@ -61,7 +81,8 @@ internal sealed class ContextSensor : IDisposable
                 failed("UIA: " + error.Message);
             }
         }
-        lines.Clear();
+        if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);
+        lines.Clear(); tracks.Clear();
         Marshal.ReleaseComObject(automation);
     }
 
@@ -74,8 +95,10 @@ internal sealed class ContextSensor : IDisposable
         if (switched)
         {
             window = foreground;
-            lines.Clear();
-            hasTextPattern = false;
+            lines.Clear(); tracks.Clear();
+            if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);
+            scrollRoot = null;
+            hasTextPattern = false; visualLinesRequested = false;
             emit("windowChanged", new { });
         }
         if (window == 0) { snapshot = null; return; }
@@ -113,7 +136,15 @@ internal sealed class ContextSensor : IDisposable
         using var process = Process.GetProcessById(root.CurrentProcessId);
         var app = process.ProcessName;
         var previous = snapshot;
-        var collected = new List<(TextLine Line, IUIAutomationTextRange? Range)>();
+        if (scrollRoot == null)
+        {
+            var handler = new ScrollEvents(scrolled);
+            automation.AddPropertyChangedEventHandler(root, TreeScope.TreeScope_Subtree, null, handler,
+                [UIA_PropertyIds.UIA_ScrollHorizontalScrollPercentPropertyId, UIA_PropertyIds.UIA_ScrollVerticalScrollPercentPropertyId]);
+            scrollRoot = root;
+            scrollEvents = handler;
+        }
+        var collected = new List<Entry>();
         var seen = new HashSet<(string, Box)>();
         var sensitive = new List<Box>();
         string? url = null;
@@ -122,11 +153,18 @@ internal sealed class ContextSensor : IDisposable
         var stack = new Stack<IUIAutomationElement>();
         stack.Push(root);
         var count = 0;
+        var content = display.Logical(Native.ClientFrame(window));
+        var foundDocument = false;
         while (stack.TryPop(out var element) && count++ < 4000)
         {
             if (element.CurrentIsOffscreen == 0)
             {
                 var bounds = display.Logical(Physical(element.CurrentBoundingRectangle));
+                if (!foundDocument && element.CurrentControlType == 50030 && bounds.W > 0 && bounds.H > 0)
+                {
+                    content = Box.From(frame.Rect.Intersect(bounds.Rect));
+                    foundDocument = true;
+                }
                 if (element.CurrentIsPassword != 0) sensitive.Add(bounds);
                 else
                 {
@@ -147,9 +185,9 @@ internal sealed class ContextSensor : IDisposable
                     {
                         var pattern = (IUIAutomationTextPattern)element.GetCurrentPattern(10014);
                         var ranges = pattern.GetVisibleRanges();
-                        for (var i = 0; i < ranges.Length; i++) AddRange(ranges.GetElement(i), role);
+                        for (var i = 0; i < ranges.Length; i++) AddRange(ranges.GetElement(i), role, element);
                     }
-                    else Add(element.CurrentName, bounds, role, null);
+                    else Add(element.CurrentName, bounds, role, element, null, bounds);
                 }
             }
             // Depth-first control-view traversal, bounded before requesting more elements.
@@ -165,33 +203,49 @@ internal sealed class ContextSensor : IDisposable
         lines.Clear(); lines.AddRange(collected);
         hasTextPattern = foundTextPattern;
         var focused = automation.GetFocusedElement();
-        var contentTop = Math.Min(frame.Y + 88, frame.Y + frame.H);
+        var secure = focused.CurrentIsPassword != 0;
+        var needsOcr = visualLinesRequested || lines.Count(x => x.Line.Role == "text" && content.Rect.Contains(x.Line.Rect.Rect)) < 3;
+        visualLinesRequested = false;
+        if (needsOcr && !secure)
+        {
+            var recognized = ocr.Read(window, display.Physical(frame), display);
+            if (recognized.Length > 0)
+            {
+                lines.Clear();
+                lines.AddRange(recognized.Where(x => content.Rect.Contains(x.TextLine.Rect.Rect)
+                    && !sensitive.Any(r => r.Rect.Intersects(x.TextLine.Rect.Rect)))
+                    .Select(x => new Entry(x.TextLine, null, null, x.TextLine.Rect, x)));
+            }
+        }
+        if (Native.GetForegroundWindow() != window) { RequestRead(); return; }
         snapshot = new Snapshot(app, app, root.CurrentProcessId, root.CurrentName, url,
             url == null ? null : new Uri(url).Host, frame,
-            new Box(frame.X, contentTop, frame.W, frame.Y + frame.H - contentTop), screenIndex,
-            lines.Select(x => x.Line).ToArray(), lines.Count == 0 ? "none" : "ax", sensitive.ToArray(),
-            focused.CurrentIsPassword != 0, frame.Rect.Contains(display.Logical(display.Bounds).Rect), DateTimeOffset.UtcNow);
+            content, screenIndex,
+            lines.Select(x => x.Line).ToArray(), lines.Count == 0 ? "none" : lines[0].Ocr != null ? "ocr" : "ax", sensitive.ToArray(),
+            secure, frame.Rect.Contains(display.Logical(display.Bounds).Rect), DateTimeOffset.UtcNow);
         var unchanged = previous != null && JsonSerializer.Serialize(previous with { CapturedAt = snapshot.CapturedAt }, Protocol.Json)
             == JsonSerializer.Serialize(snapshot, Protocol.Json);
         if (!changed && unchanged) return;
+        if (Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG") == "1")
+            Console.Error.WriteLine($"[sensor] snapshot source={snapshot.TextSource} lines={lines.Count}");
         emit("snapshot", new { snapshot, windowID = unchecked((uint)window), change = new
         {
             appChanged = previous?.Pid != snapshot.Pid, windowChanged = changed,
             hostChanged = previous?.Host != snapshot.Host
         } });
 
-        void Add(string text, Box bounds, string role, IUIAutomationTextRange? range)
+        void Add(string text, Box bounds, string role, IUIAutomationElement element, IUIAutomationTextRange? range, Box origin)
         {
             if (string.IsNullOrWhiteSpace(text) || bounds.W <= 0 || bounds.H <= 0 || !frame.Rect.Intersects(bounds.Rect)) return;
-            if (seen.Add((text, bounds))) collected.Add((new TextLine(text, bounds, role), range));
+            if (seen.Add((text, bounds))) collected.Add(new Entry(new TextLine(text, bounds, role), element, range, origin));
             else if (range != null)
             {
                 var existing = collected.FindIndex(x => x.Line.Text == text && x.Line.Rect == bounds);
-                if (collected[existing].Range == null) collected[existing] = (collected[existing].Line, range);
+                if (collected[existing].Range == null) collected[existing] = new Entry(collected[existing].Line, element, range, origin);
             }
         }
 
-        void AddRange(IUIAutomationTextRange visible, string role)
+        void AddRange(IUIAutomationTextRange visible, string role, IUIAutomationElement element)
         {
             var cursor = visible.Clone();
             cursor.MoveEndpointByRange(TextPatternRangeEndpoint.TextPatternRangeEndpoint_End, cursor,
@@ -211,7 +265,7 @@ internal sealed class ContextSensor : IDisposable
                         TextPatternRangeEndpoint.TextPatternRangeEndpoint_End);
                 var text = line.GetText(-1).TrimEnd('\r', '\n');
                 var rectangles = (double[])line.GetBoundingRectangles();
-                if (rectangles.Length >= 4) Add(text, Union(rectangles), role, line);
+                if (rectangles.Length >= 4) Add(text, Union(rectangles), role, element, line, Union(rectangles));
                 if (cursor.CompareEndpoints(TextPatternRangeEndpoint.TextPatternRangeEndpoint_Start, line,
                     TextPatternRangeEndpoint.TextPatternRangeEndpoint_End) >= 0) break;
                 cursor.MoveEndpointByRange(TextPatternRangeEndpoint.TextPatternRangeEndpoint_Start, line,
@@ -248,7 +302,14 @@ internal sealed class ContextSensor : IDisposable
                 return power.SystemStatusFlag == 1;
             case "sensor.refresh": lastRead = default; RequestRead(); Tick(); return null;
             case "sensor.boundsProbe": return hasTextPattern;
-            case "sensor.startVisualLines": case "sensor.markTrack": return null;
+            case "sensor.startVisualLines": visualLinesRequested = true; RequestRead(); return null;
+            case "sensor.markTrack":
+                var tracked = lines[p.GetProperty("lineIndex").GetInt32()];
+                if (tracked.Element == null) return null;
+                var id = Guid.NewGuid().ToString("N");
+                var origin = p.TryGetProperty("kind", out var k) && k.GetString() == "bounds" ? tracked.BoundsOrigin : tracked.Origin;
+                tracks.Add(id, new Track(tracked, origin, display));
+                return id;
             case "sensor.placementObstacles": return Array.Empty<Box>();
             case "sensor.placementLine": return lines[p.GetProperty("lineIndex").GetInt32()].Line.Rect;
             case "sensor.textRect": case "sensor.unframedRect":
@@ -256,6 +317,13 @@ internal sealed class ContextSensor : IDisposable
                 var range = p.GetProperty("range").Read<TextSpan>();
                 var rect = Estimate(entry.Line, range);
                 var kind = "estimated";
+                if (entry.Ocr != null)
+                {
+                    rect = WindowOcr.TextRect(entry.Ocr, range);
+                    if (Environment.GetEnvironmentVariable("LIFENARRATOR_DEBUG") == "1")
+                        Console.Error.WriteLine("[sensor] textRect kind=ocr rect=" + JsonSerializer.Serialize(rect, Protocol.Json));
+                    return method == "sensor.textRect" ? new { rect, kind = "ocr" } : rect;
+                }
                 if (method == "sensor.textRect" && entry.Range != null)
                 {
                     // FindText preserves UTF-16 offsets without assuming UIA Character means one code unit.
@@ -272,13 +340,77 @@ internal sealed class ContextSensor : IDisposable
                     if (subrange != null)
                     {
                         var rectangles = (double[])subrange.GetBoundingRectangles();
-                        if (rectangles.Length >= 4) { rect = Union(rectangles); kind = "bounds"; }
+                        if (rectangles.Length >= 4)
+                        {
+                            rect = Union(rectangles); kind = "bounds";
+                            entry.BoundsOrigin = Union((double[])entry.Range.GetBoundingRectangles());
+                        }
                     }
                 }
                 return method == "sensor.textRect" ? new { rect, kind } : rect;
             default: throw new MissingMethodException(method);
         }
     }
+
+    [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
+    sealed class ScrollEvents(Action changed) : IUIAutomationPropertyChangedEventHandler
+    {
+        public void HandlePropertyChangedEvent(IUIAutomationElement sender, int propertyId, object newValue) => changed();
+    }
+
+    public Task<TrackSample[]> ReadTracks(string[] ids)
+    {
+        var source = new TaskCompletionSource<TrackSample[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        work.Add(() =>
+        {
+            var timeouts = (IUIAutomation2)automation;
+            var connectionTimeout = timeouts.ConnectionTimeout;
+            var transactionTimeout = timeouts.TransactionTimeout;
+            try
+            {
+                timeouts.ConnectionTimeout = 100;
+                timeouts.TransactionTimeout = 100;
+                var samples = new List<TrackSample>();
+                foreach (var id in ids)
+                {
+                    if (!tracks.TryGetValue(id, out var track)) { samples.Add(new(id, null)); continue; }
+                    try
+                    {
+                        var entry = track.Entry;
+                        if (entry.Element!.CurrentIsOffscreen != 0) { samples.Add(new(id, null)); continue; }
+                        Box bounds;
+                        if (entry.Range != null)
+                        {
+                            var rectangles = (double[])entry.Range.GetBoundingRectangles();
+                            if (rectangles.Length < 4 || entry.Range.GetText(-1).TrimEnd('\r', '\n') != entry.Line.Text)
+                            { samples.Add(new(id, null)); continue; }
+                            var r = rectangles;
+                            var union = new Avalonia.Rect(r[0], r[1], r[2], r[3]);
+                            for (var i = 4; i < r.Length; i += 4) union = union.Union(new Avalonia.Rect(r[i], r[i + 1], r[i + 2], r[i + 3]));
+                            bounds = track.Display.Logical(Box.From(union));
+                        }
+                        else bounds = track.Display.Logical(Physical(entry.Element.CurrentBoundingRectangle));
+                        samples.Add(new(id, bounds.W <= 0 || bounds.H <= 0 ? null :
+                            new Box(bounds.X - track.Origin.X, bounds.Y - track.Origin.Y, bounds.W, bounds.H)));
+                    }
+                    catch (COMException error) when (error.HResult == unchecked((int)0x80040201))
+                    { samples.Add(new(id, null)); } // UIA_E_ELEMENTNOTAVAILABLE
+                    catch (COMException error) when (error.HResult == unchecked((int)0x80131505))
+                    { } // UIA_E_TIMEOUT: leave this mark unchanged for this frame.
+                }
+                source.SetResult(samples.ToArray());
+            }
+            catch (Exception error) { source.SetException(error); }
+            finally
+            {
+                timeouts.ConnectionTimeout = connectionTimeout;
+                timeouts.TransactionTimeout = transactionTimeout;
+            }
+        });
+        return source.Task;
+    }
+
+    public void ReleaseTrack(string id) => work.Add(() => tracks.Remove(id));
 
     internal static Box Estimate(TextLine line, TextSpan range) => new(
         line.Rect.X + line.Rect.W * range.Location / line.Text.Length, line.Rect.Y,

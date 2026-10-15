@@ -15,7 +15,7 @@ public sealed partial class ShellApp : Application
     IClassicDesktopStyleApplicationLifetime desktop = null!;
     Settings settings = null!;
     TrayIcon tray = null!;
-    NativeMenuItem status = null!, pause = null!, restart = null!, details = null!;
+    NativeMenuItem status = null!, pause = null!, restart = null!, details = null!, ocrHint = null!;
     readonly Dictionary<string, NativeMenuItem> levels = new(), personas = new();
     BrainClient? brain;
     ContextSensor? sensor;
@@ -58,8 +58,10 @@ public sealed partial class ShellApp : Application
             personas.Add(id, item); personaMenu.Items.Add(item);
         }
         restart = Item("重启大脑", async () => { await Stop(); await Start(); });
+        ocrHint = new NativeMenuItem("OCR 不可用：请在 Windows 设置中安装简体中文或英语（美国）OCR 语言")
+            { IsEnabled = false, IsVisible = false };
         var menu = new NativeMenu();
-        menu.Items.Add(status); menu.Items.Add(details); menu.Items.Add(pause);
+        menu.Items.Add(status); menu.Items.Add(details); menu.Items.Add(ocrHint); menu.Items.Add(pause);
         levelHeader = new NativeMenuItem("热闹程度") { Menu = levelMenu }; menu.Items.Add(levelHeader);
         personaHeader = new NativeMenuItem("人格") { Menu = personaMenu }; menu.Items.Add(personaHeader);
         menu.Items.Add(restart); menu.Items.Add(new NativeMenuItemSeparator());
@@ -104,14 +106,18 @@ public sealed partial class ShellApp : Application
         settings ??= Settings.Load();
         error = null;
         UpdateTray();
-        overlay = new OverlayController(settings);
+        overlay = new OverlayController(settings, Report);
         var channel = Channel.CreateUnbounded<(string, object)>(new UnboundedChannelOptions { SingleReader = true });
         changes = channel;
-        var input = new WindowEvents(() => sensor?.RequestRead());
+        var input = new WindowEvents(() => sensor?.RequestRead(),
+            wheel => Dispatcher.UIThread.Post(() => overlay?.Scrolled(wheel)));
         events = input;
         sensor = new ContextSensor(overlay.Displays,
             (method, p) => channel.Writer.TryWrite((method, p)),
-            message => Dispatcher.UIThread.Post(() => Report(message)), () => input.LastTypedAt, () => input.ScrollAt);
+            message => Dispatcher.UIThread.Post(() => Report(message)), () => input.LastTypedAt, () => input.ScrollAt,
+            () => Dispatcher.UIThread.Post(() => overlay?.Scrolled(true)),
+            unavailable => Dispatcher.UIThread.Post(() => ocrHint.IsVisible = unavailable));
+        overlay.Sensor = sensor;
         brain = new BrainClient(Path.Combine(AppContext.BaseDirectory, "brain", "narrator-brain.exe"),
             Path.Combine(Settings.DataDirectory, "brain.log"), Port,
             message => Dispatcher.UIThread.Post(() => { overlay?.DismissAll(); Report(message); }));
