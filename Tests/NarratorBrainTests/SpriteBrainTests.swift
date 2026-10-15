@@ -4,6 +4,7 @@ import NarratorCore
 @testable import NarratorBrain
 
 private actor BrainGenerator: TextGenerator {
+    nonisolated let changes = AsyncStream<Void>.makeStream()
     var prompts: [String] = []
     var systems: [String?] = []
     var cancelled: Set<Int> = []
@@ -14,7 +15,7 @@ private actor BrainGenerator: TextGenerator {
         prompts.append(prompt)
         systems.append(system)
         return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { pending[id] = $0 }
+            try await withCheckedThrowingContinuation { pending[id] = $0; changes.continuation.yield(()) }
         } onCancel: {
             Task { await self.cancel(id) }
         }
@@ -24,10 +25,12 @@ private actor BrainGenerator: TextGenerator {
     private func cancel(_ id: Int) {
         cancelled.insert(id)
         pending.removeValue(forKey: id)?.resume(throwing: CancellationError())
+        changes.continuation.yield(())
     }
 }
 
 @MainActor private final class BrainTestSensor: BrainSensor {
+    let changes = AsyncStream<Void>.makeStream()
     var typing = false
     var idle: TimeInterval = 0
     var lowPower = false
@@ -49,7 +52,7 @@ private actor BrainGenerator: TextGenerator {
         let rect = lines[lineIndex].rect
         if pauseRect {
             pauseRect = false
-            await withCheckedContinuation { rectWaiter = $0 }
+            await withCheckedContinuation { rectWaiter = $0; changes.continuation.yield(()) }
         }
         return (rect, .bounds)
     }
@@ -62,6 +65,7 @@ private actor BrainGenerator: TextGenerator {
 }
 
 @MainActor private final class BrainTestOverlay: BrainOverlay {
+    let changes = AsyncStream<Void>.makeStream()
     var narrations: [Narration] = []
     var dismissals = 0
     var pauseNext = false
@@ -71,9 +75,10 @@ private actor BrainGenerator: TextGenerator {
         showCalls += 1
         if pauseNext {
             pauseNext = false
-            await withCheckedContinuation { showWaiter = $0 }
+            await withCheckedContinuation { showWaiter = $0; changes.continuation.yield(()) }
         }
         narrations.append(narration)
+        changes.continuation.yield(())
         return (true, "right")
     }
     func dismissAll() async { dismissals += 1 }
@@ -83,11 +88,15 @@ private actor BrainGenerator: TextGenerator {
 }
 
 @MainActor private final class BrainTestHost: BrainHost {
+    let changes = AsyncStream<Void>.makeStream()
     func saveRule(input: String) async throws {}
     func applySetting(_ setting: ChatSetting) async throws {}
 
     var errors: [String] = []
-    func report(_ error: any Error) async { errors.append(String(describing: error)) }
+    func report(_ error: any Error) async {
+        errors.append(String(describing: error))
+        changes.continuation.yield(())
+    }
 }
 
 @MainActor private final class BrainFixture {
@@ -132,9 +141,11 @@ private actor BrainGenerator: TextGenerator {
     }
 }
 
-@MainActor private func eventually(seconds: TimeInterval = 3, _ condition: () async -> Bool) async throws {
-    let deadline = Date().addingTimeInterval(seconds)
-    while !(await condition()) && Date() < deadline { try await Task.sleep(for: .milliseconds(10)) }
+@MainActor private func eventually(_ changes: AsyncStream<Void>, _ condition: () async -> Bool) async throws {
+    if await condition() { return }
+    for await _ in changes {
+        if await condition() { return }
+    }
     try #require(await condition())
 }
 
@@ -148,7 +159,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         try f.brain.addMemory(kind: .fact, text: "You enjoy writing Swift")
         try f.brain.addMemory(kind: .episode, text: "昨天凌晨三点还在输入", source: .stats)
         f.snapshot(["Writing Swift with first phrase"])
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         let user = await generator.prompts[0]
         #expect(user.contains("你记得的事："))
         #expect(user.contains("阿王"))
@@ -184,7 +195,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
                 try await SpriteAmbient.generate(signals: signals, persona: .gentle, lang: lang,
                     recent: [], generator: generator, memoryContext: context)
             }
-            try await eventually { await generator.prompts.count == 1 }
+            try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
             #expect(await generator.prompts[0].contains("阿王"))
             #expect(await generator.prompts[0].contains("昨天凌晨三点还在输入"))
             #expect(await generator.prompts[0].contains(lang == .zh ? "刚认识" : "You just met"))
@@ -208,7 +219,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         #expect(try !f.brain.memoryContext(screenText: "阿王").contains("阿王"))
         #expect(try !f.brain.memoryContext().contains("你记得的事"))
         f.snapshot()
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         #expect(await !generator.prompts[0].contains("阿王"))
         #expect(await !generator.prompts[0].contains("你记得的事"))
         #expect(f.brain.memories.map(\.id) == [entry.id])
@@ -235,7 +246,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
                 try await Task.sleep(for: .milliseconds(100))
                 #expect(f.overlay.narrations.isEmpty)
             } else {
-                try await eventually { f.overlay.narrations.count == 1 }
+                try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
                 #expect(f.overlay.narrations[0].text == text)
                 #expect(f.overlay.narrations[0].ruleID == "sprite-growth")
                 #expect(f.overlay.narrations[0].anchor == nil)
@@ -254,12 +265,12 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         let f = try BrainFixture(), generator = BrainGenerator()
         f.configure(generator)
         f.snapshot()
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         let experience = f.brain.growthState.experience
         f.snapshot(["unrelated heading", "quoted first phrase"], switching: false)
         #expect(await generator.cancelled.isEmpty)
         await generator.complete(0, firstMark)
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         let narration = try #require(f.overlay.narrations.first)
         #expect(narration.windowID == 1)
         #expect(narration.trackID == "track-1")
@@ -275,13 +286,13 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         let f = try BrainFixture(), generator = BrainGenerator()
         f.configure(generator)
         f.snapshot()
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         f.snapshot(window: 2)
-        try await eventually { let cancelled = await generator.cancelled.contains(0)
+        try await eventually(generator.changes.stream) { let cancelled = await generator.cancelled.contains(0)
             let count = await generator.prompts.count
             return cancelled && count == 2 }
         await generator.complete(1, firstMark)
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         #expect(f.overlay.narrations.first?.windowID == 2)
         try f.finish()
     }
@@ -291,12 +302,12 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.sensor.typing = true
         f.configure(generator)
         f.snapshot()
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         await generator.complete(0, firstMark)
         try await Task.sleep(for: .milliseconds(100))
         #expect(f.overlay.narrations.isEmpty)
         f.sensor.typing = false
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         try f.finish()
     }
 
@@ -309,16 +320,16 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
             sentiment: .neutral, match: Match(aliases: ["another phrase"]), highlight: true, quips: [quip])]
         f.configure(generator)
         f.snapshot(["another phrase", "quoted first phrase"])
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         await generator.complete(0, #"{"marks":[{"l":1,"q":"first phrase","t":"咖啡还没凉","e":"🌷"}]}"#)
         try await Task.sleep(for: .milliseconds(100))
         f.sensor.typing = false
-        try await eventually { f.overlay.showWaiter != nil }
+        try await eventually(f.overlay.changes.stream) { f.overlay.showWaiter != nil }
         try await Task.sleep(for: .milliseconds(300))
         #expect(f.overlay.showCalls == 1)
         try #require(f.overlay.showWaiter).resume()
         f.overlay.showWaiter = nil
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         try await Task.sleep(for: .milliseconds(300))
         #expect(f.overlay.narrations.count == 1)
         try f.finish()
@@ -330,9 +341,9 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.sensor.typing = true
         f.configure(generator)
         f.snapshot()
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         await generator.complete(0, firstMark)
-        try await eventually { await generator.prompts.count == 2 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 2 }
         f.sensor.idle = 120
         await generator.complete(1, #"{"marks":[]}"#)
         try await Task.sleep(for: .milliseconds(1200))
@@ -344,12 +355,12 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         idle.sensor.idle = 120
         idle.configure(idleGenerator)
         idle.snapshot(capturedAt: Date().addingTimeInterval(-60))
-        try await eventually { await idleGenerator.prompts.count == 1 }
+        try await eventually(idleGenerator.changes.stream) { await idleGenerator.prompts.count == 1 }
         await idleGenerator.complete(0, #"{"marks":[]}"#)
         try await Task.sleep(for: .milliseconds(1200))
         #expect(await idleGenerator.prompts.count == 1)
         idle.sensor.idle = 0
-        try await eventually { await idleGenerator.prompts.count == 2 }
+        try await eventually(idleGenerator.changes.stream) { await idleGenerator.prompts.count == 2 }
         #expect(await idleGenerator.prompts[1].contains("Fixture"))
         try idle.finish()
     }
@@ -363,7 +374,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.content.builtin.rules = [rule]
         f.configure()
         f.snapshot([])
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         f.snapshot([], window: 2)
         try await Task.sleep(for: .milliseconds(100))
         #expect(f.overlay.narrations.count == 1)
@@ -390,7 +401,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         #expect(f.host.errors.isEmpty)
         f.settings.paused = false
         f.brain.configure(settings: f.settings, content: f.content, generator: .failure(InvalidConfiguration.invalidURL))
-        try await eventually { !f.host.errors.isEmpty }
+        try await eventually(f.host.changes.stream) { !f.host.errors.isEmpty }
         #expect(f.host.errors.allSatisfy { $0 == "invalidURL" })
         f.host.errors = []
         try f.finish()
@@ -407,7 +418,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.content.rules = [rule]
         f.configure()
         f.snapshot([])
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         #expect(f.host.errors.isEmpty)
         rule.id = "topic"
         rule.kind = .topic
@@ -415,7 +426,7 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.content.rules = [rule]
         f.configure()
         f.snapshot(window: 2)
-        try await eventually { !f.host.errors.isEmpty }
+        try await eventually(f.host.changes.stream) { !f.host.errors.isEmpty }
         #expect(f.host.errors.allSatisfy { $0 == "invalidURL" })
         #expect(f.overlay.narrations.count == 1)
         f.host.errors = []
@@ -427,13 +438,13 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.sensor.pauseRect = true
         f.configure(generator)
         f.snapshot(["🌷 quoted first phrase"])
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         await generator.complete(0, firstMark)
-        try await eventually { f.sensor.rectWaiter != nil }
+        try await eventually(f.sensor.changes.stream) { f.sensor.rectWaiter != nil }
         f.snapshot(["heading", "🌷 quoted first phrase"], switching: false)
         try #require(f.sensor.rectWaiter).resume()
         f.sensor.rectWaiter = nil
-        try await eventually { f.overlay.narrations.count == 1 }
+        try await eventually(f.overlay.changes.stream) { f.overlay.narrations.count == 1 }
         #expect(f.overlay.narrations.first?.anchor?.minY == 180)
         #expect(f.sensor.ranges.last == NSRange(location: 10, length: 12))
         try f.finish()
@@ -444,9 +455,9 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         f.sensor.pauseRect = true
         f.configure(generator)
         f.snapshot()
-        try await eventually { await generator.prompts.count == 1 }
+        try await eventually(generator.changes.stream) { await generator.prompts.count == 1 }
         await generator.complete(0, firstMark)
-        try await eventually { f.sensor.rectWaiter != nil }
+        try await eventually(f.sensor.changes.stream) { f.sensor.rectWaiter != nil }
         f.brain.windowChanged()
         try #require(f.sensor.rectWaiter).resume()
         f.sensor.rectWaiter = nil

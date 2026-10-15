@@ -45,6 +45,8 @@ jobs:
       - run: swift --version
       - run: swift build --target NarratorCore
       - run: swift build --target NarratorBrain
+      - name: Isolated brain RPC scenario
+        run: swift test --filter configureSnapshotGeneratesAndShowsThroughLineStreams
       - run: swift test
       - run: swift build -c release --product narrator-brain
       - run: windows/scripts/package-brain.ps1

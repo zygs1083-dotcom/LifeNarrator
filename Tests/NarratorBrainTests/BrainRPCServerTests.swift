@@ -7,12 +7,6 @@ private extension RPCValue {
     subscript(_ key: String) -> RPCValue? { if case .object(let o) = self { o[key] } else { nil } }
 }
 
-@MainActor private func waitFor(_ condition: () async -> Bool) async throws {
-    let deadline = Date().addingTimeInterval(4)
-    while !(await condition()) && Date() < deadline { try await Task.sleep(for: .milliseconds(10)) }
-    try #require(await condition())
-}
-
 private actor RPCGenerator: TextGenerator {
     var prompts: [String] = []
     func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
@@ -38,6 +32,7 @@ private actor ConnectionGenerator: TextGenerator {
 @MainActor private final class ScriptedShell {
     let input = AsyncThrowingStream<String, any Error>.makeStream()
     var output: [RPCValue] = []
+    let written = AsyncStream<RPCValue>.makeStream()
     var script: [String: RPCValue] = [:]
     var remoteError: String?
 
@@ -47,9 +42,16 @@ private actor ConnectionGenerator: TextGenerator {
         input.continuation.yield(try RPCValue.object(object).line())
     }
 
+    func waitFor(_ method: String) async {
+        for await value in written.stream {
+            if value["method"] == .string(method) { return }
+        }
+    }
+
     func write(_ line: String) throws {
         let value = try JSONDecoder().decode(RPCValue.self, from: Data(line.utf8))
         output.append(value)
+        written.continuation.yield(value)
         guard case .string(let method) = value["method"] else { return }
         let result: RPCValue
         switch method {
@@ -129,7 +131,7 @@ private actor ConnectionGenerator: TextGenerator {
             textSource: .ax, capturedAt: Date())
         try shell.send("snapshot", params: .object(["snapshot": try .encode(snapshot), "windowID": .number(7),
             "change": try .encode(ContextChange(appChanged: true, windowChanged: true, hostChanged: false))]))
-        try await waitFor { shell.output.contains { $0["method"] == .string("overlay.show") } }
+        await shell.waitFor("overlay.show")
         #expect(await generator.prompts.count == 1)
         let show = try #require(shell.output.first { $0["method"] == .string("overlay.show") })
         let narration = try #require(show["params"]?["narration"])
@@ -140,7 +142,7 @@ private actor ConnectionGenerator: TextGenerator {
         let rect = try #require(shell.output.first { $0["method"] == .string("sensor.textRect") })
         #expect(rect["params"]?["range"] == .object(["location": .number(10), "length": .number(12)]))
         try shell.send("windowFrameChanged", params: .object(["frame": try .encode(frame.offsetBy(dx: 10, dy: 0))]))
-        try await waitFor { shell.output.contains { $0["method"] == .string("overlay.windowFrameChanged") } }
+        await shell.waitFor("overlay.windowFrameChanged")
         try shell.send("windowChanged")
         shell.input.continuation.finish()
         try await task.value
@@ -217,31 +219,32 @@ private actor ConnectionGenerator: TextGenerator {
 
 @Suite @MainActor struct RPCPortScenarios {
     @Test func concurrentRequestsMatchOutOfOrderRepliesAndRemoteErrors() async throws {
-        var sent: [RPCValue] = []
-        let peer = RPCPeer { sent.append(try JSONDecoder().decode(RPCValue.self, from: Data($0.utf8))) }
+        let sent = AsyncStream<RPCValue>.makeStream()
+        var messages = sent.stream.makeAsyncIterator()
+        let peer = RPCPeer { sent.continuation.yield(try JSONDecoder().decode(RPCValue.self, from: Data($0.utf8))) }
         defer { peer.close() }
         let sensor = RPCSensor(peer)
         let first = Task { try await sensor.isTyping(now: Date(timeIntervalSince1970: 0)) }
         let second = Task { try await sensor.isSecureFocused() }
-        try await waitFor { sent.count == 2 }
-        let typing = try #require(sent.first { $0["method"] == .string("sensor.isTyping") })
-        let secure = try #require(sent.first { $0["method"] == .string("sensor.isSecureFocused") })
+        let requests = [try #require(await messages.next()), try #require(await messages.next())]
+        let typing = try #require(requests.first { $0["method"] == .string("sensor.isTyping") })
+        let secure = try #require(requests.first { $0["method"] == .string("sensor.isSecureFocused") })
         #expect(typing["params"]?["now"] == .string("1970-01-01T00:00:00Z"))
         try peer.receive(["id": #require(secure["id"]), "result": .bool(true)])
         try peer.receive(["id": #require(typing["id"]), "result": .bool(false)])
         #expect(try await first.value == false)
         #expect(try await second.value == true)
         let failure = Task { try await sensor.boundsProbe() }
-        try await waitFor { sent.count == 3 }
-        try peer.receive(["id": #require(sent.last?["id"]), "error": .object([
+        let failed = try #require(await messages.next())
+        try peer.receive(["id": #require(failed["id"]), "error": .object([
             "code": .number(17), "message": .string("permission denied"), "data": .string("uia")])])
         do { _ = try await failure.value; Issue.record("Expected remote error") }
         catch let error as BrainRPCError { #expect(error.code == 17); #expect(error.data == .string("uia")) }
         let cancelled = Task { try await sensor.isSecureFocused() }
-        try await waitFor { sent.count == 4 }
+        let cancelledRequest = try #require(await messages.next())
         cancelled.cancel()
         await #expect(throws: CancellationError.self) { try await cancelled.value }
-        try peer.receive(["id": #require(sent.last?["id"]), "result": .bool(true)])
+        try peer.receive(["id": #require(cancelledRequest["id"]), "result": .bool(true)])
     }
 }
 
