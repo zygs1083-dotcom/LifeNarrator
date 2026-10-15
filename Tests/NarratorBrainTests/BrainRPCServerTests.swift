@@ -329,6 +329,11 @@ private actor ConnectionGenerator: TextGenerator {
             try JSONDecoder().decode(RPCGeneratorConfiguration.self, from: Data(json.utf8)).makeGenerator()
         }
         #expect(try make(#"{"kind":"none"}"#) == nil)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let directoryJSON = try RPCValue.object(["kind": .string("builtin"), "modelPath": .string(directory.path)]).line()
+        #expect(throws: (any Error).self) { try make(directoryJSON) }
         let openAI = try #require(try make(#"{"kind":"api","presetId":"openai","model":"m","baseURL":"http://localhost:1234/v1","structured":"prompt","key":"k"}"#) as? OpenAIChatClient)
         #expect(openAI.model == "m" && openAI.key == "k" && openAI.structured == .prompt)
         #expect(openAI.baseURL.absoluteString == "http://localhost:1234/v1")

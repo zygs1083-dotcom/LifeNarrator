@@ -21,7 +21,8 @@ struct RPCGeneratorConfiguration: Decodable {
             guard let modelPath, !modelPath.isEmpty else {
                 throw BrainRPCError(code: -32602, message: "builtin requires modelPath")
             }
-            guard FileManager.default.fileExists(atPath: modelPath) else {
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: modelPath, isDirectory: &isDirectory), !isDirectory.boolValue else {
                 throw BrainRPCError(code: -32602, message: "Model file does not exist: \(modelPath)")
             }
             #if canImport(NarratorLlama)

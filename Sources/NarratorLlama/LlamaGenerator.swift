@@ -1,4 +1,5 @@
 import Foundation
+import Dispatch
 import NarratorCore
 #if os(macOS)
 import Darwin
@@ -8,7 +9,11 @@ import os
 /// Serializes the synchronous `LlamaEngine` on its own queue; loads the model on first use and
 /// releases it after 10 idle minutes.
 public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
+    #if os(Windows)
+    private let queue = LlamaExecutor()
+    #else
     private let queue = DispatchSerialQueue(label: "LifeNarrator.LlamaGenerator", qos: .utility)
+    #endif
     public nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
     private let modelPath: String
@@ -87,6 +92,15 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
 }
 
 #if os(Windows)
+private final class LlamaExecutor: SerialExecutor {
+    private let queue = DispatchQueue(label: "LifeNarrator.LlamaGenerator", qos: .utility)
+
+    func enqueue(_ job: consuming ExecutorJob) {
+        let job = UnownedJob(job)
+        queue.async { job.runSynchronously(on: self.asUnownedSerialExecutor()) }
+    }
+}
+
 private final class LockedFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false

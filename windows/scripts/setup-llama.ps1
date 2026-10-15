@@ -15,6 +15,7 @@ Expand-Archive "$destination/vulkan.zip" "$destination/vulkan" -Force
 Copy-Item "$destination/cpu/llama.dll", "$destination/cpu/ggml.dll", "$destination/cpu/ggml-base.dll", "$destination/cpu/ggml-cpu-*.dll", "$destination/cpu/libomp.dll", "$destination/vulkan/ggml-vulkan.dll" "$destination/bin"
 Copy-Item "$destination/cpu/LICENSE-LLVM-OpenMP" "$destination/bin"
 $commit = 'd81235049384534c167caea52b85a694f6103d14'
+Download-Verified "https://raw.githubusercontent.com/ggml-org/llama.cpp/$commit/LICENSE" "$destination/bin/LICENSE-llama" '94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d'
 $headers = @{
     'llama.h' = 'c9a5f025ad7dbf07eda6660c8ff2c32cd80c07ba440d80728707a9c9d13c1bc3'
     'ggml.h' = '12ee71f99db7db9b353bc02b1fbb57c344ee17c01ac5fb7952b41a637a747ea9'
