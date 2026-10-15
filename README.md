@@ -55,6 +55,14 @@ LifeNarrator lives in the menu bar and has no Dock icon. **⌥⇧N** adds a rule
 
 **Updates:** In **Settings → General**, choose **Check for updates → Update now**. Automatic checks run at launch and every 24 hours by default; you can turn them off there. The app verifies the download checksum and requires the new app to satisfy the running app’s designated signing requirement before replacing it and restarting. Releases use the same certificate, so Accessibility and Screen Recording permissions are preserved. When updating from releases before v0.1.4, remove LifeNarrator from the permission lists and add it again once.
 
+## Windows installation
+
+Windows 10 (2004 / build 19041) or later, x64: download `LifeNarrator-Setup.exe` and `checksums-windows.txt` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases). Double-click the installer; it installs for your account without administrator access. The Windows preview is unsigned. If SmartScreen appears, choose **More info → Run anyway**.
+
+The welcome window explains screen reading and privacy, then lets you connect a model API or skip it. The built-in model is coming later. Right-click the tray icon → **Settings** to choose a persona, tune timing, configure an API, set the language, exclude processes, or turn off launch at login (on by default). API keys stay in Windows Credential Manager.
+
+Windows reads visible text through UI Automation. OCR, scroll following, built-in models, chat and the memory interface are not yet available on Windows. Settings and local history live in `%APPDATA%\LifeNarrator`. Uninstalling preserves them by default and asks whether to delete them and saved API keys; silent uninstalls always preserve user data.
+
 ## Build from source
 
 ```sh

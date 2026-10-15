@@ -17,6 +17,8 @@ class Handler(BaseHTTPRequestHandler):
             {"l": 0, "q": "visible English paragraph", "t": "有我陪你呀", "e": "✨"},
             {"l": 1, "q": "又要上班了", "t": "辛苦啦，慢慢来", "e": "😺"},
         ]}
+        if request["messages"][-1]["content"] == "Return JSON with ok set to true.":
+            marks = {"ok": True}
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.end_headers()

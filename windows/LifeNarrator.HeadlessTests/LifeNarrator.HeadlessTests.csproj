@@ -13,5 +13,15 @@
     <Compile Include="../LifeNarrator.Windows/Protocol.cs" Link="Protocol.cs" />
     <Compile Include="../LifeNarrator.Windows/BrainClient.cs" Link="BrainClient.cs" />
     <Compile Include="../LifeNarrator.Windows/Settings.cs" Link="Settings.cs" />
+    <Compile Include="../LifeNarrator.Windows/AppTheme.cs" Link="AppTheme.cs" />
+    <Compile Include="../LifeNarrator.Windows/Catalog.cs" Link="Catalog.cs" />
+    <Compile Include="../LifeNarrator.Windows/SettingsWindow.cs" Link="SettingsWindow.cs" />
+    <Compile Include="../LifeNarrator.Windows/ModelView.cs" Link="ModelView.cs" />
+    <Compile Include="../LifeNarrator.Windows/OnboardingWindow.cs" Link="OnboardingWindow.cs" />
+    <Compile Include="../LifeNarrator.Windows/Startup.cs" Link="Startup.cs" />
+    <AvaloniaResource Include="../LifeNarrator.Windows/AppTheme.axaml" Link="AppTheme.axaml" />
+    <EmbeddedResource Include="../../Sources/NarratorCore/Resources/providers.json" LogicalName="LifeNarrator.providers.json" />
+    <EmbeddedResource Include="../../Sources/NarratorCore/Resources/personas.json" LogicalName="LifeNarrator.personas.json" />
+    <EmbeddedResource Include="../LifeNarrator.Windows/Resources/*.json" LogicalName="LifeNarrator.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

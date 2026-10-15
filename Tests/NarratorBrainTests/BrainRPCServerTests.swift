@@ -21,6 +21,20 @@ private actor RPCGenerator: TextGenerator {
     }
 }
 
+private actor ConnectionGenerator: TextGenerator {
+    let reply: String
+    let gate: AsyncStream<Void>
+    var prompt: String?
+    var maxTokens: Int?
+    init(reply: String, gate: AsyncStream<Void>) { self.reply = reply; self.gate = gate }
+    func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
+        self.prompt = prompt; self.maxTokens = maxTokens
+        for await _ in gate { break }
+        try Task.checkCancellation()
+        return reply
+    }
+}
+
 @MainActor private final class ScriptedShell {
     let input = AsyncThrowingStream<String, any Error>.makeStream()
     var output: [RPCValue] = []
@@ -76,6 +90,31 @@ private actor RPCGenerator: TextGenerator {
 }
 
 @Suite @MainActor struct BrainRPCServerScenarios {
+    @Test(arguments: [#"{"ok":true}"#, #"{"ok":false}"#, "invalid JSON"])
+    func connectionTestValidatesReplyAndDoesNotBlockRPC(_ response: String) async throws {
+        let shell = ScriptedShell()
+        let gate = AsyncStream<Void>.makeStream()
+        let generator = ConnectionGenerator(reply: response, gate: gate.stream)
+        let server = BrainRPCServer(writeLine: shell.write, generatorFactory: { _ in generator })
+        let task = Task { try await server.run(lines: shell.input.stream) }
+        try shell.send("testConnection", params: .object(["generator": .object([
+            "kind": .string("api"), "presetId": .string("openai"), "model": .string("fixture"), "key": .string("test-key")])]), id: .number(10))
+        try shell.send("ping", id: .number(11))
+        try await waitFor { shell.output.contains { $0["id"] == .number(11) } }
+        #expect(!shell.output.contains { $0["id"] == .number(10) })
+        #expect(await generator.prompt == "Return JSON with ok set to true.")
+        #expect(await generator.maxTokens == 1024)
+        gate.continuation.yield(())
+        try await waitFor { shell.output.contains { $0["id"] == .number(10) } }
+        let result = try #require(shell.output.first { $0["id"] == .number(10) })
+        if response == #"{"ok":true}"# {
+            #expect(result["result"]?["elapsedMilliseconds"] != nil)
+        } else { #expect(result["error"]?["code"] == .number(-32003)) }
+        #expect(!shell.output.contains { $0["method"] != nil })
+        shell.input.continuation.finish()
+        try await task.value
+    }
+
     @Test func configureSnapshotGeneratesAndShowsThroughLineStreams() async throws {
         let shell = ScriptedShell(), generator = RPCGenerator()
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

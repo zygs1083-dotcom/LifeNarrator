@@ -55,6 +55,14 @@ curl -fsSL https://raw.githubusercontent.com/zygs1083-dotcom/LifeNarrator/main/s
 
 **更新：** 在“设置 → 通用”里点“检查更新 → 立即更新”。默认启动时和每隔 24 小时自动检查，也可以在这里关闭。应用会校验下载包的 SHA-256，并确认新包满足当前应用的指定签名要求，再替换并重启。发布版使用同一张证书，辅助功能和录屏权限会保留。从 v0.1.4 之前的版本更新时，需要在权限列表里把人生旁白删掉再重新添加一次。
 
+## Windows 安装
+
+支持 Windows 10（2004 / build 19041）及以上的 x64 系统。从 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator-Setup.exe` 和 `checksums-windows.txt`，双击安装；只为当前用户安装，不需要管理员权限。Windows 预览版尚未签名，遇到 SmartScreen 提示时点 **“更多信息 → 仍要运行”**。
+
+首次打开会说明读屏原理和隐私，可以配置模型 API，也可以跳过；内置模型稍后支持。右键系统托盘图标 → **设置**，可以选人格、调节奏、配置 API、切换语言、排除进程，或关闭默认开启的开机启动。API 密钥保存在 Windows 凭据管理器中。
+
+Windows 通过 UI Automation 读取可见文字，暂不支持 OCR、跟随滚动、内置模型、对话和记忆界面。设置和本地历史在 `%APPDATA%\LifeNarrator`。卸载默认保留数据，并询问是否连同已保存的 API 密钥一起删除；静默卸载始终保留用户数据。
+
 ## 从源码构建
 
 ```sh

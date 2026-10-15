@@ -24,3 +24,23 @@ jobs:
       - run: gh release create "$GITHUB_REF_NAME" dist/LifeNarrator.dmg dist/LifeNarrator.zip dist/checksums.txt dist/version.txt --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+
+  windows:
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: compnerd/gha-setup-swift@9ff1ee4c44888c5817fc14d1b257ac8cabb4935f
+        with:
+          swift-version: swift-6.2-release
+          swift-build: 6.2-RELEASE
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: swift build -c release --product narrator-brain
+      - run: windows/scripts/package-brain.ps1
+      - run: choco install innosetup --no-progress -y
+      - run: windows/scripts/build-installer.ps1
+      - run: gh release upload "$env:GITHUB_REF_NAME" artifacts/LifeNarrator-Setup.exe artifacts/checksums-windows.txt
+        env:
+          GH_TOKEN: ${{ github.token }}

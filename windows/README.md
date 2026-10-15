@@ -1,10 +1,13 @@
-# Windows shell (W1a)
+# Windows shell
 
 `LifeNarrator.exe` is a single-instance .NET 8 / Avalonia tray application. It owns
 `brain/narrator-brain.exe` and communicates over the bidirectional protocol below.
 The tray provides pause, liveliness, seven built-in personas, and exit. A brain
 failure turns the icon red, exposes the last six stderr lines in the menu, and
-enables **重启大脑**. Restart is manual. Settings/onboarding/installer are W1b.
+enables **重启大脑**. Restart is manual. Right-click the tray icon to open Settings.
+First launch opens the welcome flow; API and offline modes are available, while the
+built-in model is marked coming soon. Settings use the Mac peach-pink tokens, cards
+and choice cards, with system light/dark mode and system/Chinese/English language.
 
 Settings live in `%APPDATA%\LifeNarrator\settings.json`, alongside brain data and
 `brain.log`. First launch writes the offline defaults. An API configuration is:
@@ -23,7 +26,12 @@ Settings live in `%APPDATA%\LifeNarrator\settings.json`, alongside brain data an
 `provider.kind` is `none` or `api`; preset IDs come from the shared provider catalog.
 Keys are generic Windows credentials named `LifeNarrator/<presetId>`, stored by
 `CredentialStore.Write` / read by `CredentialStore.Read`; they never enter settings.
-W1a has no credential entry UI. Edit settings while the shell is stopped.
+Use the Models tab to select a grouped provider, enter the model and save its key
+to Credential Manager. Advanced settings accept a base URL (including the API path
+prefix) and structured-output mode. Test Connection sends a minimal request through
+the brain, validates its JSON response and reports elapsed milliseconds. Edits save
+and configure the running brain immediately; invalid drafts display the RPC error.
+Launch at login is enabled by default via the current user Run registry key.
 
 UIA lives on a dedicated MTA thread with a 4000-element control-view traversal.
 Foreground/location WinEvents, low-level keyboard/mouse hooks, and a 3-second
@@ -93,7 +101,8 @@ One UTF-8 JSON-RPC 2.0 object per line. Output contains protocol responses only;
 - `ping` returns `{ "version": NarratorCore.version }`.
 - `matchRules` takes `{ "snapshot": ContextSnapshot, "rules": [Rule] }` using the existing Codable fields. Dates are ISO 8601; CGRect is `[[x,y],[width,height]]`. It validates rules at the IPC boundary and returns `[{ "ruleId": "...", "lineIndex": 0 }]` in RuleMatcher's candidate order. `lineIndex` is zero based; a window-title/app/site/time match has `null`. The snapshot is treated as a context change (`appChanged` and `hostChanged` true); matching time is `snapshot.capturedAt`, so the handler is deterministic.
 
-No engine state, scheduling, streaming generation, model loading or settings are exposed in this spike. Those belong to T20/W1.
+The standalone spike does not start the tray application. The full shell uses
+the configure/event/port contract in brain-protocol.md.
 
 ## Evidence interpretation
 
@@ -103,3 +112,24 @@ No engine state, scheduling, streaming generation, model loading or settings are
 - `ocr.json` reports installed OCR languages, the selected language, text, word rectangles and source image dimensions. Chinese OCR requires an installed Chinese language pack. English-only recognition cannot establish Chinese OCR quality.
 
 API references: [Avalonia headless rendering](https://docs.avaloniaui.net/docs/testing/setting-up-the-headless-platform), [UIA text ranges](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-usingtextrangeobjects), [extended window styles](https://learn.microsoft.com/en-us/windows/win32/winmsg/extended-window-styles), [Windows.Media.Ocr](https://learn.microsoft.com/en-us/uwp/api/windows.media.ocr.ocrengine).
+
+## Installer
+
+CI installs Inno Setup with Chocolatey, runs `windows/scripts/build-installer.ps1`,
+and uploads `LifeNarrator-Setup.exe` plus `checksums-windows.txt` in the
+`LifeNarrator-Windows` artifact. Release tags upload the same files to the macOS
+Release. Installation is per user in `%LOCALAPPDATA%\Programs\LifeNarrator`,
+with a Start menu shortcut and an optional launch step; no administrator is needed.
+The unsigned preview may require **More info → Run anyway** in SmartScreen.
+
+`windows/scripts/verify-installer.ps1` silently installs with `/VERYSILENT /CURRENTUSER`,
+runs the installed app's `--verify-ui` harness without SDK directories in PATH,
+checks offline onboarding, a persona/timing edit, Credential Manager and a real
+brain connection test against the loopback fixture, then captures the three tabs
+in Chinese/light and English/dark plus the actual tray menu. It silently uninstalls
+and asserts user settings survived and the Run entry was removed. Screenshots and
+JSON/log evidence are in `LifeNarrator-Windows`. This verification flag is intended
+only for the disposable CI runner and writes fixture settings and credentials.
+
+Interactive uninstall asks whether to delete settings, local history and API keys.
+No is the default. Silent uninstall always retains user data and credentials.
