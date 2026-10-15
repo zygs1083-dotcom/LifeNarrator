@@ -75,6 +75,8 @@ struct CustomPersonaView: View {
             }
         }
         .padding(24).frame(width: 460)
+        .font(AppTheme.font(.body)).foregroundStyle(AppTheme.textPrimary)
+        .background(AppTheme.windowBackground)
         .interactiveDismissDisabled(generating)
     }
 

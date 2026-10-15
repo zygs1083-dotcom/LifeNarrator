@@ -60,7 +60,8 @@ final class UISnapshotTests: XCTestCase {
                 .frame(width: 740, height: 540).background(AppTheme.windowBackground)
             try render(cards, dark: dark, size: NSSize(width: 740, height: 540))
                 .write(to: directory.appendingPathComponent("ui-personas-custom-\(dark ? "dark" : "light").png"))
-            try render(CustomPersonaView(store: customStore), dark: dark, size: NSSize(width: 508, height: 230))
+            try render(CustomPersonaView(store: customStore).frame(width: 508, height: 230).background(AppTheme.windowBackground),
+                       dark: dark, size: NSSize(width: 508, height: 230))
                 .write(to: directory.appendingPathComponent("ui-personas-create-\(dark ? "dark" : "light").png"))
         }
         try customStore.deletePersona(custom.id)
