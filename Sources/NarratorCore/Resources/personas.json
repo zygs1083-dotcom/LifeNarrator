@@ -129,7 +129,7 @@
         "Chalkboard SE"
       ]
     },
-    "pack": "gentle",
+    "pack": "teacher",
     "examples": "teacher",
     "focus": {
       "zh": "优先挑专业术语和缩写、英文单词、错别字或病句、值得补一句背景知识的地方。旁白就是那一句解释、纠正或知识点。",
@@ -166,7 +166,7 @@
         "Chalkboard SE"
       ]
     },
-    "pack": "gentle",
+    "pack": "mom",
     "examples": "mom",
     "focus": {
       "zh": "优先挑价格和消费、时间和熬夜、健康和饮食、和家人朋友有关的事。",
@@ -202,7 +202,7 @@
         "Chalkboard SE"
       ]
     },
-    "pack": "gentle",
+    "pack": "hype",
     "examples": "hype"
   },
   {
@@ -235,7 +235,7 @@
         "Chalkboard SE"
       ]
     },
-    "pack": "sharp",
+    "pack": "cat",
     "examples": "cat"
   }
 ]

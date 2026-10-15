@@ -6,16 +6,20 @@ import Testing
     let pack = try SpriteQuips.loadBuiltin()
     #expect(pack.version == 1)
     #expect(Set(pack.categories.keys) == ["money", "deadline", "name", "action", "revisit"])
-    for (_, quips) in pack.categories {
+    for (category, quips) in pack.categories {
         for lang in Lang.allCases {
             for persona in Set(PersonaCatalog.builtin.profiles.map(\.pack)) {
                 let pool = quips.filter { $0.lang == lang && $0.persona == persona }
-                #expect(pool.count >= 2)
+                #expect(pool.count == 8)
                 #expect(pool.filter { $0.text.contains("{text}") }.count * 3 <= pool.count)
                 #expect(Set(pool.map(\.text)).count == pool.count)
+                let target = pack.rule(for: category, text: lang == .zh ? "样本" : "Sample", app: "Fixture", title: "Feed", lang: lang)
                 for quip in pool {
+                    let rendered = try #require(QuipPicker.render(quip.text, rule: target, lang: lang))
+                    #expect(!rendered.contains("{") && !rendered.contains("}"))
+                    #expect(quip.when == .any)
                     #expect(!quip.text.isEmpty)
-                    #expect(quip.text.count <= (lang == .zh ? 14 : 40))
+                    #expect(quip.text.count <= (persona == .teacher ? (lang == .zh ? 22 : 60) : (lang == .zh ? 14 : 40)))
                     #expect(!"，,、；;：:".contains(quip.text.last!))
                     #expect(!quip.text.contains(where: QuipValidator.isEmoji))
                     #expect((1...3).contains(quip.emoji.count))
