@@ -166,12 +166,14 @@ internal sealed class ChatWindow : Window
     {
         var user = new Border { Child = Views.Label(turn.User), Padding = new Thickness(12, 8),
             CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Right, MaxWidth = 300 };
-        user.Bind(Border.BackgroundProperty, this.GetResourceObservable("Paper")); turns.Children.Add(user);
+        user.Bind(Border.BackgroundProperty, this.GetResourceObservable("Paper"));
         var reply = new BubbleVisual(turn.Id, turn.Reply, [], settings.EffectiveLanguage,
             settings.ActiveStyle(companion.Growth), settings.FontPersona(settings.Persona), maxWidth: 240);
         reply.HorizontalAlignment = HorizontalAlignment.Left;
-        AutomationProperties.SetName(reply, turn.Reply); turns.Children.Add(reply);
-        if (turn.Notice != null) turns.Children.Add(Views.Caption(turn.Notice));
+        AutomationProperties.SetName(reply, turn.Reply);
+        var group = Views.Stack(user, reply); group.Spacing = 10;
+        if (turn.Notice != null) group.Children.Add(Views.Caption(turn.Notice));
+        turns.Children.Add(group);
     }
 }
 

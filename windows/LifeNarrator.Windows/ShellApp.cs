@@ -76,7 +76,7 @@ public sealed partial class ShellApp : Application
 
     void ShowTray(PixelPoint point)
     {
-        trayMenu ??= new TrayMenuWindow(settings, companion, Configure, () => ShowChat(), () => { ShowInput(); return Task.CompletedTask; },
+        trayMenu ??= new TrayMenuWindow(settings, companion, async () => { await Configure(); settingsWindow?.Refresh(); }, () => ShowChat(), () => { ShowInput(); return Task.CompletedTask; },
             tab => { ShowSettings(); settingsWindow?.SelectTab(tab); }, Quit, updater, async () => { await Stop(); await Start(); });
         trayMenu.Refresh(error, ocrUnavailable, updateFailure); trayMenu.Open(point);
     }

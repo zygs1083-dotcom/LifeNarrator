@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media.Imaging;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -23,7 +24,8 @@ internal static class RestChecks
     static void Capture(Window window, string path)
     {
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-        using var frame = window.CaptureRenderedFrame() ?? throw new Exception("No panel pixels: " + path);
+        using var frame = new RenderTargetBitmap(PixelSize.FromSize(window.ClientSize, window.RenderScaling), new Vector(96, 96) * window.RenderScaling);
+        frame.Render(window);
         frame.Save(path);
     }
     static T Find<T>(Window window, string id) where T : Control
