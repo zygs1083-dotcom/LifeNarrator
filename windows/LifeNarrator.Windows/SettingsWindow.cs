@@ -62,7 +62,9 @@ internal sealed class SettingsWindow : Window
         for (var i = 0; i < names.Length; i++)
         {
             var index = i;
-            var button = new ToggleButton { Content = Views.Horizontal(Views.Icon(glyphs[i]), Views.Label(text[names[i]])),
+            var label = Views.Label(text[names[i]]); label.FontWeight = FontWeight.SemiBold;
+            var tabContent = Views.Horizontal(Views.Icon(glyphs[i]), label); tabContent.Spacing = 6;
+            var button = new ToggleButton { Content = tabContent,
                 IsChecked = tab == i, Padding = new Thickness(10, 6), CornerRadius = new CornerRadius(18), VerticalAlignment = VerticalAlignment.Center };
             button.Classes.Add("tab"); Views.Hue(button, hues[i]);
             AutomationProperties.SetAutomationId(button, "tab-" + i); AutomationProperties.SetName(button, text[names[i]]);

@@ -42,7 +42,8 @@ internal static class Views
     public static Control Heading(string title, string glyph, string? caption = null)
     {
         var label = Label(title); label.FontSize = 15; label.FontWeight = FontWeight.SemiBold;
-        var heading = Stack(Horizontal(Chip(glyph), label)); heading.Spacing = 6;
+        var row = Horizontal(Chip(glyph), label); row.Spacing = 8;
+        var heading = Stack(row); heading.Spacing = 6;
         label.VerticalAlignment = VerticalAlignment.Center;
         if (caption != null) heading.Children.Add(Caption(caption));
         return heading;
@@ -79,7 +80,7 @@ internal static class Views
     }
     public static Button Button(string title, Action action)
     {
-        var button = new Button { Content = title, HorizontalAlignment = HorizontalAlignment.Left };
+        var button = new Button { Content = title, FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Left };
         button.Click += (_, _) => action(); return button;
     }
     public static Button Primary(string title, Action action) { var button = Button(title, action); button.Classes.Add("primary"); return button; }

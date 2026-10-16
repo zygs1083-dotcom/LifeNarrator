@@ -14,7 +14,7 @@ internal sealed class GrowthCard : StackPanel
         var children = new List<Control>();
         if (companion.Growth is { } growth)
         {
-            var nameLabel = Views.Label(growth.Has("spriteName") && growth.Name.Length > 0 ? growth.Name : text["tab.sprite"]); nameLabel.FontWeight = FontWeight.SemiBold; nameLabel.VerticalAlignment = VerticalAlignment.Center;
+            var nameLabel = Views.Label(growth.Has("spriteName") && growth.Name.Length > 0 ? growth.Name : text["tab.sprite"]); nameLabel.FontWeight = FontWeight.SemiBold; nameLabel.FontSize = 15; nameLabel.VerticalAlignment = VerticalAlignment.Center;
             var title = Views.Caption(growth.Title); title.VerticalAlignment = VerticalAlignment.Center;
             children.Add(Views.Horizontal(Views.Chip("\uE8F2"), nameLabel, Views.Badge("Lv." + growth.State.Level), title));
             var start = growth.State.Level == 1 ? 0 : 40 * growth.State.Level * growth.State.Level;
@@ -28,7 +28,7 @@ internal sealed class GrowthCard : StackPanel
             foreach (var (key, value) in new[] { ("daysKnown", growth.DaysKnown), ("streak", growth.State.ConsecutiveDays),
                 ("narrations", growth.State.Narrations), ("chats", growth.State.ChatMessages) })
             {
-                var number = Views.Label(value.ToString()); number.FontWeight = FontWeight.SemiBold;
+                var number = Views.Label(value.ToString()); number.FontWeight = FontWeight.SemiBold; number.FontSize = 12;
                 var stat = Views.Stack(number, Views.Caption(text["growth." + key])); stat.Spacing = 4; stats.Children.Add(stat);
             }
             children.Add(stats);
