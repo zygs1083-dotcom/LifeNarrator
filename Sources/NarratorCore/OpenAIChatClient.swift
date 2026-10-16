@@ -10,13 +10,15 @@ public struct OpenAIChatClient: TextGenerator {
     public var model: String
     public var structured: StructuredOutput
     public var stream: Bool
+    public var disableThinking: Bool
     public var configuration: URLSessionConfiguration
 
     public init(baseURL: URL, path: String, model: String, key: String = "",
-                structured: StructuredOutput = .jsonSchema, stream: Bool = true,
+                structured: StructuredOutput = .jsonSchema, stream: Bool = true, disableThinking: Bool = false,
                 configuration: URLSessionConfiguration = .default) {
         self.baseURL = baseURL; self.path = path; self.model = model; self.key = key
-        self.structured = structured; self.stream = stream; self.configuration = configuration
+        self.structured = structured; self.stream = stream; self.disableThinking = disableThinking
+        self.configuration = configuration
     }
 
     public func makeRequest(system: String?, prompt: String, schema: String, maxTokens: Int? = nil) throws -> URLRequest {
@@ -35,6 +37,8 @@ public struct OpenAIChatClient: TextGenerator {
         case .prompt: break
         }
         if let maxTokens { body["max_tokens"] = maxTokens }
+        // DeepSeek thinks before answering unless told not to, which makes every narration several times slower.
+        if disableThinking { body["thinking"] = ["type": "disabled"] }
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

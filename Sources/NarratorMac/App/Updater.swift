@@ -5,13 +5,14 @@ import NarratorCore
 import Security
 
 @MainActor
-public final class Updater: NSObject, ObservableObject, URLSessionDownloadDelegate {
+public final class Updater: NSObject, ObservableObject, URLSessionTaskDelegate {
     public enum State {
         case idle, checking, upToDate, available(AppRelease), downloading(Double), failed(String)
     }
     @Published public private(set) var state: State = .idle
     private var schedule: Task<Void, Never>?
     private let session = URLSession(configuration: .ephemeral)
+    private var downloadProgress: NSKeyValueObservation?
 
     public var isBusy: Bool {
         switch state {
@@ -89,17 +90,17 @@ public final class Updater: NSObject, ObservableObject, URLSessionDownloadDelega
         }
     }
 
-    nonisolated public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                                      didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
-                                      totalBytesExpectedToWrite: Int64) {
-        let progress = totalBytesExpectedToWrite > 0 ? Double(totalBytesWritten) / Double(totalBytesExpectedToWrite) : 0
+    // The async download API never calls didWriteData, so the bar follows the task's own Progress instead.
+    nonisolated public func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
         Task { @MainActor in
-            if case .downloading = self.state { self.state = .downloading(progress) }
+            self.downloadProgress = task.progress.observe(\.fractionCompleted) { @Sendable progress, _ in
+                let fraction = progress.fractionCompleted
+                Task { @MainActor in
+                    if case .downloading = self.state { self.state = .downloading(fraction) }
+                }
+            }
         }
     }
-
-    nonisolated public func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                                      didFinishDownloadingTo location: URL) {}
 
     nonisolated private static func checkResponse(_ response: URLResponse) throws {
         guard let response = response as? HTTPURLResponse else { throw failure("Expected an HTTP response.") }

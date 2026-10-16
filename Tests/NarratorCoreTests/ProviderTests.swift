@@ -63,6 +63,15 @@ private let connectionSchema = #"{"type":"object","properties":{"ok":{"type":"bo
     #expect((body["messages"] as! [[String: String]])[0]["content"] == "\(connectionSchema)\n只输出符合这个 schema 的 JSON")
 }
 
+@Test func deepSeekRequestsTurnThinkingOff() throws {
+    for (preset, thinking) in [("deepseek", ["type": "disabled"]), ("openai", nil)] {
+        let client = try ProviderConfiguration(presetID: preset, model: "fixture").generator(key: "secret") as! OpenAIChatClient
+        let request = try client.makeRequest(system: nil, prompt: "user", schema: connectionSchema)
+        let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+        #expect(body["thinking"] as? [String: String] == thinking)
+    }
+}
+
 @Test func sseHandlesSplitLinesUTF8CommentsAndDone() {
     let bytes = Data(": keepalive\r\nevent: message\r\ndata: 一\r\ndata: 二\r\n\r\ndata: [DONE]\n\ndata: ignored\n\n".utf8)
     for split in 0...bytes.count {

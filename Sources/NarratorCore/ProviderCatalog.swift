@@ -23,6 +23,7 @@ public struct ProviderPreset: Codable, Identifiable, Sendable {
     public let keyURL: URL?
     public let modelsEndpoint: Bool
     public let suggestedModels: [String]
+    public let disableThinking: Bool?
 }
 
 public enum ProviderCatalog {
@@ -94,7 +95,8 @@ public struct ProviderConfiguration: Codable, Sendable {
         switch preset.api {
         case .openai:
             return OpenAIChatClient(baseURL: url, path: preset.path, model: model, key: key,
-                                    structured: structured ?? preset.structured, stream: preset.stream)
+                                    structured: structured ?? preset.structured, stream: preset.stream,
+                                    disableThinking: preset.disableThinking == true)
         case .anthropic:
             return AnthropicClient(baseURL: url, path: preset.path, model: model, key: key, stream: preset.stream)
         }

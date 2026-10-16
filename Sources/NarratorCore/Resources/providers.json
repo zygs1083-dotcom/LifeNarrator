@@ -146,8 +146,10 @@
     "keyURL": "https://platform.deepseek.com/api_keys",
     "modelsEndpoint": true,
     "suggestedModels": [
-      "deepseek-chat"
-    ]
+      "deepseek-flash",
+      "deepseek-v4-pro"
+    ],
+    "disableThinking": true
   },
   {
     "id": "bailian",
