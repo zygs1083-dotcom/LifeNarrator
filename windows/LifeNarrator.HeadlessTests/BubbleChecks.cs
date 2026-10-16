@@ -4,6 +4,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -20,7 +21,7 @@ internal static class BubbleChecks
     }
     public static void Run()
     {
-        CheckSettings(); CheckMotion();
+        CheckSettings(); CheckMotion(); CheckClicks();
         foreach (var background in new[] { "transparent", "light", "dark" })
         {
             Directory.CreateDirectory($"{Output}/{background}");
@@ -54,7 +55,24 @@ internal static class BubbleChecks
             }
         }
         Compare();
-        Console.WriteLine("PASS: 399 bubble/anchor snapshots (transparent/light/dark); text effects; preview redraw; Mac comparison; migration, locks, emoji, dwell and animation checks");
+        Console.WriteLine("PASS: 399 bubble/anchor snapshots (transparent/light/dark); text effects; seven-shape click delivery; preview redraw; Mac comparison; migration, locks, emoji, dwell and animation checks");
+    }
+
+    static void CheckClicks()
+    {
+        foreach (var shape in BubbleStyle.Shapes)
+        {
+            var bubble = new BubbleVisual("click", "Click me", [], "en", new BubbleStyle { Shape = shape });
+            var window = new Window { Width = bubble.Width, Height = bubble.Height, Content = bubble };
+            var clicks = 0;
+            bubble.PointerReleased += (_, e) => { if (e.InitialPressMouseButton == MouseButton.Left) clicks++; };
+            window.Show();
+            using var frame = window.CaptureRenderedFrame();
+            var center = new Point(bubble.Width / 2, bubble.Height / 2);
+            window.MouseDown(center, MouseButton.Left); window.MouseUp(center, MouseButton.Left);
+            if (clicks != 1) throw new Exception("Bubble click did not reach chat/dismiss handler: " + shape);
+            window.Close();
+        }
     }
 
     static void CheckSettings()

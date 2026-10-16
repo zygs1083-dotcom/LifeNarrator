@@ -30,6 +30,7 @@ public sealed class BubbleVisual : Panel
     internal BubbleVisual(string id, string caption, string[] emojis, string language, BubbleStyle style,
         string persona, bool narrow, double fillOpacity, bool appTail, BubbleColors colors)
     {
+        Background = Brushes.Transparent;
         Style = style; Group = colors; this.fillOpacity = fillOpacity;
         metrics = new(style.Size);
         rotation = style.Shape switch

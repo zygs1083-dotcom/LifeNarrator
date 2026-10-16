@@ -18,7 +18,7 @@ internal sealed class OverlayController : IDisposable
         public readonly Surface Surface = surface;
         public readonly BubbleVisual Visual = visual;
         public readonly AnchorDecor? Highlight = highlight;
-        public readonly Placement Placement = placement;
+        public Placement Placement = placement;
         public Box Frame = frame;
         public Box? Anchor = anchor;
         public Box? Line = narration.Line;
@@ -132,7 +132,12 @@ internal sealed class OverlayController : IDisposable
                 {
                     var frame = placement.StackFrames[i + 1];
                     if (frame == null) Dismiss(stack[i]);
-                    else { stack[i].Frame = frame; Position(stack[i]); }
+                    else
+                    {
+                        stack[i].Frame = frame;
+                        stack[i].Placement = stack[i].Placement with { Corner = placement.Corner };
+                        Position(stack[i]);
+                    }
                 }
             while (bubbles.Count(x => x.Dismissed == null) >= settings.MaxOnScreen)
                 Dismiss(bubbles.First(x => x.Dismissed == null));

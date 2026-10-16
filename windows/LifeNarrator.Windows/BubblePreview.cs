@@ -35,19 +35,19 @@ public sealed class BubblePreview : Panel
     }
     sealed class MockWindow : Control
     {
-    public override void Render(DrawingContext c)
-    {
-        var dark = ActualThemeVariant == ThemeVariant.Dark;
-        var ink = dark ? Colors.White : Colors.Black;
-        var line = new SolidColorBrush(ink, .12);
-        c.DrawRectangle(new SolidColorBrush(Color.Parse(dark ? "#211C20" : "#FFF9F6")), new Pen(line, 1), new Rect(0, 0, 320, 200), 10, 10);
-        foreach (var (x, color) in new[] { (14d, "#FF5F57"), (27d, "#FEBC2E"), (40d, "#28C840") })
-            c.DrawEllipse(Brush.Parse(color), null, new Point(x, 11), 4, 4);
-        c.DrawLine(new Pen(line, 1), new Point(0, 22), new Point(320, 22));
-        var y = 38d;
-        foreach (var fraction in new[] { .60, .80, .45 })
-        { c.DrawRectangle(new SolidColorBrush(ink, .18), null, new Rect(16, y, 320 * fraction, 8), 4, 4); y += 20; }
-    }
+        public override void Render(DrawingContext c)
+        {
+            var dark = ActualThemeVariant == ThemeVariant.Dark;
+            var ink = dark ? Colors.White : Colors.Black;
+            var line = new SolidColorBrush(ink, .12);
+            c.DrawRectangle(new SolidColorBrush(Color.Parse(dark ? "#211C20" : "#FFF9F6")), new Pen(line, 1), new Rect(0, 0, 320, 200), 10, 10);
+            foreach (var (x, color) in new[] { (14d, "#FF5F57"), (27d, "#FEBC2E"), (40d, "#28C840") })
+                c.DrawEllipse(Brush.Parse(color), null, new Point(x, 11), 4, 4);
+            c.DrawLine(new Pen(line, 1), new Point(0, 22), new Point(320, 22));
+            var y = 38d;
+            foreach (var fraction in new[] { .60, .80, .45 })
+            { c.DrawRectangle(new SolidColorBrush(ink, .18), null, new Rect(16, y, 320 * fraction, 8), 4, 4); y += 20; }
+        }
     }
     protected override Size ArrangeOverride(Size finalSize)
     {
