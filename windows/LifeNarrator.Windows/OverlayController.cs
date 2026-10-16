@@ -284,9 +284,11 @@ internal sealed class OverlayController : IDisposable
             { Native.SetOverlayInteractive(surface.Window.TryGetPlatformHandle()!.Handle, interactive); surface.Interactive = interactive; }
         }
         var now = DateTimeOffset.UtcNow;
+        // Same rule as the Mac: with more than 3 allowed on screen, bubbles stay long enough to appear together.
+        var dwell = settings.MaxOnScreen > 3 ? Math.Max(settings.Dwell, 2.5 * settings.MaxOnScreen) : settings.Dwell;
         foreach (var bubble in bubbles.ToArray())
         {
-            if (bubble.Dismissed == null && (now - bubble.Born).TotalSeconds >= settings.Dwell) bubble.Dismissed = now;
+            if (bubble.Dismissed == null && (now - bubble.Born).TotalSeconds >= dwell) bubble.Dismissed = now;
             var opacity = bubble.Dismissed is { } dismissed
                 ? 1 - (now - dismissed).TotalMilliseconds / 180
                 : Math.Min(1, (now - bubble.Born).TotalMilliseconds / 180);

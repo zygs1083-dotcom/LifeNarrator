@@ -63,7 +63,7 @@
 "emoji.many" = "Many";
 "font" = "Font";
 "font.persona" = "Follow persona";
-"dwell.persistent" = "Stay until any key or click";
+"dwell.persistent" = "Stay until clicked or the window changes";
 "preview" = "Live preview";
 "preview.text" = "Your little narrator";
 "rules.user" = "Your rules";
@@ -127,6 +127,7 @@
 "pace.dwell" = "Stay on screen";
 "pace.dwell.hint" = "With more than 3 marks on screen, each stays at least %g seconds so they can appear together.";
 "pace.maxOnScreen" = "At most on screen";
+"pace.maxOnScreen.hint" = "An upper limit: how many appear depends on what can be remarked on and the free space around it. Switching windows clears them.";
 "format.seconds" = "%d s";
 "format.count" = "%d";
 "persona.sharp.hint" = "Snarky but funny";

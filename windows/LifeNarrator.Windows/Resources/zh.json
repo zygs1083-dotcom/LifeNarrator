@@ -57,6 +57,8 @@
   "pace.gap": "出场间隔",
   "pace.hint": "热闹程度决定说多少，这里决定快慢。",
   "pace.maxOnScreen": "同屏最多",
+  "pace.dwell.hint": "同屏上限超过 3 条时，每条至少停留“上限 × 2.5”秒，让它们能一起出现。",
+  "pace.maxOnScreen.hint": "这是上限：实际有几条取决于屏幕上可吐槽的内容和旁边的空位，切换窗口会清空。",
   "pause": "暂停",
   "paused": "已暂停",
   "persona": "人设",

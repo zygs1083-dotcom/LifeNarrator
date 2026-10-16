@@ -76,7 +76,9 @@ internal sealed class SettingsWindow : Window
             Views.Card(text["pace"], Views.Caption(text["pace.hint"]),
                 Pace("pace.gap", settings.MarkGap, 30, value => settings.MarkGap = value),
                 Pace("pace.dwell", settings.Dwell, 30, value => settings.Dwell = value),
-                Pace("pace.maxOnScreen", settings.MaxOnScreen, 10, value => settings.MaxOnScreen = (int)value)));
+                Views.Caption(text["pace.dwell.hint"]),
+                Pace("pace.maxOnScreen", settings.MaxOnScreen, 10, value => settings.MaxOnScreen = (int)value),
+                Views.Caption(text["pace.maxOnScreen.hint"])));
     }
 
     Control Pace(string key, double value, int max, Action<double> change)

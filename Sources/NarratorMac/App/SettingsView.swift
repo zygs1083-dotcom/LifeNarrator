@@ -153,6 +153,8 @@ private struct SpriteSettingsView: View {
                     Double(store.settings.bubbleStyle.maxOnScreen)
                 }, set: { store.settings.bubbleStyle.maxOnScreen = Int($0) }), range: 1...10,
                           format: { String(format: store.text("format.count"), $0) }, hue: hue)
+                Text(store.text("pace.maxOnScreen.hint"))
+                    .font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
             } label: { CardHeading(title: store.text("pace"), symbol: "metronome", hue: hue, caption: store.text("pace.hint")) }
             GroupBox {
                 PersonaSettingsView(store: store)

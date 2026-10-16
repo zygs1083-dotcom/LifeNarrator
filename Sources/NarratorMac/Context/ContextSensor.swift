@@ -360,6 +360,13 @@ public final class ContextSensor {
             schedule()
             return
         }
+        if name == kAXFocusedWindowChangedNotification, let window,
+           let focused = try AXAccess.element(axApplication!, kAXFocusedWindowAttribute) {
+            // Apps like DingTalk focus hover cards and pickers for a moment (240×124 standard windows); keep
+            // narrating the window behind them instead of clearing its bubbles and request, and ignore the return.
+            if CFEqual(focused, window) { return }
+            if let frame = try AXAccess.frame(focused), min(frame.width, frame.height) < 260 { return }
+        }
         if name == kAXFocusedWindowChangedNotification || name == kAXUIElementDestroyedNotification {
             try bindWindow()
         }

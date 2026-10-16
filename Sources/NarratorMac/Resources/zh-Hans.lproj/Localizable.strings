@@ -63,7 +63,7 @@
 "emoji.many" = "丰富";
 "font" = "字体";
 "font.persona" = "跟随人设";
-"dwell.persistent" = "常驻，任意按键或点击后消失";
+"dwell.persistent" = "常驻，点一下气泡或切换窗口后消失";
 "preview" = "实时预览";
 "preview.text" = "你的旁白小精灵";
 "rules.user" = "你的规则";
@@ -127,6 +127,7 @@
 "pace.dwell" = "停留时长";
 "pace.dwell.hint" = "同屏超过 3 条时，每条至少停留 %g 秒，让它们能一起出现。";
 "pace.maxOnScreen" = "同屏最多";
+"pace.maxOnScreen.hint" = "这是上限：实际有几条取决于屏幕上可吐槽的内容和旁边的空位，切换窗口会清空。";
 "format.seconds" = "%d 秒";
 "format.count" = "%d 条";
 "persona.sharp.hint" = "嘴碎，但好笑";

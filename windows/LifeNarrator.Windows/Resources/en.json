@@ -57,6 +57,8 @@
   "pace.gap": "Gap between marks",
   "pace.hint": "Liveliness decides how much; this decides how fast.",
   "pace.maxOnScreen": "Maximum on screen",
+  "pace.dwell.hint": "With an on-screen limit above 3, each stays at least 2.5 s × the limit so they can appear together.",
+  "pace.maxOnScreen.hint": "An upper limit: how many appear depends on what can be remarked on and the free space around it. Switching windows clears them.",
   "pause": "Pause",
   "paused": "Paused",
   "persona": "Persona",

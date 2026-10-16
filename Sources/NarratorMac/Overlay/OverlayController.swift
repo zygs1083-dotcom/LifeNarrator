@@ -717,7 +717,7 @@ public final class OverlayController: NSObject {
         return edges.min { $0.distance < $1.distance }!.offset
     }
 
-    /// Coordinator decision 6: in "until dismissed" mode any key or click anywhere dismisses everything.
+    /// Hover and click monitors: a click on a bubble opens the chat; resident bubbles leave only when clicked.
     private func installDismissMonitors() {
         guard dismissMonitors.isEmpty else { return }
         let mask: NSEvent.EventTypeMask = [.mouseMoved, .keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown]
@@ -753,11 +753,11 @@ public final class OverlayController: NSObject {
                     let frame = CGRect(x: overlay.panel.frame.minX + bubble.frame.minX,
                         y: overlay.panel.frame.maxY - bubble.frame.maxY, width: bubble.frame.width, height: bubble.frame.height)
                     onChat?(bubble.appearance.text, frame)
+                    if style.dwell == .untilDismissed { remove(bubble.id, from: overlay) }
                     return true
                 }
             }
         }
-        if style.dwell == .untilDismissed { dismissAll() }
         return false
     }
 
