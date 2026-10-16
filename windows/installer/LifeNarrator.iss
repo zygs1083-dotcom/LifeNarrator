@@ -19,6 +19,7 @@ OutputBaseFilename=LifeNarrator-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\LifeNarrator.Windows\Assets\AppIcon.ico
 UninstallDisplayIcon={app}\LifeNarrator.exe
 AppMutex=Local\LifeNarrator.Windows
 CloseApplications=yes

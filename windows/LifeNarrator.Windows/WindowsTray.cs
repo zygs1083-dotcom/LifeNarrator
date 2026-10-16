@@ -26,7 +26,7 @@ internal sealed class WindowsTray : IDisposable
     }
     [StructLayout(LayoutKind.Sequential)] struct Point { public int X, Y; }
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)] static extern bool Shell_NotifyIcon(uint operation, ref IconData data);
-    [DllImport("user32.dll", SetLastError = true)] static extern nint CreateIcon(nint instance, int width, int height, byte planes, byte bits, byte[] mask, byte[] pixels);
+    [DllImport("user32.dll", SetLastError = true)] static extern nint CreateIconFromResourceEx(byte[] png, uint size, bool icon, uint version, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern bool DestroyIcon(nint icon);
     [DllImport("user32.dll", SetLastError = true)] static extern bool GetCursorPos(out Point point);
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern uint RegisterWindowMessage(string message);
@@ -51,28 +51,20 @@ internal sealed class WindowsTray : IDisposable
         });
         data = new IconData { Size = (uint)Marshal.SizeOf<IconData>(), Window = window.TryGetPlatformHandle()!.Handle,
             Id = 1, Flags = 7, Message = 0x800, Tip = "LifeNarrator", Info = "", InfoTitle = "" };
-        SetIcon(42, 166, 100); Notify(0); Notify(4);
+        SetIcon(false, false); Notify(0); Notify(4);
     }
 
-    public void Update(string tip, byte r, byte g, byte b)
+    public void Update(string tip, bool paused, bool error)
     {
-        data.Tip = tip.Length > 127 ? tip[..127] : tip; SetIcon(r, g, b); Notify(1);
+        data.Tip = tip.Length > 127 ? tip[..127] : tip; SetIcon(paused, error); Notify(1);
     }
 
-    void SetIcon(byte r, byte g, byte b)
+    void SetIcon(bool paused, bool error)
     {
-        var pixels = new byte[32 * 32 * 4]; var mask = new byte[128];
-        for (var y = 0; y < 32; y++)
-        for (var x = 0; x < 32; x++)
-        {
-            var visible = (x >= 3 && x < 29 && y >= 4 && y < 24) || (x >= 6 && x < 13 && y >= 24 && y < 29 - (x - 6));
-            if (!visible) { mask[y * 4 + x / 8] |= (byte)(0x80 >> (x % 8)); continue; }
-            var dot = y is >= 12 and <= 16 && (x is >= 8 and <= 10 or >= 15 and <= 17 or >= 22 and <= 24);
-            var index = (y * 32 + x) * 4;
-            pixels[index] = dot ? (byte)255 : b; pixels[index + 1] = dot ? (byte)255 : g;
-            pixels[index + 2] = dot ? (byte)255 : r; pixels[index + 3] = 255;
-        }
-        var icon = CreateIcon(0, 32, 32, 1, 32, mask, pixels);
+        using var bitmap = AppIcons.Tray(paused, error);
+        using var png = new MemoryStream(); bitmap.Save(png);
+        var bytes = png.ToArray();
+        var icon = CreateIconFromResourceEx(bytes, (uint)bytes.Length, true, 0x00030000, 32, 32, 0);
         if (icon == 0) throw new Win32Exception();
         var previous = data.Icon; data.Icon = icon;
         if (previous != 0) DestroyIcon(previous);

@@ -63,7 +63,7 @@ internal sealed class TrayMenuWindow : Window
         FontFamily = Views.Font(settings); Title = text["app.name"];
         var name = Views.Label(companion.Growth is { } g && g.Has("spriteName") && g.Name.Trim().Length > 0 ? g.Name.Trim() : text["tab.sprite"]); name.FontSize = 15; name.FontWeight = FontWeight.SemiBold;
         name.TextWrapping = TextWrapping.NoWrap; name.TextTrimming = TextTrimming.CharacterEllipsis; name.MaxWidth = 120;
-        var identity = Views.Horizontal(Views.Chip("\uE8F2"), name); identity.Spacing = 8;
+        var identity = Views.Horizontal(new Image { Source = AppIcons.Image, Width = 26, Height = 26 }, name); identity.Spacing = 8;
         var body = Views.Stack(Views.Row(identity, Views.Badge("Lv." + (companion.Growth?.State.Level ?? 1)))); body.Spacing = 10;
         if (companion.Growth is { } growth)
         {

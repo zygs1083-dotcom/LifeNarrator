@@ -6,6 +6,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <ApplicationIcon>Assets/AppIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
@@ -15,6 +16,8 @@
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/models.json" LogicalName="LifeNarrator.models.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/providers.json" LogicalName="LifeNarrator.providers.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/personas.json" LogicalName="LifeNarrator.personas.json" />
+    <EmbeddedResource Include="Assets/AppIcon.ico" LogicalName="LifeNarrator.AppIcon.ico" />
+    <EmbeddedResource Include="Assets/AppIcon.png" LogicalName="LifeNarrator.AppIcon.png" />
     <EmbeddedResource Include="Resources/*.json" LogicalName="LifeNarrator.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="LifeNarrator.Windows.AppTheme">
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:LifeNarrator.Windows" x:Class="LifeNarrator.Windows.AppTheme">
   <Styles.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -176,7 +176,7 @@
       </ControlTheme>
     </ResourceDictionary>
   </Styles.Resources>
-  <Style Selector="Window"><Setter Property="Background" Value="{DynamicResource Paper}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="FontSize" Value="13"/></Style>
+  <Style Selector="Window"><Setter Property="Icon" Value="{x:Static local:AppIcons.Window}"/><Setter Property="Background" Value="{DynamicResource Paper}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="FontSize" Value="13"/></Style>
   <Style Selector="TextBlock.caption"><Setter Property="Foreground" Value="{DynamicResource Muted}"/><Setter Property="FontSize" Value="11"/></Style>
   <Style Selector="ToggleButton:checked TextBlock.caption"><Setter Property="Foreground" Value="{DynamicResource AccentInk}"/></Style>
   <Style Selector="Button.primary"><Setter Property="Background" Value="{DynamicResource Soft}"/><Setter Property="Foreground" Value="{DynamicResource AccentInk}"/><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>

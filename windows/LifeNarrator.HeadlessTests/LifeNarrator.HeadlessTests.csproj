@@ -20,6 +20,7 @@
     <Compile Include="../LifeNarrator.Windows/Updater.cs" Link="Updater.cs" />
     <Compile Include="../LifeNarrator.Windows/UpdateSignature.cs" Link="UpdateSignature.cs" />
     <Compile Include="../LifeNarrator.Windows/Settings.cs" Link="Settings.cs" />
+    <Compile Include="../LifeNarrator.Windows/AppIcons.cs" Link="AppIcons.cs" />
     <Compile Include="../LifeNarrator.Windows/AppTheme.cs" Link="AppTheme.cs" />
     <Compile Include="../LifeNarrator.Windows/Catalog.cs" Link="Catalog.cs" />
     <Compile Include="../LifeNarrator.Windows/Companion.cs" Link="Companion.cs" />
@@ -44,6 +45,8 @@
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/models.json" LogicalName="LifeNarrator.models.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/providers.json" LogicalName="LifeNarrator.providers.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/personas.json" LogicalName="LifeNarrator.personas.json" />
+    <EmbeddedResource Include="../LifeNarrator.Windows/Assets/AppIcon.ico" LogicalName="LifeNarrator.AppIcon.ico" />
+    <EmbeddedResource Include="../LifeNarrator.Windows/Assets/AppIcon.png" LogicalName="LifeNarrator.AppIcon.png" />
     <EmbeddedResource Include="../LifeNarrator.Windows/Resources/*.json" LogicalName="LifeNarrator.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

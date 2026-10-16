@@ -37,7 +37,7 @@ internal sealed class ChatWindow : Window
         AutomationProperties.SetAutomationId(this, "chat");
         heading.FontSize = 15; heading.FontWeight = FontWeight.SemiBold;
         var labels = Views.Stack(heading, Views.Caption(text["chat.subtitle"])); labels.Spacing = 3;
-        var identity = Views.Horizontal(new SpriteAvatar(), labels); identity.Spacing = 10;
+        var identity = Views.Horizontal(new Image { Source = AppIcons.Image, Width = 42, Height = 42 }, labels); identity.Spacing = 10;
         labels.VerticalAlignment = VerticalAlignment.Center;
         level = Views.Badge("");
         var header = Views.Row(identity, level); header.Margin = new Thickness(16);
@@ -174,25 +174,5 @@ internal sealed class ChatWindow : Window
         var group = Views.Stack(user, reply); group.Spacing = 10;
         if (turn.Notice != null) group.Children.Add(Views.Caption(turn.Notice));
         turns.Children.Add(group);
-    }
-}
-
-internal sealed class SpriteAvatar : Control
-{
-    public SpriteAvatar() { Width = Height = 42; }
-    public override void Render(DrawingContext context)
-    {
-        var background = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
-            GradientStops = [new GradientStop(Color.Parse("#FFC7EC"), 0), new GradientStop(Color.Parse("#F55DC2"), 1)] };
-        context.DrawRectangle(background, null, new Rect(0, 0, 42, 42), 10, 10);
-        var scale = 42d / 620;
-        using (context.PushTransform(new Matrix(scale, 0, 0, scale, -210 * scale, -230 * scale)))
-        {
-            var ink = Brush.Parse("#2B2226");
-            context.DrawGeometry(Brush.Parse("#FFFCF8"), null, StreamGeometry.Parse("M392,306 L614,306 C707,306 760,360 760,449 L760,539 C760,630 707,682 614,682 L456,682 L330,764 L350,677 C278,664 238,615 238,539 L238,449 C238,360 294,306 392,306 Z"));
-            context.DrawRectangle(ink, null, new Rect(361, 413, 66, 100), 33, 33);
-            context.DrawRectangle(ink, null, new Rect(558, 413, 66, 100), 33, 33);
-            context.DrawGeometry(ink, null, StreamGeometry.Parse("M449,554 C449,531 536,531 536,554 L536,577 C536,637 449,637 449,577 Z"));
-        }
     }
 }

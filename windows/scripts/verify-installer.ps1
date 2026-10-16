@@ -9,6 +9,23 @@ if (Test-Path $data) { Remove-Item $data -Recurse -Force }
 $setup = Start-Process ./artifacts/LifeNarrator-Setup.exe -ArgumentList "/VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /NORESTART /LOG=`"$installLog`"" -PassThru -Wait
 if ($setup.ExitCode -ne 0) { throw "Install failed: $($setup.ExitCode)" }
 if (!(Test-Path "$installed/brain/narrator-brain.exe")) { throw 'Installed brain missing' }
+Add-Type -AssemblyName System.Drawing
+foreach ($target in @(@{ path = (Resolve-Path artifacts/LifeNarrator-Setup.exe).Path; name = 'installer' },
+                     @{ path = "$installed/LifeNarrator.exe"; name = 'exe' })) {
+    $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($target.path)
+    $bitmap = $icon.ToBitmap()
+    try {
+        $pink = 0
+        for ($y = 0; $y -lt $bitmap.Height; $y++) {
+            for ($x = 0; $x -lt $bitmap.Width; $x++) {
+                $pixel = $bitmap.GetPixel($x, $y)
+                if ($pixel.A -gt 128 -and $pixel.R -gt 180 -and $pixel.B -gt 120 -and $pixel.G -lt $pixel.R - 30) { $pink++ }
+            }
+        }
+        if ($pink -lt $bitmap.Width * $bitmap.Height / 8) { throw "App icon missing from $($target.path)" }
+        $bitmap.Save((Join-Path $artifactDirectory "ui-$($target.name)-icon.png"))
+    } finally { $bitmap.Dispose(); $icon.Dispose() }
+}
 $stub = $null
 $app = $null
 $oldPath = $env:PATH

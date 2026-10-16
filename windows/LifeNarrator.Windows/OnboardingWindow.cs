@@ -43,7 +43,7 @@ internal sealed class OnboardingWindow : Window
             dot.Bind(Border.BackgroundProperty, this.GetResourceObservable(step == index ? "Accent" : "Stroke")); dots.Children.Add(dot);
         }
         AutomationProperties.SetName(dots, text["onboarding.step"].Replace("%d", (step + 1).ToString()));
-        var icon = Views.Chip("\uE8F2"); icon.Width = icon.Height = 56; icon.CornerRadius = new CornerRadius(16); ((TextBlock)icon.Child!).FontSize = 28;
+        var icon = new Image { Source = AppIcons.Image, Width = 56, Height = 56 };
         var header = Views.Horizontal(icon, Views.Stack(title, dots)); header.Spacing = 16;
         var pageTitle = Views.Label(text[step == 0 ? "onboarding.model" : step == 1 ? "onboarding.accessibility" : "windows.screenTitle"]);
         pageTitle.FontSize = 20; pageTitle.FontWeight = FontWeight.Bold;

@@ -15,6 +15,15 @@ public sealed partial class ShellApp
     [DllImport("user32.dll", SetLastError = true)] static extern bool PostMessage(nint window, uint message, nint wParam, nint lParam);
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
 
+    [StructLayout(LayoutKind.Explicit, Size = 40)]
+    struct MouseClickInput { [FieldOffset(20)] public uint Flags; }
+    [DllImport("user32.dll", SetLastError = true)] static extern uint SendInput(uint count, MouseClickInput[] inputs, int size);
+    static void ClickAt(PixelPoint point)
+    {
+        if (!SetCursorPos(point.X, point.Y)) throw new Win32Exception();
+        if (SendInput(2, [new() { Flags = 2 }, new() { Flags = 4 }], 40) != 2) throw new Win32Exception();
+    }
+
     PixelRect verificationScreen;
 
     async Task VerifyUI()
@@ -60,21 +69,44 @@ public sealed partial class ShellApp
             }
             settingsWindow.Close();
             var screen = verificationScreen;
-            SetCursorPos(screen.X + screen.Width / 2, screen.Y + 100);
             foreach (var button in new[] { 0x202, 0x205 })
             {
+                if (!SetCursorPos(screen.X + screen.Width / 2, screen.Y + 100)) throw new Win32Exception();
                 if (!PostMessage(tray.Handle, 0x800, 1, button)) throw new Win32Exception();
                 await Task.Delay(300);
                 if (trayMenu?.IsVisible != true || trayMenu.GetVisualDescendants().OfType<Button>().Count() < 4)
                     throw new Exception("Tray card did not open for button " + button);
-                var outside = new Window { Width = 100, Height = 100 }; outside.Show(); outside.Activate();
+                var outside = new Window { Width = 100, Height = 100, ShowActivated = false, Position = new PixelPoint(screen.Right - 150, screen.Bottom - 180) };
+                outside.Show(); await Task.Delay(100); ClickAt(outside.PointToScreen(new Point(50, 50)));
                 await Task.Delay(150);
                 if (trayMenu.IsVisible) throw new Exception("Tray card did not dismiss on outside activation");
                 outside.Close();
             }
-            ShowTray(new Avalonia.PixelPoint(screen.X + screen.Width / 2, screen.Y + 100));
+            async Task OpenFromTray(string entry, Func<Window?> target)
+            {
+                if (!SetCursorPos(screen.X + screen.Width / 2, screen.Y + 100)) throw new Win32Exception();
+                if (!PostMessage(tray.Handle, 0x800, 1, 0x205)) throw new Win32Exception();
+                await Task.Delay(150); trayMenu!.UpdateLayout();
+                var button = trayMenu.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetAutomationId(b) == "tray-" + entry);
+                ClickAt(button.PointToScreen(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2)));
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                while (target()?.IsVisible != true && watch.Elapsed < TimeSpan.FromSeconds(10)) await Task.Delay(20);
+                var window = target();
+                if (window?.IsVisible != true || trayMenu.IsVisible) throw new Exception("Tray entry did not open its window: " + entry);
+                if (window.Icon != AppIcons.Window) throw new Exception("Window does not use the app icon: " + entry);
+                await Capture("ui-tray-open-" + entry.Replace('.', '-')); window.Hide();
+            }
+            await OpenFromTray("chat.open", () => chatWindow);
+            await OpenFromTray("settings", () => settingsWindow);
+            await OpenFromTray("input.open", () => ruleInput);
+            foreach (var (paused, failure) in new[] { (false, false), (true, false), (false, true) })
+                tray.Update(text["app.name"], paused, failure);
+            UpdateTray();
+            ShowTray(new PixelPoint(screen.X + screen.Width / 2, screen.Y + 100));
             await Capture("ui-tray-menu");
             Artifact.Write("ui-verification.json", new { installedExecutable = Environment.ProcessPath, onboarding = true, invalidDraftRecovery = true,
+                trayLeftClick = true, trayRightClick = true, trayOutsideDismiss = true,
+                trayOpenedWindows = new[] { "chat", "settings", "rule-input" }, appIcons = true,
                 persistedPersona = settings.Persona, markGap = settings.MarkGap, connectionMilliseconds = elapsed,
                 themes = new[] { "Light", "Dark" }, languages = new[] { "zh", "en" } });
             exiting = true; await Stop(); tray.Dispose(); desktop.Shutdown();

@@ -238,9 +238,7 @@ public sealed partial class ShellApp : Application
         var status = settings.Paused ? text["paused"] : text["sprite.onDuty"];
         var tip = updateFailure != null ? text["updates.installFailed"] + ": " + updateFailure.LogPath
             : error == null ? status : text["app.error"] + ": " + error.Split('\n')[0];
-        if (error != null || updateFailure != null) tray.Update(tip, 225, 55, 75);
-        else if (settings.Paused) tray.Update(tip, 140, 140, 140);
-        else tray.Update(tip, 42, 166, 100);
+        tray.Update(tip, settings.Paused, error != null || updateFailure != null);
         trayMenu?.Refresh(error, ocrUnavailable, updateFailure);
     }
 

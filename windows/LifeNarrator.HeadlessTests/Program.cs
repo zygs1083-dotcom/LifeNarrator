@@ -29,7 +29,7 @@ if (JsonSerializer.Serialize(DateTimeOffset.UtcNow, Protocol.Json).Contains('.')
 AppBuilder.Configure<Application>().UseSkia()
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
 if (bubblesOnly) { BubbleChecks.Run(); return; }
-if (restOnly) { Application.Current!.Styles.Add(new AppTheme()); RestChecks.Run(); return; }
+if (restOnly) { Application.Current!.Styles.Add(new AppTheme()); IconChecks.Run(); RestChecks.Run(); return; }
 var window = new Window { Width = 600, Height = 320, Background = Brushes.Transparent, Content = new BubbleSample() };
 window.Show();
 using var bitmap = window.CaptureRenderedFrame() ?? throw new Exception("No rendered frame");
@@ -71,6 +71,7 @@ SettingsInteractionChecks.Run();
 ModelApiChecks.Run();
 
 CompanionChecks.Run();
+IconChecks.Run();
 RestChecks.Run();
 DownloadResponsivenessChecks.Run();
 ModelDownloadChecks.Run(args.Length > 0 ? args[0] : null);
