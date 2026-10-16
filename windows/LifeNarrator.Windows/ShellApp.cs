@@ -40,11 +40,11 @@ public sealed partial class ShellApp : Application
     bool stopping;
     string? error;
 
-    public override void OnFrameworkInitializationCompleted()
+    public override async void OnFrameworkInitializationCompleted()
     {
         desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime!;
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
-        settings = Settings.Load();
+        settings = await Task.Run(Settings.Load);
         text = new Texts(settings);
         companion = new Companion((method, parameters) => brain!.Call(method, parameters));
         companion.Changed += UpdateTray;
@@ -127,7 +127,6 @@ public sealed partial class ShellApp : Application
     async Task Start()
     {
         stopping = false;
-        settings ??= Settings.Load();
         error = null;
         UpdateTray();
         overlay = new OverlayController(settings, Report, companion, (narration, point) => OpenChat(narration, point));

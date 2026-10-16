@@ -11,7 +11,7 @@ public sealed partial class ShellApp
     {
         try
         {
-            ShowSettings(); settingsWindow!.SelectTab(2);
+            ShowSettings(); settingsWindow!.SelectTab(SettingsWindow.GeneralTab);
             verificationScreen = settingsWindow.Screens.Primary!.Bounds;
             settingsWindow.UpdateLayout();
             var check = settingsWindow.GetVisualDescendants().OfType<Button>()
@@ -41,7 +41,7 @@ public sealed partial class ShellApp
     {
         try
         {
-            ShowSettings(); settingsWindow!.SelectTab(2);
+            ShowSettings(); settingsWindow!.SelectTab(SettingsWindow.GeneralTab);
             verificationScreen = settingsWindow.Screens.Primary!.Bounds;
             settingsWindow.UpdateLayout();
             settingsWindow.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToEnd();
