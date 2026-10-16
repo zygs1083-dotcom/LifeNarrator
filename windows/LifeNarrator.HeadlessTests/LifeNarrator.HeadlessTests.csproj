@@ -26,6 +26,7 @@
     <Compile Include="../LifeNarrator.Windows/ChatWindow.cs" Link="ChatWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/GrowthCard.cs" Link="GrowthCard.cs" />
     <Compile Include="../LifeNarrator.Windows/MemoryView.cs" Link="MemoryView.cs" />
+    <Compile Include="../LifeNarrator.Windows/AppearanceView.cs" Link="AppearanceView.cs" />
     <Compile Include="../LifeNarrator.Windows/Views.cs" Link="Views.cs" />
     <Compile Include="../LifeNarrator.Windows/RulesView.cs" Link="RulesView.cs" />
     <Compile Include="../LifeNarrator.Windows/PersonaView.cs" Link="PersonaView.cs" />

@@ -97,7 +97,7 @@ internal sealed class ChatWindow : Window
     {
         Title = text["chat.title"];
         heading.Text = companion.Name(settings) + "  ·  Lv." + (companion.Growth?.State.Level ?? 1) + "\n"
-            + Catalog.Personas.Single(p => p.Id == settings.Persona).Name.Text(settings.EffectiveLanguage);
+            + settings.Personas.Single(p => p.Id == settings.Persona).Name.Text(settings.EffectiveLanguage);
     }
 
     async void SendInput(string? quick = null)
@@ -136,7 +136,7 @@ internal sealed class ChatWindow : Window
             CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Right, MaxWidth = 300 };
         user.Bind(Border.BackgroundProperty, this.GetResourceObservable("Soft")); turns.Children.Add(user);
         var reply = new BubbleVisual(turn.Id, turn.Reply, [], settings.EffectiveLanguage,
-            settings.ActiveStyle(companion.Growth) with { Shape = "rounded", Size = "small" }, settings.Persona, narrow: true);
+            settings.ActiveStyle(companion.Growth) with { Shape = "rounded", Size = "small" }, settings.FontPersona(settings.Persona), narrow: true);
         AutomationProperties.SetName(reply, turn.Reply); turns.Children.Add(reply);
         if (turn.Notice != null) turns.Children.Add(Views.Caption(turn.Notice));
     }

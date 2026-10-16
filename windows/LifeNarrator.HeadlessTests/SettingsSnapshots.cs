@@ -12,11 +12,11 @@ using LifeNarrator.Windows;
 
 internal static class SettingsSnapshots
 {
-    internal static Companion Companion(Settings settings, bool filled = false)
+    internal static Companion Companion(Settings settings, bool filled = false, int level = 1)
     {
         var companion = new Companion((method, _) => Task.FromResult(JsonSerializer.SerializeToElement(method switch
         {
-            "growth.state" => (object)new GrowthInfo(new GrowthNumbers(1, 0, 0, 0, 0, 0, 0, []), "", settings.EffectiveLanguage == "zh" ? "刚孵出来" : "Just hatched", 160, 0,
+            "growth.state" => (object)new GrowthInfo(new GrowthNumbers(level, level == 1 ? 0 : 9100, 0, 0, 0, 0, 0, level == 1 ? [] : ["spriteName", "emoji", "starBubble", "starryTheme"]), "", settings.EffectiveLanguage == "zh" ? "刚孵出来" : "Just hatched", level == 1 ? 160 : 10240, 0,
                 [new("spriteName", 2, settings.EffectiveLanguage == "zh" ? "给小精灵起名字" : "Name your sprite"), new("emoji", 3, "Emoji")]),
             "memory.list" => filled ? new[] { new MemoryEntry("fixture", "preference", settings.EffectiveLanguage == "zh" ? "喜欢喝抹茶" : "Likes matcha", "chat", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, 1, true) } : Array.Empty<MemoryEntry>(), _ => throw new MissingMethodException(method)
         }, Protocol.Json)));
@@ -63,6 +63,12 @@ internal static class SettingsSnapshots
             api.Show(); api.SelectTab(SettingsWindow.ModelsTab); Dispatcher.UIThread.RunJobs(); api.UpdateLayout();
             using (var frame = api.CaptureRenderedFrame() ?? throw new Exception("No API provider pixels")) frame.Save($"{directory}/ui-provider-ollama-{theme}.png");
             api.Close();
+            settings.BubbleShape = "star"; settings.BubbleTheme = "starry"; settings.Emoji = "🌈";
+            var unlocked = new SettingsWindow(settings, () => Task.CompletedTask, () => Task.FromResult(1d), updater, () => Task.CompletedTask, Companion(settings, level: 15));
+            unlocked.Show(); unlocked.SelectTab(SettingsWindow.AppearanceTab); Dispatcher.UIThread.RunJobs(); unlocked.UpdateLayout();
+            using (var frame = unlocked.CaptureRenderedFrame() ?? throw new Exception("No unlocked appearance pixels"))
+                frame.Save($"{directory}/ui-appearance-unlocked-{language}-{theme}.png");
+            unlocked.Close();
             using var comparison = new RenderTargetBitmap(new PixelSize(780, 6 * 310), new Vector(96, 96));
             var panel = new StackPanel();
             for (var tab = 0; tab < names.Length; tab++)

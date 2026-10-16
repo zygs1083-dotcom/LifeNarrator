@@ -45,6 +45,8 @@ internal sealed class Settings
     public string BubbleTheme { get; set; } = "clear";
     public string Emoji { get; set; } = "";
     public JsonElement[] Rules { get; set; } = [];
+    public string FontPersona(string persona) => persona.StartsWith("custom.")
+        ? CustomPersonas.Single(p => p.GetProperty("id").GetString() == persona).GetProperty("pack").GetString()! : persona;
     public string ActiveShape(GrowthInfo? growth) => BubbleShape == "star" && growth?.Has("starBubble") != true ? "text" : BubbleShape;
     public string ActiveTheme(GrowthInfo? growth) => BubbleTheme == "starry" && growth?.Has("starryTheme") != true ? "clear" : BubbleTheme;
     public string[] ActiveEmoji(string[] original, GrowthInfo? growth) => ActiveStyle(growth).DisplayedEmoji(original);

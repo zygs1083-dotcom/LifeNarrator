@@ -276,5 +276,7 @@
   "shortcut.clear": "清除快捷键",
   "rules.add": "添加规则",
   "rules.edit": "编辑规则",
-  "appearance.pending": "外观设置将在气泡更新合并后提供。"
+  "growth.unlock.starBubble": "星星气泡",
+  "growth.unlock.starryTheme": "星空配色",
+  "growth.unlock.emoji": "更多表情"
 }

@@ -71,7 +71,7 @@ internal sealed class SettingsWindow : Window
         DockPanel.SetDock(tabs, Dock.Top); root.Children.Add(tabs);
         Control content = tab switch
         {
-            SpriteTab => Sprite(), AppearanceTab => Views.Card(text["appearance"], "\uE790", 255, null, Views.Caption(text["appearance.pending"])),
+            SpriteTab => Sprite(), AppearanceTab => new AppearanceView(settings, companion, configure, Run),
             MemoryTab => new MemoryView(settings, companion!, this, configure, Run, () => SelectTab(RulesTab)),
             RulesTab => rulesView = new RulesView(settings, companion!, this, configure, Run), ModelsTab => new ModelView(settings, configure, testConnection),
             _ => General()

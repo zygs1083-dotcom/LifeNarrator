@@ -56,7 +56,13 @@ internal static class CompanionChecks
         growth = locked; companion.Refresh().GetAwaiter().GetResult(); window.SelectTab(0); window.UpdateLayout();
         var name = window.GetVisualDescendants().OfType<TextBox>().Single(b => AutomationProperties.GetAutomationId(b) == "sprite-name");
         if (name.IsEnabled) throw new Exception("Locked controls enabled");
+        window.SelectTab(SettingsWindow.AppearanceTab); window.UpdateLayout();
+        var lockedShape = window.GetVisualDescendants().OfType<ComboBox>().Single(b => AutomationProperties.GetAutomationId(b) == "appearance-shape");
+        if (lockedShape.Items.Cast<ComboBoxItem>().Single(i => (string)i.Tag! == "star").IsEnabled) throw new Exception("Locked appearance option enabled");
         growth = growth with { State = numbers }; companion.Refresh().GetAwaiter().GetResult();
+        window.SelectTab(SettingsWindow.AppearanceTab); window.UpdateLayout();
+        var unlockedShape = window.GetVisualDescendants().OfType<ComboBox>().Single(b => AutomationProperties.GetAutomationId(b) == "appearance-shape");
+        if (!unlockedShape.Items.Cast<ComboBoxItem>().Single(i => (string)i.Tag! == "star").IsEnabled) throw new Exception("Unlocked star option disabled");
         window.Close();
         var chat = new ChatWindow(settings, companion);
         chat.Open("有我陪你呀").GetAwaiter().GetResult(); chat.UpdateLayout();

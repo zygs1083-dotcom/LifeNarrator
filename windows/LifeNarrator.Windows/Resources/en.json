@@ -276,5 +276,7 @@
   "shortcut.clear": "Clear shortcut",
   "rules.add": "Add rule",
   "rules.edit": "Edit rule",
-  "appearance.pending": "Appearance settings will be available with the bubble update."
+  "growth.unlock.starBubble": "star bubbles",
+  "growth.unlock.starryTheme": "the starry theme",
+  "growth.unlock.emoji": "more emoji"
 }

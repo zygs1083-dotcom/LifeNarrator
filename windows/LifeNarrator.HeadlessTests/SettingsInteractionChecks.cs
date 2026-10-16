@@ -24,8 +24,9 @@ internal static class SettingsInteractionChecks
             {
                 "growth.state" => (object)new GrowthInfo(new GrowthNumbers(1, 0, 0, 0, 0, 0, 0, []), "", "Just hatched", 160, 0, [new("spriteName", 2, "Name")]),
                 "memory.list" => Array.Empty<MemoryEntry>(),
+                "chat.history" => new[] { new ChatTurn("custom-chat", "Hello", "Hi there", null) },
                 "rules.compile" => JsonSerializer.SerializeToElement(new { id = "own.fixture", kind = "topic", enabled = true, label = new { zh = "开会", en = "Meetings" }, input = "Meetings" }),
-                "personas.generate" => JsonSerializer.SerializeToElement(new { id = "custom.fixture", emoji = "😺", name = new { zh = "伙伴", en = "Buddy" }, caption = new { zh = "朋友", en = "Friend" } }),
+                "personas.generate" => JsonSerializer.SerializeToElement(new { id = "custom.fixture", emoji = "😺", pack = "gentle", name = new { zh = "伙伴", en = "Buddy" }, caption = new { zh = "朋友", en = "Friend" } }),
                 _ => throw new MissingMethodException(method)
             };
             return Task.FromResult(JsonSerializer.SerializeToElement(reply, Protocol.Json));
@@ -70,7 +71,17 @@ internal static class SettingsInteractionChecks
         Find<TextBox>(personaEditor).Single().Text = "A friendly buddy";
         Click(Find<Button>(personaEditor).Single(b => b.Content as string == "Create persona")); Dispatcher.UIThread.RunJobs();
         if (settings.Persona != "custom.fixture" || settings.CustomPersonas.Length != 1) throw new Exception("Custom persona generation did not persist/select");
+        window.SelectTab(SettingsWindow.AppearanceTab); window.UpdateLayout();
+        var shape = Find<ComboBox>(window).Single(b => AutomationProperties.GetAutomationId(b) == "appearance-shape");
+        if (shape.Items.Cast<ComboBoxItem>().Single(i => (string)i.Tag! == "star").IsEnabled) throw new Exception("Locked star shape is selectable");
+        Click(Find<ToggleButton>(window).Single(b => AutomationProperties.GetAutomationId(b) == "appearance-size-large"));
+        var preview = Find<BubblePreview>(window).Single();
+        if (settings.BubbleSize != "large" || preview.Style.Size != "large" || preview.Persona != "gentle")
+            throw new Exception("Appearance controls did not update preview or resolve custom persona font");
         window.Close();
+        var customChat = new ChatWindow(settings, companion); customChat.Open().GetAwaiter().GetResult(); customChat.UpdateLayout();
+        if (Find<BubbleVisual>(customChat).Count() != 1) throw new Exception("Custom persona could not render chat history");
+        customChat.Close();
         if (HotKey.FromKey(Key.LeftAlt, KeyModifiers.Alt) != null || HotKey.FromKey(Key.K, KeyModifiers.None) != null)
             throw new Exception("Shortcut accepted bare modifier or unmodified typing key");
         Console.WriteLine("PASS: shortcut recording; all six tabs and edits respond while brain configuration is pending; builtin pack persistence");

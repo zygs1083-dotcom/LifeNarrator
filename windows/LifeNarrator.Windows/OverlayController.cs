@@ -171,7 +171,7 @@ internal sealed class OverlayController : IDisposable
             return new { shown = bubbles.Contains(bubble) && bubble.Dismissed == null, placement = placement.PlacementName };
 
             BubbleVisual MakeVisual(bool small) => new(narration.QuipID, narration.Text, narration.Emoji,
-                narration.Language, small ? style with { Size = "small" } : style, narration.Persona, small,
+                narration.Language, small ? style with { Size = "small" } : style, settings.FontPersona(narration.Persona), small,
                 fillOpacity, narration.Anchor == null && style.Shape == "speech", group);
             async Task<Placement?> Place(BubbleVisual normal, BubbleVisual small)
             {
