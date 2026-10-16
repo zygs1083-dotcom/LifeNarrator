@@ -67,14 +67,14 @@ internal sealed class MemoryView : StackPanel
     async Task Edit(MemoryEntry? entry)
     {
         var dialog = new Window { Title = text[entry == null ? "memory.add" : "memory.edit"], Width = 460, Height = 330,
-            CanResize = false, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+            CanResize = false, FontFamily = owner.FontFamily, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         var category = new ComboBox { ItemsSource = Kinds.Select(k => text["memory.kind." + k]).ToArray(),
             SelectedIndex = Array.IndexOf(Kinds, entry?.Kind ?? "fact"), HorizontalAlignment = HorizontalAlignment.Stretch };
         var content = new TextBox { Text = entry?.Text ?? "", AcceptsReturn = true, Height = 72, TextWrapping = TextWrapping.Wrap };
         AutomationProperties.SetName(category, text["memory.category"]); AutomationProperties.SetName(content, text["memory.content"]);
         AutomationProperties.SetAutomationId(content, "memory-content");
         var error = Views.Caption(""); error.Bind(TextBlock.ForegroundProperty, dialog.GetResourceObservable("ErrorInk"));
-        var save = Views.Button(text["memory.save"], () => { });
+        var save = Views.Primary(text["memory.save"], () => { }); save.IsDefault = true;
         bool Valid() => System.Globalization.StringInfo.ParseCombiningCharacters(content.Text?.Trim() ?? "").Length is > 0 and <= 40;
         save.IsEnabled = Valid(); content.TextChanged += (_, _) => save.IsEnabled = Valid();
         save.Click += async (_, _) =>
@@ -100,7 +100,7 @@ internal sealed class MemoryView : StackPanel
 
     async Task<bool> Confirm(string title, string hint)
     {
-        var dialog = new Window { Title = title, Width = 460, Height = 210, CanResize = false, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var dialog = new Window { Title = title, Width = 460, Height = 210, CanResize = false, FontFamily = owner.FontFamily, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         dialog.Content = new Border { Padding = new Thickness(20), Child = Views.Stack(Views.Label(title), Views.Caption(hint),
             Views.Row(Views.Button(text["cancel"], () => dialog.Close(false)), Views.Button(title, () => dialog.Close(true)))) };
         return await dialog.ShowDialog<bool>(owner);

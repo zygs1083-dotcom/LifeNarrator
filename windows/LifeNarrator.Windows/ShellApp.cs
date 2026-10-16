@@ -242,7 +242,7 @@ public sealed partial class ShellApp : Application
         {
             settingsWindow = new SettingsWindow(settings, Configure, TestConnection, updater, () => updater.Install(Quit), companion, suspended =>
             { try { chatHotKey?.Configure(suspended); } catch (Exception failure) { Report(failure.Message); } },
-                () => Task.Run(() => global::Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Select(l => l.DisplayName).ToArray()));
+                () => Task.Run(() => global::Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Where(l => l.LanguageTag.StartsWith("zh-Hans", StringComparison.OrdinalIgnoreCase) || l.LanguageTag is "zh-CN" or "en-US").Select(l => l.DisplayName).ToArray()), Quit);
             settingsWindow.Closed += (_, _) => settingsWindow = null;
         }
         settingsWindow.Refresh(); settingsWindow.Show(); settingsWindow.Activate();

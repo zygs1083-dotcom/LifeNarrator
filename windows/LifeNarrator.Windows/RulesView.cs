@@ -100,7 +100,7 @@ internal sealed class RulesView : StackPanel
         var input = new TextBox { Text = rule?.GetProperty("input").GetString() ?? "", Watermark = text["input.placeholder"] };
         AutomationProperties.SetName(input, text["input.title"]); AutomationProperties.SetAutomationId(input, "rule-input");
         var status = Views.Caption(text["input.hint"]);
-        var save = Views.Primary(text["memory.save"], () => { }); save.IsEnabled = !string.IsNullOrWhiteSpace(input.Text);
+        var save = Views.Primary(text["memory.save"], () => { }); save.IsDefault = true; save.IsEnabled = !string.IsNullOrWhiteSpace(input.Text);
         input.TextChanged += (_, _) => save.IsEnabled = !string.IsNullOrWhiteSpace(input.Text);
         save.Click += async (_, _) =>
         {

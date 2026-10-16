@@ -1,3 +1,6 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -154,13 +157,41 @@ internal sealed class ModelView : StackPanel
             });
         };
         var model = Field("api.model", settings.Provider.Model, value => settings.Provider.Model = value, "model");
-        var body = Views.Stack(Views.Field(text["api.provider"], selector), model);
-        if (preset.SuggestedModels.Length > 0) body.Children.Add(Views.Caption(text["api.suggestions"] + ": " + string.Join(", ", preset.SuggestedModels)));
+        var suggestions = new ComboBox { ItemsSource = preset.SuggestedModels, PlaceholderText = text["api.suggestions"], MinWidth = 160 };
+        suggestions.IsVisible = preset.SuggestedModels.Length > 0;
+        AutomationProperties.SetAutomationId(suggestions, "model-suggestions");
+        suggestions.SelectionChanged += (_, _) => { if (suggestions.SelectedItem is string selected) ((TextBox)((Grid)model).Children[1]).Text = selected; };
+        var body = Views.Stack(Views.Field(text["api.provider"], selector), Views.Row(model, suggestions));
         var key = new TextBox { PasswordChar = '●' };
         key.AttachedToVisualTree += (_, _) => Run(async () => { key.Text = await Task.Run(() => CredentialStore.Read(preset.Id)); });
         AutomationProperties.SetName(key, text["api.key"]); AutomationProperties.SetAutomationId(key, "api-key");
         var saved = Views.Badge(text["api.keySaved"], 150); saved.IsVisible = false;
         key.TextChanged += (_, _) => saved.IsVisible = false;
+        if (preset.ModelsEndpoint)
+        {
+            var fetch = Views.Button(text["api.fetchModels"], () => { });
+            AutomationProperties.SetAutomationId(fetch, "fetch-models");
+            fetch.Click += async (_, _) =>
+            {
+                fetch.IsEnabled = false;
+                try
+                {
+                    using var client = new HttpClient();
+                    var endpoint = new Uri((settings.Provider.BaseURL ?? preset.BaseURL).TrimEnd('/') + "/models");
+                    using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                    if (!string.IsNullOrEmpty(key.Text)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key.Text);
+                    using var response = await client.SendAsync(request); response.EnsureSuccessStatusCode();
+                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    suggestions.ItemsSource = preset.SuggestedModels.Concat(json.RootElement.GetProperty("data").EnumerateArray().Select(m => m.GetProperty("id").GetString()!)).Distinct().Order().ToArray();
+                    suggestions.IsVisible = true;
+                }
+                catch (Exception failure) { ShowError(failure); }
+                finally { fetch.IsEnabled = true; }
+            };
+            body.Children.Add(fetch);
+        }
+        if (preset.KeyRequired || preset.Group == "custom")
+        {
         body.Children.Add(Views.Field(text["api.key"], key));
         body.Children.Add(Views.Row(Views.Primary(text["api.saveKey"], () => Run(async () =>
         {
@@ -169,6 +200,7 @@ internal sealed class ModelView : StackPanel
             saved.IsVisible = true; await configure();
         })), saved));
         if (preset.KeyURL != null) body.Children.Add(Views.Button(text["api.getKey"], () => Views.OpenURL(preset.KeyURL)));
+        }
         var advanced = Views.Stack(Field("api.baseURL", settings.Provider.BaseURL ?? preset.BaseURL,
             value => settings.Provider.BaseURL = value.Length == 0 ? null : value, "base-url"));
         if (preset.Api == "openai")

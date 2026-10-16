@@ -18,17 +18,19 @@ internal sealed class SettingsWindow : Window
     readonly Updater updater;
     readonly Func<Task> installUpdate;
     readonly Action<bool>? recording;
+    readonly Func<Task>? quit;
     readonly Func<Task<string[]>>? ocrLanguages;
     StackPanel updateContent = new() { Spacing = 10 };
     readonly DockPanel root = new();
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
     int tab;
+    RulesView? rulesView;
     public const int SpriteTab = 0, AppearanceTab = 1, MemoryTab = 2, RulesTab = 3, ModelsTab = 4, GeneralTab = 5;
 
     public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Updater updater, Func<Task> installUpdate,
-        Companion? companion = null, Action<bool>? recording = null, Func<Task<string[]>>? ocrLanguages = null)
+        Companion? companion = null, Action<bool>? recording = null, Func<Task<string[]>>? ocrLanguages = null, Func<Task>? quit = null)
     {
-        this.companion = companion; this.recording = recording; this.ocrLanguages = ocrLanguages;
+        this.companion = companion; this.recording = recording; this.ocrLanguages = ocrLanguages; this.quit = quit;
         if (companion != null) { companion.Changed += Refresh; Closed += (_, _) => companion.Changed -= Refresh; }
         this.settings = settings; this.configure = configure; this.testConnection = testConnection;
         this.updater = updater; this.installUpdate = installUpdate;
@@ -46,7 +48,7 @@ internal sealed class SettingsWindow : Window
     }
     public void SelectTab(int index) { tab = index; Render(); }
     public void Refresh() => Render();
-    public void ShowRuleInput() { SelectTab(RulesTab); Run(() => new RulesView(settings, companion!, this, configure, Run).Edit(null)); }
+    public void ShowRuleInput() { SelectTab(RulesTab); Run(() => rulesView!.Edit(null)); }
 
     void Render()
     {
@@ -71,7 +73,7 @@ internal sealed class SettingsWindow : Window
         {
             SpriteTab => Sprite(), AppearanceTab => Views.Card(text["appearance"], "\uE790", 255, null, Views.Caption(text["appearance.pending"])),
             MemoryTab => new MemoryView(settings, companion!, this, configure, Run, () => SelectTab(RulesTab)),
-            RulesTab => new RulesView(settings, companion!, this, configure, Run), ModelsTab => new ModelView(settings, configure, testConnection),
+            RulesTab => rulesView = new RulesView(settings, companion!, this, configure, Run), ModelsTab => new ModelView(settings, configure, testConnection),
             _ => General()
         };
         if (content is StackPanel stack) stack.Spacing = 14;
@@ -152,6 +154,8 @@ internal sealed class SettingsWindow : Window
         updateContent = Views.Stack(); RefreshUpdates();
         Control Recorder(string key, HotKey? value, Action<HotKey?> change) => Views.Row(Views.Label(text[key]),
             new ShortcutRecorder(text[key], value, text, shortcut => Run(async () => { change(shortcut); await configure(); }), recording));
+        var github = Views.Button(text["github"], () => Views.OpenURL("https://github.com/zygs1083-dotcom/LifeNarrator"));
+        Control aboutActions = quit == null ? github : Views.Row(github, Views.Button(text["quit"], () => Run(quit)));
         return Views.Stack(
             Views.Card(text["language"], "\uE774", 42, null, Views.Field(text["language"], language)),
             Views.Card(text["updates.title"], "\uE896", 42, null, updateContent),
@@ -163,7 +167,7 @@ internal sealed class SettingsWindow : Window
             Views.Card(text["launchAtLogin"], "\uE7E8", 42, null, startup),
             Views.Card(text["about"], "\uE946", 42, null,
                 Views.Horizontal(Views.Chip("\uE8F2"), Views.Label("LifeNarrator"), Views.Badge(text["version"] + " " + AppRelease.CurrentVersion)),
-                Views.Button(text["github"], () => Views.OpenURL("https://github.com/zygs1083-dotcom/LifeNarrator"))));
+                aboutActions));
     }
     void RefreshUpdates()
     {

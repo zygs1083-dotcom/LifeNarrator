@@ -8,7 +8,7 @@ internal sealed record Localized(string Zh, string En)
     public string Text(string lang) => lang == "zh" ? Zh : En;
 }
 internal sealed record ProviderPreset(string Id, Localized Name, string Group, string Api,
-    string BaseURL, string Structured, bool KeyRequired, string? KeyURL, string[] SuggestedModels);
+    string BaseURL, string Structured, bool KeyRequired, string? KeyURL, bool ModelsEndpoint, string[] SuggestedModels);
 internal sealed record PersonaPreset(string Id, string Emoji, Localized Name, Localized Caption);
 
 internal static class Catalog

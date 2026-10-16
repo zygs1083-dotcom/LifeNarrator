@@ -14,7 +14,9 @@ internal static class DownloadResponsivenessChecks
         var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
         using var server = new HttpListener(); server.Prefixes.Add($"http://127.0.0.1:{port}/"); server.Start();
         var url = new Uri($"http://127.0.0.1:{port}/fast.gguf");
-        var directory = Path.GetFullPath("artifacts/download-responsiveness"); Directory.CreateDirectory(directory);
+        var directory = Path.GetFullPath("artifacts/download-responsiveness");
+        if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        Directory.CreateDirectory(directory);
         var download = new ModelDownloader(new DownloadableModel("fast", url, data.Length, Convert.ToHexString(SHA256.HashData(data)).ToLowerInvariant()), directory);
         var notifications = 0;
         download.Changed += () =>

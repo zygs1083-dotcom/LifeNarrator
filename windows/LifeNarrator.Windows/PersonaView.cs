@@ -41,8 +41,8 @@ internal sealed class PersonaView : StackPanel
             var input = new TextBox { Watermark = text["persona.custom.placeholder"] };
             AutomationProperties.SetName(input, text["persona.custom.description"]);
             var error = Views.Caption("");
-            var generate = Views.Primary(text["persona.custom.generate"], () => { }); generate.IsEnabled = false;
-            var cancel = Views.Button(text["persona.custom.cancel"], () => dialog.Close());
+            var generate = Views.Primary(text["persona.custom.generate"], () => { }); generate.IsDefault = true; generate.IsEnabled = false;
+            var cancel = Views.Button(text["persona.custom.cancel"], () => dialog.Close()); cancel.IsCancel = true;
             input.TextChanged += (_, _) => generate.IsEnabled = !string.IsNullOrWhiteSpace(input.Text);
             generate.Click += async (_, _) =>
             {

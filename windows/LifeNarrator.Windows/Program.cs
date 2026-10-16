@@ -16,6 +16,7 @@ internal static class Program
         if (args.SequenceEqual(new[] { "--delete-user-data" }))
         {
             foreach (var provider in Catalog.Providers) CredentialStore.Delete(provider.Id);
+            CredentialStore.Delete("systemOne");
             if (Directory.Exists(Settings.DataDirectory)) Directory.Delete(Settings.DataDirectory, recursive: true);
             return 0;
         }

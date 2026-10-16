@@ -33,7 +33,7 @@ internal static class SettingsSnapshots
             using var updater = new Updater();
             var companion = Companion(settings);
             var window = new SettingsWindow(settings, () => Task.CompletedTask, () => Task.FromResult(1d), updater, () => Task.CompletedTask,
-                companion, ocrLanguages: () => Task.FromResult(new[] { "简体中文", "English (United States)" }));
+                companion, ocrLanguages: () => Task.FromResult(new[] { "简体中文", "English (United States)" }), quit: () => Task.CompletedTask);
             window.Show();
             var directory = $"artifacts/settings/{language}/{theme}"; Directory.CreateDirectory(directory);
             for (var tab = 0; tab < names.Length; tab++)
@@ -58,6 +58,11 @@ internal static class SettingsSnapshots
                 using var frame = filled.CaptureRenderedFrame() ?? throw new Exception("No filled settings pixels"); frame.Save($"{directory}/ui-{name}-filled-{theme}.png");
             }
             filled.Close();
+            settings.Provider = new ProviderSettings { Kind = "api", PresetId = "ollama", Model = "qwen3:8b" };
+            var api = new SettingsWindow(settings, () => Task.CompletedTask, () => Task.FromResult(1d), updater, () => Task.CompletedTask, companion);
+            api.Show(); api.SelectTab(SettingsWindow.ModelsTab); Dispatcher.UIThread.RunJobs(); api.UpdateLayout();
+            using (var frame = api.CaptureRenderedFrame() ?? throw new Exception("No API provider pixels")) frame.Save($"{directory}/ui-provider-ollama-{theme}.png");
+            api.Close();
             using var comparison = new RenderTargetBitmap(new PixelSize(780, 6 * 310), new Vector(96, 96));
             var panel = new StackPanel();
             for (var tab = 0; tab < names.Length; tab++)
