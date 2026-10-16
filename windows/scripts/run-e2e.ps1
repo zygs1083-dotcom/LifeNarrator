@@ -4,6 +4,7 @@ New-Item -ItemType Directory -Force $data | Out-Null
 Copy-Item artifacts/brain artifacts/shell/brain -Recurse
 @{
     onboardingCompleted = $true; launchAtLogin = $false; language = 'zh'; liveliness = 'lively'; persona = 'gentle'; lang = 'zh'; paused = $false
+    bubbleTheme = 'macaron'
     markGap = 1; dwell = 60; maxOnScreen = 3; blacklist = @()
     provider = @{ kind = 'api'; presetId = 'custom-openai'; model = 'ci-stub'; baseURL = 'http://127.0.0.1:18765/v1'; structured = 'json_object' }
 } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $data 'settings.json') -Encoding utf8
@@ -84,18 +85,24 @@ function Assert-Aligned($anchor, $text) {
         [Math]::Abs(($anchor.w - 10) - $text.w) -gt 3 -or
         [Math]::Abs(($anchor.h - 6) - $text.h) -gt 3) { throw 'Highlight does not enclose the independent UIA quote rectangle' }
 }
-function Assert-Pink($name, $anchor) {
+function Assert-MacaronHighlight($name, $anchor) {
     $bitmap = [System.Drawing.Bitmap]::new((Join-Path (Resolve-Path artifacts).Path $name))
-    $pink = 0
+    $painted = 0
+    $strokes = @('#7ED3B2', '#F5A98F', '#B9A6E8', '#F2D96B', '#8EC6F7', '#F7A6C8') |
+        ForEach-Object { [System.Drawing.ColorTranslator]::FromHtml($_) }
     try {
         for ($y = [Math]::Max(0, [int]$anchor.y - 3); $y -le [Math]::Min($bitmap.Height - 1, [int]($anchor.y + $anchor.h) + 3); $y++) {
             for ($x = [Math]::Max(0, [int]$anchor.x - 3); $x -le [Math]::Min($bitmap.Width - 1, [int]($anchor.x + $anchor.w) + 3); $x++) {
                 $p = $bitmap.GetPixel($x, $y)
-                if ($p.R -gt 180 -and $p.B -gt 120 -and $p.G -lt 160 -and $p.R -gt $p.G * 1.3) { $pink++ }
+                foreach ($stroke in $strokes) {
+                    if ([Math]::Abs($p.R - $stroke.R) -le 45 -and [Math]::Abs($p.G - $stroke.G) -le 45 -and [Math]::Abs($p.B - $stroke.B) -le 45) {
+                        $painted++; break
+                    }
+                }
             }
         }
     } finally { $bitmap.Dispose() }
-    if ($pink -lt 30) { throw "No painted highlight at recorded anchor in $name (pink=$pink)" }
+    if ($painted -lt 30) { throw "No Macaron highlight at recorded anchor in $name (palettePixels=$painted)" }
 }
 $stub = $null; $edgeProcess = $null; $shell = $null; $ocrProcess = $null
 $oldDebug = $env:LIFENARRATOR_DEBUG
@@ -135,7 +142,7 @@ try {
     Assert-Aligned $before.anchor $textBefore
     Start-Sleep -Milliseconds 250
     Screenshot 'e2e-before.png'
-    Assert-Pink 'e2e-before.png' $before.anchor
+    Assert-MacaronHighlight 'e2e-before.png' $before.anchor
     [E2EWindow]::Wheel(-120)
     Wait-For 'scroll-follow movement' { @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'follow' -and $_.id -eq $before.id }).Count -gt 0 }
     Start-Sleep -Milliseconds 1200
@@ -143,7 +150,7 @@ try {
     $textAfter = Probe 'after'
     Assert-Aligned $after.anchor $textAfter
     Screenshot 'e2e-after.png'
-    Assert-Pink 'e2e-after.png' $after.anchor
+    Assert-MacaronHighlight 'e2e-after.png' $after.anchor
     $textDelta = $textAfter.y - $textBefore.y
     $anchorDelta = $after.anchor.y - $before.anchor.y
     if ($textDelta -ge -10 -or [Math]::Abs($textDelta - $anchorDelta) -gt 3) { throw "Highlight drift: text=$textDelta anchor=$anchorDelta" }
@@ -179,7 +186,7 @@ try {
     Start-Sleep -Milliseconds 300
     $ocrMark = Overlay-Records artifacts/e2e-ocr.stderr.log | Where-Object { $_.action -eq 'show' -and $_.anchor } | Select-Object -Last 1
     Screenshot 'e2e-ocr.png'
-    Assert-Pink 'e2e-ocr.png' $ocrMark.anchor
+    Assert-MacaronHighlight 'e2e-ocr.png' $ocrMark.anchor
     @{ scroll = @{ before = $before; after = $after; textBefore = $textBefore; textAfter = $textAfter; offscreenRemoved = $true }
        ocr = @{ snapshot = $true; mark = $ocrMark }; screenshots = @('e2e-before.png', 'e2e-after.png', 'e2e-offscreen.png', 'e2e-ocr.png') } |
         ConvertTo-Json -Depth 10 | Set-Content artifacts/e2e.json
