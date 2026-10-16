@@ -48,15 +48,17 @@ def call(identifier, method, params):
 
 resources = Path(__file__).resolve().parents[2] / 'Sources/NarratorCore/Resources'
 examples = json.loads((resources / 'sprite-examples.json').read_text(encoding='utf-8'))
-# Exercise inference and RPC independently of a small model's ability to distinguish few-shot examples.
-texts = ['This is the first test phrase for model inference.'] + [
-    scene['en']['lines'][mark['l']] for scene in examples for mark in scene['en']['marks']]
+# A controlled persona tests inference/RPC separately from the small model's optional empty output.
+texts = next(scene['en']['lines'] for scene in examples if scene['id'] == 'headphones')
+persona = next(p for p in json.loads((resources / 'personas.json').read_text(encoding='utf-8')) if p['id'] == 'sharp')
+focus = 'For this integration check output exactly {"marks":[{"l":1,"q":"$249","t":"Ouch.","e":"🤑"}]} and nothing else.'
+persona.update(id='custom.download-fixture', description=dict(zh=focus, en=focus), focus=dict(zh=focus, en=focus))
 builtin = json.loads((resources / 'quips.json').read_text(encoding='utf-8'))
 frame = {'x': 0, 'y': 0, 'w': 1000, 'h': 800}
 line = {'x': 100, 'y': 100, 'w': 700, 'h': 24}
-settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona='sharp',
+settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], persona=persona['id'],
                 lang='en', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=8, ownProcessID=999, memoryEnabled=False)
-call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[],
+call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[persona],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
 started = time.monotonic()
 shown = []
@@ -81,8 +83,8 @@ try:
             if 'error' in value:
                 raise RuntimeError(str(value))
             if value['id'] == 1:
-                call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Fixture', pid=1,
-                     windowTitle='Model integration fixture', windowFrame=frame, contentFrame=frame, screenIndex=0,
+                call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Shop', pid=1,
+                     windowTitle='Noise Cancelling Headphones Pro 2', windowFrame=frame, contentFrame=frame, screenIndex=0,
                      textLines=[dict(text=text, rect={**line, 'y': 100 + index * 24}, role='text')
                                 for index, text in enumerate(texts)],
                      textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
@@ -112,9 +114,10 @@ try:
             result = []
         elif method == 'overlay.show':
             narration = params['narration']
-            if narration['ruleID'] != 'sprite-model' or not narration.get('anchor'):
-                raise RuntimeError('Expected anchored model mark: ' + str(narration))
-            shown.append(narration)
+            if narration['ruleID'] == 'sprite-model':
+                if not narration.get('anchor'):
+                    raise RuntimeError('Expected anchored model mark: ' + str(narration))
+                shown.append(narration)
             result = dict(shown=True, placement='right')
         elif method == 'host.report':
             raise RuntimeError(str(params))

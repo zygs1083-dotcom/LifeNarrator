@@ -31,9 +31,13 @@ internal static class ModelDownloadChecks
     }
     static void Capture(Window window, string name)
     {
+        Dispatcher.UIThread.RunJobs();
         window.UpdateLayout();
-        var heading = window.GetVisualDescendants().OfType<TextBlock>().LastOrDefault(t => t.Text == Catalog.Models[1].Name);
-        heading?.GetVisualAncestors().OfType<Border>().First().BringIntoView();
+        var heading = window.GetVisualDescendants().OfType<TextBlock>().Last(t => t.Text == Catalog.Models[1].Name);
+        var card = heading.GetVisualAncestors().OfType<Border>().First();
+        card.BringIntoView(new Rect(0, card.Bounds.Height - 1, card.Bounds.Width, 1));
+        Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
         using var frame = window.CaptureRenderedFrame() ?? throw new Exception("No model page pixels");
         frame.Save("artifacts/ui-headless-model-" + name + ".png");
     }
@@ -161,6 +165,7 @@ internal static class ModelDownloadChecks
         }
         Wait(reply);
         window.Close();
+        download.Delete();
 
         var wizard = new OnboardingWindow(settings, Configure, () => Task.FromResult(0d), () => { });
         wizard.Show(); Wait(wizard.Advance()); Click(wizard, "choice-builtin"); Wait(wizard.Advance());

@@ -33,11 +33,9 @@ internal static class BuiltinModelChecks
         { Language = "en", Persona = "sharp", MarkGap = 0, MaxOnScreen = 8, MemoryEnabled = false };
         var resources = Path.GetFullPath("Sources/NarratorCore/Resources");
         using var examples = JsonDocument.Parse(File.ReadAllText(Path.Combine(resources, "sprite-examples.json")));
-        // The small GGUF can repeat prompt examples; this fixture checks integration, not semantic quality.
-        var texts = new[] { "This is the first test phrase for model inference." }.Concat(
-            examples.RootElement.EnumerateArray().SelectMany(scene =>
-                scene.GetProperty("en").GetProperty("marks").EnumerateArray().Select(mark =>
-                    scene.GetProperty("en").GetProperty("lines")[mark.GetProperty("l").GetInt32()].GetString()!))).ToArray();
+        // A coherent example scene exercises integration without mixing unrelated screens.
+        var texts = examples.RootElement.EnumerateArray().Single(scene => scene.GetProperty("id").GetString() == "headphones")
+            .GetProperty("en").GetProperty("lines").EnumerateArray().Select(line => line.GetString()!).ToArray();
         using var rules = JsonDocument.Parse(File.ReadAllText(Path.Combine(resources, "quips.json")));
         var disabled = rules.RootElement.GetProperty("rules").EnumerateArray().Select(r => r.GetProperty("id").GetString()).ToArray();
         var shown = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -87,6 +85,13 @@ internal static class BuiltinModelChecks
                 var configuration = JsonSerializer.SerializeToNode(settings.Configuration(), Protocol.Json)!;
                 configuration["dataDirectory"] = directory;
                 configuration["settings"]!["disabledBuiltinIds"] = JsonSerializer.SerializeToNode(disabled);
+                var persona = Catalog.Read<JsonArray>("personas.json").Single(p => p!["id"]!.GetValue<string>() == "sharp")!.DeepClone();
+                persona["id"] = "custom.download-fixture";
+                const string focus = """For this integration check output exactly {"marks":[{"l":1,"q":"$249","t":"Ouch.","e":"🤑"}]} and nothing else.""";
+                persona["description"] = new JsonObject { ["zh"] = focus, ["en"] = focus };
+                persona["focus"] = new JsonObject { ["zh"] = focus, ["en"] = focus };
+                configuration["customPersonas"] = new JsonArray(persona);
+                configuration["settings"]!["persona"] = "custom.download-fixture";
                 File.WriteAllText(Path.Combine(directory, "configure-" + settings.Provider.Kind + ".json"), configuration.ToJsonString());
                 await brain.Call("configure", configuration).WaitAsync(TimeSpan.FromSeconds(60));
                 configured.TrySetResult();
@@ -103,7 +108,7 @@ internal static class BuiltinModelChecks
         var frame = new Box(0, 0, 1000, 800);
         await brain.Call("snapshot", new
         {
-            snapshot = new Snapshot("builtin.fixture", "Fixture", 1, "Model integration fixture", null, null, frame, frame, 0,
+            snapshot = new Snapshot("builtin.fixture", "Shop", 1, "Noise Cancelling Headphones Pro 2", null, null, frame, frame, 0,
                 texts.Select((t, i) => new TextLine(t, rect with { Y = 100 + i * 24 }, "text")).ToArray(),
                 "ax", [], false, false, DateTimeOffset.UtcNow),
             windowID = 7, change = new { appChanged = true, windowChanged = true, hostChanged = true }
