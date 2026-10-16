@@ -6,8 +6,8 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Headless;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -38,7 +38,9 @@ internal static class ModelDownloadChecks
         card.BringIntoView(new Rect(0, card.Bounds.Height - 1, card.Bounds.Width, 1));
         Dispatcher.UIThread.RunJobs();
         window.UpdateLayout();
-        using var frame = window.CaptureRenderedFrame() ?? throw new Exception("No model page pixels");
+        using var frame = new RenderTargetBitmap(PixelSize.FromSize(window.ClientSize, window.RenderScaling),
+            new Vector(96, 96) * window.RenderScaling);
+        frame.Render(window);
         frame.Save("artifacts/ui-headless-model-" + name + ".png");
     }
 
@@ -142,6 +144,8 @@ internal static class ModelDownloadChecks
         Wait(reply);
         if (download.State != ModelDownloadState.NotDownloaded || File.Exists(download.Destination) || download.HasPartial)
             throw new Exception("Corrupt file became usable or cannot be redownloaded");
+        if (!window.GetVisualDescendants().OfType<TextBlock>().Any(t => t.IsEffectivelyVisible && t.Text == download.Error))
+            throw new Exception("Model page did not display the original checksum error");
         Capture(window, "checksum-error");
         var shortReply = Reply(data[..4096]);
         try { Wait(download.Start(url)); throw new Exception("Wrong model size accepted"); }
