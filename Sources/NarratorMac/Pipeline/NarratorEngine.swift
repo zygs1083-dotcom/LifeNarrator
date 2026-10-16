@@ -51,6 +51,7 @@ public final class NarratorEngine {
     }
 
     func configure() {
+        host.keyRejectedShown = false
         overlay.personas = store.personas
         overlay.style = store.settings.bubbleStyle
         overlay.liveliness = store.settings.liveliness

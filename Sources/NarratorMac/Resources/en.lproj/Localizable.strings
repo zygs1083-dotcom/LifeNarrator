@@ -92,6 +92,7 @@
 "api.key" = "API key";
 "api.saveKey" = "Save key to Keychain";
 "api.keySaved" = "Key saved";
+"api.keyRejected" = "The model service rejected the API key. Check that the key is correct and saved (look for \"Key saved\").";
 "api.invalidURL" = "Enter a valid http:// or https:// URL.";
 "api.privacy" = "In Lively and Rowdy modes, every window switch sends the text visible in that window (up to about 60 lines; input fields, emails, phone numbers and URLs removed) to this service.";
 "onboarding.title" = "Hi there, I'm your little narrator";

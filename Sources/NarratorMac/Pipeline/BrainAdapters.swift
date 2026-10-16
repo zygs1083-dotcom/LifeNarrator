@@ -70,6 +70,8 @@ final class MacBrainOverlay: BrainOverlay {
 @MainActor
 final class MacBrainHost: BrainHost {
     unowned let store: AppStore
+    /// Shown once until the settings change, so every failing request does not raise the alert again.
+    var keyRejectedShown = false
 
     init(store: AppStore) { self.store = store }
 
@@ -92,6 +94,12 @@ final class MacBrainHost: BrainHost {
         if Task.isCancelled { return }
         if let failure = error as? AXFailure, failure.code == .apiDisabled {
             store.error = String(describing: error)
+        } else if case HTTPClientError.status(let code, let body) = error, code == 401 || code == 403 {
+            FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
+            if !keyRejectedShown {
+                keyRejectedShown = true
+                store.error = store.text("api.keyRejected") + "\n\(code): \(body)"
+            }
         } else {
             FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
         }
