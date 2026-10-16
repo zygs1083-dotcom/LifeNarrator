@@ -120,7 +120,11 @@ public sealed class BubbleVisual : Panel
         if (Style.Shape != "text")
         {
             if (Style.Theme == "neon" && Style.Shape is "rounded" or "speech" or "cloud" or "sticker")
-                Add(c => c.DrawGeometry(null, new Pen(new SolidColorBrush(Group.Stroke, .7), metrics.StrokeWidth), body), 8);
+            {
+                var strokeWidth = Style.Shape == "cloud" ? 2 * metrics.StrokeWidth : metrics.StrokeWidth;
+                Add(c => c.DrawGeometry(null, new Pen(new SolidColorBrush(Group.Stroke, .7), strokeWidth), body), 8);
+                Add(c => c.DrawGeometry(null, new Pen(new SolidColorBrush(Group.Stroke, .7), strokeWidth), body), 3);
+            }
             Add(DrawBody);
             Children[^1].Effect = new DropShadowEffect
             {
@@ -149,7 +153,11 @@ public sealed class BubbleVisual : Panel
         if (textOnly) Add(c => Letters(c, new SolidColorBrush(Colors.Black, .35), hasOutline), 2);
         if (Style.TextEffects.HasFlag(TextEffects.Shadow))
             Add(c => Letters(c, new SolidColorBrush(Colors.Black, neon ? .45 : .25), hasOutline), 0, new Vector(.06 * metrics.FontSize, .10 * metrics.FontSize));
-        if (neon) Add(c => Letters(c, new SolidColorBrush(ink, .8), hasOutline), .35 * metrics.FontSize);
+        if (neon)
+        {
+            Add(c => Letters(c, new SolidColorBrush(ink, .8), hasOutline), .35 * metrics.FontSize);
+            Add(c => Letters(c, new SolidColorBrush(ink, .8), hasOutline), .18 * metrics.FontSize);
+        }
         Add(c =>
         {
             if (hasOutline) Letters(c, new SolidColorBrush(outline), true);

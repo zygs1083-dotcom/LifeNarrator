@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Avalonia;
@@ -14,14 +13,9 @@ using LifeNarrator.Windows;
 internal static class BubbleChecks
 {
     const string Output = "artifacts/bubbles";
-    const string References = "windows/LifeNarrator.HeadlessTests/MacReference";
-    sealed class Paint(Action<DrawingContext> draw) : Control
-    {
-        public override void Render(DrawingContext c) => draw(c);
-    }
     public static void Run()
     {
-        CheckSettings(); CheckMotion(); CheckClicks();
+        CheckSettings(); CheckFonts(); CheckMotion(); CheckClicks();
         foreach (var background in new[] { "transparent", "light", "dark" })
         {
             Directory.CreateDirectory($"{Output}/{background}");
@@ -54,8 +48,7 @@ internal static class BubbleChecks
                 Capture(scene, $"{Output}/effects-{(int)effects}-{background}.png");
             }
         }
-        Compare();
-        Console.WriteLine("PASS: 399 bubble/anchor snapshots (transparent/light/dark); text effects; seven-shape click delivery; preview redraw; Mac comparison; migration, locks, emoji, dwell and animation checks");
+        Console.WriteLine("PASS: 399 bubble/anchor snapshots (transparent/light/dark); text effects; seven-shape click delivery; preview redraw; font fallback chains; migration, locks, emoji, dwell and animation checks");
     }
 
     static void CheckClicks()
@@ -73,6 +66,31 @@ internal static class BubbleChecks
             if (clicks != 1) throw new Exception("Bubble click did not reach chat/dismiss handler: " + shape);
             window.Close();
         }
+    }
+
+    static void CheckFonts()
+    {
+        foreach (var (choice, families, weight) in new (string, string[], FontWeight)[]
+        {
+            ("hannotate", ["KaiTi", "楷体"], FontWeight.Normal),
+            ("hanzipen", ["KaiTi", "楷体"], FontWeight.Normal),
+            ("yuanti", ["DengXian", "等线"], FontWeight.Normal),
+            ("wawati", ["Microsoft YaHei UI"], FontWeight.Bold),
+            ("noteworthy", ["Segoe Print"], FontWeight.Normal),
+            ("chalkboard", ["Comic Sans MS"], FontWeight.Normal),
+            ("markerFelt", ["Ink Free"], FontWeight.Normal)
+        })
+        {
+            var font = BubbleFonts.Typeface(choice, "gentle", "zh");
+            if (!font.FontFamily.FamilyNames.Take(families.Length).SequenceEqual(families)
+                || font.FontFamily.FamilyNames.Last() != "Microsoft YaHei UI" || font.Weight != weight)
+                throw new Exception("Localized font fallback chain/weight failed: " + choice);
+        }
+        var chinese = BubbleFonts.Typeface("persona", "chuuni", "zh");
+        var english = BubbleFonts.Typeface("persona", "chuuni", "en");
+        if (chinese.FontFamily.Name != "Microsoft YaHei UI" || chinese.Weight != FontWeight.Bold
+            || english.FontFamily.Name != "Ink Free" || english.Weight != FontWeight.Normal)
+            throw new Exception("Persona font/weight did not follow the language-specific chain");
     }
 
     static void CheckSettings()
@@ -114,8 +132,8 @@ internal static class BubbleChecks
             if (appLevel ? placement.Side != null || placement.Corner != "topRight" : placement.Side != "above" || placement.Corner != null)
                 throw new Exception("Optional Swift placement fields did not decode");
         }
-        if (BubbleFonts.WindowsFamily("Hannotate SC") != "Microsoft YaHei UI" || BubbleStyle.StableHash("hello") != 0xa430d84680aabd0bUL)
-            throw new Exception("Font mapping/UTF8 stable hash failed");
+        if (BubbleStyle.StableHash("hello") != 0xa430d84680aabd0bUL)
+            throw new Exception("UTF8 stable hash failed");
     }
 
     static void CheckMotion()
@@ -175,38 +193,5 @@ internal static class BubbleChecks
         // Avalonia Headless 11 returns premultiplied pixels labelled Opaque; preserve their alpha in PNGs.
         using var png = new WriteableBitmap(pixels.Format, AlphaFormat.Premul, pixels.Address, pixels.Size, pixels.Dpi, pixels.RowBytes);
         png.Save(path); window.Content = null; window.Close();
-    }
-
-    static void Compare()
-    {
-        const int cellW = 560, cellH = 210;
-        var images = new List<Bitmap>();
-        var scene = new Canvas { Width = 3 * cellW, Height = 17 * cellH, Background = Brushes.White };
-        var names = BubbleStyle.Shapes.SelectMany(shape => BubbleStyle.Themes.Select(theme => $"{shape}-{theme}-medium"))
-            .Concat(BubbleStyle.Shapes.Select(shape => "anchored-" + shape)).ToArray();
-        for (var i = 0; i < names.Length; i++)
-        {
-            var name = names[i]; var mac = new Bitmap($"{References}/{name}.png"); var win = new Bitmap($"{Output}/transparent/{name}.png");
-            images.Add(mac); images.Add(win);
-            var cell = new Paint(c =>
-            {
-                var label = new FormattedText(name + "   Mac | Windows", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                    new Typeface("Arial"), 13, Brushes.Black);
-                c.DrawText(label, new Point(8, 4));
-                Draw(mac, new Rect(8, 28, 264, 174)); Draw(win, new Rect(288, 28, 264, 174));
-                void Draw(Bitmap bitmap, Rect area)
-                {
-                    // Both sources are shown at one common point scale (Mac snapshots are @2x).
-                    var pointWidth = bitmap == mac ? bitmap.PixelSize.Width / 2d : bitmap.PixelSize.Width;
-                    var pointHeight = bitmap == mac ? bitmap.PixelSize.Height / 2d : bitmap.PixelSize.Height;
-                    var scale = Math.Min(1, Math.Min(area.Width / pointWidth, area.Height / pointHeight));
-                    c.DrawImage(bitmap, new Rect(0, 0, bitmap.PixelSize.Width, bitmap.PixelSize.Height),
-                        new Rect(area.Center.X - pointWidth * scale / 2, area.Center.Y - pointHeight * scale / 2, pointWidth * scale, pointHeight * scale));
-                }
-            }) { Width = cellW, Height = cellH };
-            Canvas.SetLeft(cell, i % 3 * cellW); Canvas.SetTop(cell, i / 3 * cellH); scene.Children.Add(cell);
-        }
-        Capture(scene, $"{Output}/mac-windows-comparison.png");
-        foreach (var bitmap in images) bitmap.Dispose();
     }
 }
