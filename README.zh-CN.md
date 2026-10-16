@@ -57,11 +57,11 @@ curl -fsSL https://raw.githubusercontent.com/zygs1083-dotcom/LifeNarrator/main/s
 
 ## Windows 安装
 
-支持 Windows 10（2004 / build 19041）及以上的 x64 系统。从 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator-Setup.exe` 和 `checksums-windows.txt`，双击安装；只为当前用户安装，不需要管理员权限。Windows 预览版尚未签名，遇到 SmartScreen 提示时点 **“更多信息 → 仍要运行”**。
+支持 Windows 10（2004 / build 19041）及以上的 x64 系统。从 [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases) 下载 `LifeNarrator-Setup.exe` 和 `checksums-windows.txt`，双击安装；只为当前用户安装，不需要管理员权限。Windows 版尚未签名，遇到 SmartScreen 提示时点 **“更多信息 → 仍要运行”**。
 
-首次打开会说明读屏原理和隐私，可以配置模型 API，也可以跳过；内置模型稍后支持。右键系统托盘图标 → **设置**，可以选人格、调节奏、配置 API、切换语言、排除进程，或关闭默认开启的开机启动。API 密钥保存在 Windows 凭据管理器中。
+首次打开会说明读屏原理和隐私，再选模型方式：模型 API、内置模型（下载一次后离线使用；没有独立显卡时推荐“快速”档），或暂不使用模型。右键系统托盘图标 → **设置**，可以选人格、调节奏、配置 API 或内置模型、切换语言、排除进程、查看记忆和成长，或关闭默认开启的开机启动。按 **Alt+Shift+Space** 打开聊天框。API 密钥保存在 Windows 凭据管理器中。
 
-Windows 通过 UI Automation 读取可见文字，暂不支持 OCR、跟随滚动、内置模型、对话和记忆界面。设置和本地历史在 `%APPDATA%\LifeNarrator`。卸载默认保留数据，并询问是否连同已保存的 API 密钥一起删除；静默卸载始终保留用户数据。
+Windows 通过 UI Automation 读取可见文字，读不到时用系统 OCR（需要在 Windows 设置里装好简体中文或英语（美国）的 OCR 语言），旁白会跟着窗口滚动。内置模型用 llama.cpp，有支持 Vulkan 的显卡时用 GPU，否则用 CPU。设置、记忆、本地历史和模型都在 `%APPDATA%\LifeNarrator`，更新在应用内完成。卸载默认保留数据，并询问是否连同已保存的 API 密钥一起删除；静默卸载始终保留用户数据。
 
 ## 从源码构建
 

@@ -57,11 +57,11 @@ LifeNarrator lives in the menu bar and has no Dock icon. **⌥⇧N** adds a rule
 
 ## Windows installation
 
-Windows 10 (2004 / build 19041) or later, x64: download `LifeNarrator-Setup.exe` and `checksums-windows.txt` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases). Double-click the installer; it installs for your account without administrator access. The Windows preview is unsigned. If SmartScreen appears, choose **More info → Run anyway**.
+Windows 10 (2004 / build 19041) or later, x64: download `LifeNarrator-Setup.exe` and `checksums-windows.txt` from [Releases](https://github.com/zygs1083-dotcom/LifeNarrator/releases). Double-click the installer; it installs for your account without administrator access. The Windows build is unsigned. If SmartScreen appears, choose **More info → Run anyway**.
 
-The welcome window explains screen reading and privacy, then lets you connect a model API or skip it. The built-in model is coming later. Right-click the tray icon → **Settings** to choose a persona, tune timing, configure an API, set the language, exclude processes, or turn off launch at login (on by default). API keys stay in Windows Credential Manager.
+The welcome window explains screen reading and privacy, then lets you pick a model: a model API, the built-in model (downloaded once, then offline; the Fast tier is recommended without a discrete GPU), or none for now. Right-click the tray icon → **Settings** to choose a persona, tune timing, configure the API or built-in model, set the language, exclude processes, review memories and growth, or turn off launch at login (on by default). Press **Alt+Shift+Space** to open the chat box. API keys stay in Windows Credential Manager.
 
-Windows reads visible text through UI Automation. OCR, scroll following, built-in models, chat and the memory interface are not yet available on Windows. Settings and local history live in `%APPDATA%\LifeNarrator`. Uninstalling preserves them by default and asks whether to delete them and saved API keys; silent uninstalls always preserve user data.
+Windows reads visible text through UI Automation and falls back to the system OCR (install the Chinese (Simplified) or English (United States) OCR language in Windows Settings); narrations follow scrolling. The built-in model runs llama.cpp on a Vulkan-capable GPU when there is one, otherwise on the CPU. Settings, memories, local history and models live in `%APPDATA%\LifeNarrator`, and updates install from inside the app. Uninstalling preserves user data by default and asks whether to delete it along with saved API keys; silent uninstalls always preserve user data.
 
 ## Build from source
 
