@@ -23,12 +23,12 @@ public sealed class BubbleVisual : Panel
     internal Point? TailTip { get; private set; }
 
     public BubbleVisual(string id, string caption, string[] emojis, string language, BubbleStyle style,
-        string persona = "gentle", bool narrow = false, double fillOpacity = 1, bool appTail = false)
+        string persona = "gentle", bool narrow = false, double fillOpacity = 1, bool appTail = false, double? maxWidth = null)
         : this(id, caption, emojis, language, style, persona, narrow, fillOpacity, appTail,
-            style.Theme == "random" ? BubbleColors.Random(200, 0) : BubbleColors.Palette(style.Theme)[0]) { }
+            style.Theme == "random" ? BubbleColors.Random(200, 0) : BubbleColors.Palette(style.Theme)[0], maxWidth) { }
 
     internal BubbleVisual(string id, string caption, string[] emojis, string language, BubbleStyle style,
-        string persona, bool narrow, double fillOpacity, bool appTail, BubbleColors colors)
+        string persona, bool narrow, double fillOpacity, bool appTail, BubbleColors colors, double? maxWidth = null)
     {
         Background = Brushes.Transparent;
         Style = style; Group = colors; this.fillOpacity = fillOpacity;
@@ -44,7 +44,7 @@ public sealed class BubbleVisual : Panel
         var hp = metrics.HorizontalPadding + (style.Shape == "note" ? 2 : 0);
         var vp = metrics.VerticalPadding + (style.Shape == "note" ? 4 : 0);
         var gap = shownEmoji.Length == 0 ? 0 : 6;
-        var width = narrow ? 160 : metrics.MaxWidth;
+        var width = maxWidth ?? (narrow ? 160 : metrics.MaxWidth);
         if (style.Shape == "star") width /= 2;
         text = new FormattedText(caption, CultureInfo.GetCultureInfo(language == "zh" ? "zh-CN" : "en-US"),
             FlowDirection.LeftToRight, BubbleFonts.Typeface(style.Font, persona, language), metrics.FontSize, Brushes.Black)

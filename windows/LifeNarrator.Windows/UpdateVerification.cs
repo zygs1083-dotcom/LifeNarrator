@@ -18,8 +18,12 @@ public sealed partial class ShellApp
                 .Single(b => AutomationProperties.GetAutomationId(b) == "updates-check");
             check.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             while (updater.IsBusy) await Task.Delay(50);
-            if (updater.State != UpdateState.Available || !updateItem.IsVisible)
+            if (updater.State != UpdateState.Available)
                 throw new Exception("Update not available: " + updater.Error);
+            ShowTray(settingsWindow.Position); trayMenu!.UpdateLayout();
+            if (!trayMenu.GetVisualDescendants().OfType<Button>().Any(b => AutomationProperties.GetAutomationId(b) == "tray-updates.available"))
+                throw new Exception("Tray card did not show available update");
+            trayMenu.Hide(); settingsWindow.Activate();
             settingsWindow.UpdateLayout();
             settingsWindow.GetVisualDescendants().OfType<ScrollViewer>().First().ScrollToEnd();
             await Capture("update-before");

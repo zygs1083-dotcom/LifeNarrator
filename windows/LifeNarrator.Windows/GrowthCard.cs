@@ -32,7 +32,7 @@ internal sealed class GrowthCard : StackPanel
                 var stat = Views.Stack(number, Views.Caption(text["growth." + key])); stat.Spacing = 4; stats.Children.Add(stat);
             }
             children.Add(stats);
-            var name = new TextBox { Text = growth.Name, Watermark = text["tab.sprite"], IsEnabled = growth.Has("spriteName"), Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
+            var name = new TextBox { Text = growth.Name, Watermark = text["tab.sprite"], IsEnabled = growth.Has("spriteName"), Opacity = 1, Width = 260, HorizontalAlignment = HorizontalAlignment.Left };
             AutomationProperties.SetName(name, text["growth.name"]); AutomationProperties.SetAutomationId(name, "sprite-name");
             name.LostFocus += (_, _) => { if (name.Text != growth.Name) run(async () =>
                 { await companion.Call("growth.setName", new { name = name.Text ?? "" }); await companion.Refresh(); }); };

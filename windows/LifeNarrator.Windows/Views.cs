@@ -10,6 +10,17 @@ namespace LifeNarrator.Windows;
 
 internal static class Views
 {
+    public static FontFamily Font(Settings settings) => new(settings.EffectiveLanguage == "zh" ? "Microsoft YaHei UI, Noto Sans CJK SC" : "Segoe UI, DejaVu Sans");
+    public static Border Line()
+    {
+        var line = new Border { Height = 1 }; line.Bind(Border.BackgroundProperty, line.GetResourceObservable("Stroke")); return line;
+    }
+    public static Border Surface(Control content, double padding = 0)
+    {
+        var border = new Border { Child = content, Padding = new Thickness(padding), CornerRadius = new CornerRadius(20), BorderThickness = new Thickness(1), ClipToBounds = true };
+        border.Bind(Border.BackgroundProperty, border.GetResourceObservable("Card"));
+        border.Bind(Border.BorderBrushProperty, border.GetResourceObservable("Stroke")); return border;
+    }
     public static void Hue(Control control, double degrees)
     {
         IBrush Color(double saturation, double value) => new SolidColorBrush(new HsvColor(1, degrees, saturation, value).ToRgb());

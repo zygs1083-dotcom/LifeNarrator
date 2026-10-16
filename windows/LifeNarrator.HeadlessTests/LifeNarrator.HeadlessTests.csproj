@@ -35,6 +35,8 @@
     <Compile Include="../LifeNarrator.Windows/SettingsWindow.cs" Link="SettingsWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/ModelDownloader.cs" Link="ModelDownloader.cs" />
     <Compile Include="../LifeNarrator.Windows/ModelView.cs" Link="ModelView.cs" />
+    <Compile Include="../LifeNarrator.Windows/RuleInputWindow.cs" Link="RuleInputWindow.cs" />
+    <Compile Include="../LifeNarrator.Windows/TrayMenuWindow.cs" Link="TrayMenuWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/OnboardingWindow.cs" Link="OnboardingWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/Startup.cs" Link="Startup.cs" />
     <AvaloniaResource Include="../LifeNarrator.Windows/AppTheme.axaml" Link="AppTheme.axaml" />

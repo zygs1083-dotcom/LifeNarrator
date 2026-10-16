@@ -32,6 +32,7 @@ jobs:
             artifacts/bubble-*.png
             artifacts/ui-headless-*.png
             artifacts/settings/
+            artifacts/rest/
             artifacts/download-responsiveness/*.log
             artifacts/model-download-test/*.log
           if-no-files-found: error
@@ -134,6 +135,7 @@ jobs:
             artifacts/checksums-windows.txt
             artifacts/ui-*.png
             artifacts/settings/
+            artifacts/rest/
             artifacts/download-responsiveness/*.log
             artifacts/ui-*.json
             artifacts/installer-*.json
@@ -163,6 +165,7 @@ jobs:
           if-no-files-found: warn
 
   macos:
+    needs: windows
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
@@ -173,6 +176,15 @@ jobs:
       - run: swift test
         env:
           SNAPSHOT_DIR: ${{ github.workspace }}/.build/snapshots
+      - uses: actions/download-artifact@v4
+        with:
+          name: LifeNarrator-Windows
+          path: .build/windows-snapshots
+      - run: swift scripts/compare-windows-ui.swift .build/snapshots .build/windows-snapshots/rest artifacts/rest-comparison.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-ui-comparison
+          path: artifacts/rest-comparison.png
       - uses: actions/upload-artifact@v4
         with:
           name: bubble-snapshots

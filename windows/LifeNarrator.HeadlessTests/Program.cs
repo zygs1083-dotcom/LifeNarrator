@@ -13,10 +13,11 @@ if (args.SequenceEqual(new[] { "--download-responsiveness-only" }))
         .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
     DownloadResponsivenessChecks.Run(); return;
 }
+var restOnly = args.SequenceEqual(new[] { "--rest-only" });
 var bubblesOnly = args.SequenceEqual(new[] { "--bubbles-only" });
 SettingsChecks.Run();
 if (args.Length == 0) UpdateChecks.Run().GetAwaiter().GetResult();
-if (args.Length > 0 && !bubblesOnly) BrainChecks.Run(args[0]).GetAwaiter().GetResult();
+if (args.Length > 0 && !bubblesOnly && !restOnly) BrainChecks.Run(args[0]).GetAwaiter().GetResult();
 var map = new DisplayMap(new PixelRect(-1920, 120, 1920, 1080), new PixelRect(-1920, 120, 1920, 1040), 1.5);
 var physical = new Box(-1770, 270, 300, 60);
 var logical = map.Logical(physical);
@@ -28,6 +29,7 @@ if (JsonSerializer.Serialize(DateTimeOffset.UtcNow, Protocol.Json).Contains('.')
 AppBuilder.Configure<Application>().UseSkia()
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
 if (bubblesOnly) { BubbleChecks.Run(); return; }
+if (restOnly) { Application.Current!.Styles.Add(new AppTheme()); RestChecks.Run(); return; }
 var window = new Window { Width = 600, Height = 320, Background = Brushes.Transparent, Content = new BubbleSample() };
 window.Show();
 using var bitmap = window.CaptureRenderedFrame() ?? throw new Exception("No rendered frame");
@@ -69,5 +71,6 @@ SettingsInteractionChecks.Run();
 ModelApiChecks.Run();
 
 CompanionChecks.Run();
+RestChecks.Run();
 DownloadResponsivenessChecks.Run();
 ModelDownloadChecks.Run(args.Length > 0 ? args[0] : null);

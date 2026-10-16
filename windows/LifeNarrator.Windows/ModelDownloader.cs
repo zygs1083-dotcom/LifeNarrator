@@ -34,6 +34,7 @@ internal sealed class ModelDownloader
         Model = model;
         Destination = Path.Combine(directory, model.Filename);
         HasPartial = File.Exists(PartialPath);
+        Progress = HasPartial ? (double)new FileInfo(PartialPath).Length / Model.Size : 0;
         State = File.Exists(Destination) ? ModelDownloadState.Ready : ModelDownloadState.NotDownloaded;
     }
 

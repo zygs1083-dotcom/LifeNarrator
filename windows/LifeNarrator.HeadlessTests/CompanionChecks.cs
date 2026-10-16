@@ -56,6 +56,9 @@ internal static class CompanionChecks
         growth = locked; companion.Refresh().GetAwaiter().GetResult(); window.SelectTab(0); window.UpdateLayout();
         var name = window.GetVisualDescendants().OfType<TextBox>().Single(b => AutomationProperties.GetAutomationId(b) == "sprite-name");
         if (name.IsEnabled) throw new Exception("Locked controls enabled");
+        name.Text = ""; window.UpdateLayout();
+        if (name.Opacity != 1 || !name.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Name == "watermark" && t.IsEffectivelyVisible && t.Text == "小精灵"))
+            throw new Exception("Locked name border/placeholder is invisible");
         window.SelectTab(SettingsWindow.AppearanceTab); window.UpdateLayout();
         var lockedShape = window.GetVisualDescendants().OfType<ComboBox>().Single(b => AutomationProperties.GetAutomationId(b) == "appearance-shape");
         if (lockedShape.Items.Cast<ComboBoxItem>().Single(i => (string)i.Tag! == "star").IsEnabled) throw new Exception("Locked appearance option enabled");

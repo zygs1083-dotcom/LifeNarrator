@@ -11,14 +11,15 @@ namespace LifeNarrator.Windows;
 
 internal sealed class ModelView : StackPanel
 {
+    readonly bool onboarding;
     readonly Settings settings;
     readonly Texts text;
     readonly Func<Task> configure;
     readonly Func<Task<double>> testConnection;
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
-    public ModelView(Settings settings, Func<Task> configure, Func<Task<double>> testConnection)
+    public ModelView(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, bool onboarding = false)
     {
-        this.settings = settings; this.configure = configure; this.testConnection = testConnection;
+        this.onboarding = onboarding; this.settings = settings; this.configure = configure; this.testConnection = testConnection;
         text = new Texts(settings); Spacing = 14;
         error.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
         Render();
@@ -31,7 +32,7 @@ internal sealed class ModelView : StackPanel
         var body = Views.Stack(ModelChoices());
         if (settings.Provider.Kind == "api") body.Children.Add(ProviderEditor());
         if (settings.Provider.Kind == "builtin") body.Children.Add(BuiltinEditor());
-        Children.Clear(); Children.Add(Views.Card(text["provider"], "\uE99A", 200, null, body));
+        Children.Clear(); Children.Add(onboarding ? body : Views.Card(text["provider"], "\uE99A", 200, null, body));
         var systemOne = Views.Stack(Views.Toggle(text["systemOne.enable"], settings.SystemOne != null, enabled => Run(async () =>
         { settings.SystemOne = enabled ? new SystemOneSettings() : null; Render(); await configure(); })));
         if (settings.SystemOne is { } connection)
@@ -49,12 +50,19 @@ internal sealed class ModelView : StackPanel
         Children.Add(Views.Card(text["systemOne"], "\uE968", 200, null, systemOne));
     }
 
-    internal Control ModelChoices() => Views.Choices([
+    internal Control ModelChoices()
+    {
+        var choices = (WrapPanel)Views.Choices([
         ("builtin", "📦  " + text["provider.builtin"], text["provider.builtin.hint"]),
         ("api", "☁️  " + text["provider.api"], text["provider.api.hint"]),
         ("none", "🚫  " + text["provider.none"], text["provider.none.hint"])], settings.Provider.Kind,
         id => Run(async () => { settings.Provider.Kind = id; await configure(); }),
         selectionChanged: Render);
+        if (onboarding) Views.Hue(choices, 200);
+        if (onboarding)
+            foreach (var button in choices.Children.Cast<Avalonia.Controls.Primitives.ToggleButton>()) button.Width = 172;
+        return choices;
+    }
 
     readonly List<Action> downloadRefresh = [];
     void RefreshDownloads() { foreach (var refresh in downloadRefresh) refresh(); }
@@ -104,8 +112,8 @@ internal sealed class ModelView : StackPanel
                     ModelDownloadState.Downloading => "model.downloading",
                     ModelDownloadState.Verifying => "model.verifying",
                     ModelDownloadState.Ready => "model.ready",
-                    _ => "model.notDownloaded"
-                }] + (state == ModelDownloadState.Downloading ? $" {download.Progress:P0}" : "");
+                    _ => download.HasPartial ? "model.paused" : "model.notDownloaded"
+                }] + (state == ModelDownloadState.Downloading || (state == ModelDownloadState.NotDownloaded && download.HasPartial) ? $" {download.Progress * 100:0}%" : "");
                 progress.Value = download.Progress * 100;
                 progress.IsIndeterminate = state == ModelDownloadState.Verifying;
                 progress.IsVisible = state is ModelDownloadState.Downloading or ModelDownloadState.Verifying;

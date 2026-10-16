@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -13,11 +12,6 @@ namespace LifeNarrator.Windows;
 
 public sealed partial class ShellApp
 {
-    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-    delegate bool EnumWindowCallback(nint window, nint param);
-    [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowCallback callback, nint param);
-    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(nint window, out uint processID);
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(nint window, StringBuilder text, int length);
     [DllImport("user32.dll", SetLastError = true)] static extern bool PostMessage(nint window, uint message, nint wParam, nint lParam);
     [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
 
@@ -65,21 +59,20 @@ public sealed partial class ShellApp
                 }
             }
             settingsWindow.Close();
-            nint messageWindow = 0;
-            EnumWindows((window, _) =>
-            {
-                GetWindowThreadProcessId(window, out var processID);
-                var name = new StringBuilder(256); GetClassName(window, name, name.Capacity);
-                if (processID == Environment.ProcessId && name.ToString().StartsWith("AvaloniaMessageWindow ")) messageWindow = window;
-                return true;
-            }, 0);
-            if (messageWindow == 0) throw new Exception("Tray message window not found");
             var screen = verificationScreen;
             SetCursorPos(screen.X + screen.Width / 2, screen.Y + 100);
-            if (!PostMessage(messageWindow, 0x800, 1, 0x205)) throw new Win32Exception();
-            await Task.Delay(300);
-            var menu = desktop.Windows.Single(w => w.Name?.StartsWith("AvaloniaTrayPopupRoot_") == true);
-            if (menu.GetVisualDescendants().OfType<MenuItem>().Count() < 5) throw new Exception("Tray menu did not render");
+            foreach (var button in new[] { 0x202, 0x205 })
+            {
+                if (!PostMessage(tray.Handle, 0x800, 1, button)) throw new Win32Exception();
+                await Task.Delay(300);
+                if (trayMenu?.IsVisible != true || trayMenu.GetVisualDescendants().OfType<Button>().Count() < 4)
+                    throw new Exception("Tray card did not open for button " + button);
+                var outside = new Window { Width = 100, Height = 100 }; outside.Show(); outside.Activate();
+                await Task.Delay(150);
+                if (trayMenu.IsVisible) throw new Exception("Tray card did not dismiss on outside activation");
+                outside.Close();
+            }
+            ShowTray(new Avalonia.PixelPoint(screen.X + screen.Width / 2, screen.Y + 100));
             await Capture("ui-tray-menu");
             Artifact.Write("ui-verification.json", new { installedExecutable = Environment.ProcessPath, onboarding = true, invalidDraftRecovery = true,
                 persistedPersona = settings.Persona, markGap = settings.MarkGap, connectionMilliseconds = elapsed,

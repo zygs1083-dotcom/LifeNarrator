@@ -14,6 +14,8 @@ internal sealed class ChatWindow : Window
     readonly Companion companion;
     readonly Texts text;
     readonly TextBlock heading = new(), context = new(), error = new();
+    readonly Border level;
+    readonly TextBlock thinking;
     readonly List<ChatTurn> conversation = [];
     readonly StackPanel turns = new() { Spacing = 14 };
     readonly ScrollViewer history;
@@ -28,38 +30,64 @@ internal sealed class ChatWindow : Window
     public ChatWindow(Settings settings, Companion companion)
     {
         this.settings = settings; this.companion = companion; text = new Texts(settings);
-        Width = 420; Height = 580; MinWidth = 400; MinHeight = 500;
+        Width = 400; Height = 520; CanResize = false;
+        SystemDecorations = SystemDecorations.None; Background = Brushes.Transparent;
+        TransparencyLevelHint = [WindowTransparencyLevel.Transparent]; FontFamily = Views.Font(settings);
         Topmost = true; ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterScreen;
         AutomationProperties.SetAutomationId(this, "chat");
-        heading.FontSize = 17; heading.FontWeight = FontWeight.SemiBold;
-        var identity = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-        identity.Children.Add(new SpriteAvatar()); identity.Children.Add(heading);
-        heading.VerticalAlignment = VerticalAlignment.Center;
+        heading.FontSize = 15; heading.FontWeight = FontWeight.SemiBold;
+        var labels = Views.Stack(heading, Views.Caption(text["chat.subtitle"])); labels.Spacing = 3;
+        var identity = Views.Horizontal(new SpriteAvatar(), labels); identity.Spacing = 10;
+        labels.VerticalAlignment = VerticalAlignment.Center;
+        level = Views.Badge("");
+        var header = Views.Row(identity, level); header.Margin = new Thickness(16);
         context.TextWrapping = error.TextWrapping = TextWrapping.Wrap;
         error.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
-        context.Classes.Add("caption");
-        history = new ScrollViewer { Content = turns, Margin = new Thickness(0, 12) };
-        input.Watermark = text["chat.placeholder"];
+        error.Classes.Add("caption"); error.IsVisible = false;
+        context.Classes.Add("caption"); context.Margin = new Thickness(10);
+        thinking = Views.Caption(text["chat.thinking"]); thinking.IsVisible = false;
+        history = new ScrollViewer { Content = turns, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+        turns.Margin = new Thickness(16); turns.Spacing = 16;
+        input.Watermark = text["chat.placeholder"]; input.Background = Brushes.Transparent; input.BorderThickness = new Thickness(0); input.Padding = new Thickness(0);
+        input.MaxHeight = 60; input.TextWrapping = TextWrapping.Wrap;
         AutomationProperties.SetName(input, text["chat.placeholder"]); AutomationProperties.SetAutomationId(input, "chat-input");
-        send = Views.Button(text["chat.send"], () => SendInput());
+        send = Views.IconButton(text["chat.send"], "\uE96D", () => SendInput());
+        var arrow = new Avalonia.Controls.Shapes.Path { Data = StreamGeometry.Parse("M12,18 L12,6 M7,11 L12,6 L17,11"), Stroke = Brushes.White, StrokeThickness = 2 };
+        var circle = new Avalonia.Controls.Shapes.Ellipse { Opacity = .55 };
+        circle.Bind(Avalonia.Controls.Shapes.Shape.FillProperty, this.GetResourceObservable("AccentInk"));
+        var sendIcon = new Panel { Width = 24, Height = 24 }; sendIcon.Children.Add(circle); sendIcon.Children.Add(arrow); send.Content = sendIcon;
+        send.Bind(Button.ForegroundProperty, this.GetResourceObservable("AccentInk")); send.Padding = new Thickness(0);
         AutomationProperties.SetAutomationId(send, "chat-send");
         input.TextChanged += (_, _) => send.IsEnabled = !sending && !string.IsNullOrWhiteSpace(input.Text);
         input.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; SendInput(); } };
-        var quick = new WrapPanel { Orientation = Orientation.Horizontal };
+        var quick = Views.Horizontal(); quick.Spacing = 6;
         foreach (var key in new[] { "again", "quiet", "more", "recall" })
         {
             var reply = text["chat.quick." + key];
             var button = Views.Button(reply, () => SendInput(reply));
-            button.FontSize = 12; button.Padding = new Thickness(8, 6); button.Margin = new Thickness(0, 0, 6, 6);
-            quick.Children.Add(button);
+            button.FontSize = 11; button.Padding = new Thickness(10, 6); quick.Children.Add(button);
         }
-        screen.Content = text["chat.screen"];
+        screen.Content = text["chat.screen"]; screen.FontSize = 11;
+        screen.Theme = (Avalonia.Styling.ControlTheme)Application.Current!.FindResource("Checkbox")!;
         AutomationProperties.SetName(screen, text["chat.screen"]);
         AutomationProperties.SetAutomationId(screen, "chat-screen");
-        composer = Views.Stack(error, quick, Views.Row(input, send), screen, Views.Caption(text["chat.privacy"]));
-        var layout = new DockPanel { Margin = new Thickness(16) };
-        var header = Views.Stack(identity, context); DockPanel.SetDock(header, Dock.Top); layout.Children.Add(header);
-        DockPanel.SetDock(composer, Dock.Bottom); layout.Children.Add(composer); layout.Children.Add(history); Content = layout;
+        var entry = new Border { Child = Views.Row(input, send), Padding = new Thickness(10), CornerRadius = new CornerRadius(12) };
+        entry.Bind(Border.BackgroundProperty, this.GetResourceObservable("Paper"));
+        var quickScroll = new ScrollViewer { Content = quick, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+        composer = Views.Stack(error, quickScroll, entry, screen); composer.Margin = new Thickness(16);
+        if (settings.Provider.Kind == "api" && Catalog.Providers.Single(p => p.Id == settings.Provider.PresetId).Group != "local")
+            composer.Children.Add(Views.Caption(text["chat.privacy"]));
+        var contextCard = new Border { Child = context, CornerRadius = new CornerRadius(10), Margin = new Thickness(16, 12, 16, 0) };
+        contextCard.Bind(Border.BackgroundProperty, this.GetResourceObservable("Soft"));
+        contextCard.Bind(IsVisibleProperty, context.GetObservable(IsVisibleProperty));
+        var layout = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*,Auto,Auto") };
+        layout.Children.Add(header);
+        var line = Views.Line(); Grid.SetRow(line, 1); layout.Children.Add(line);
+        Grid.SetRow(contextCard, 2); layout.Children.Add(contextCard);
+        Grid.SetRow(history, 3); layout.Children.Add(history);
+        thinking.Margin = new Thickness(16, 0); Grid.SetRow(thinking, 4); layout.Children.Add(thinking);
+        Grid.SetRow(composer, 5); layout.Children.Add(composer); Content = Views.Surface(layout);
         send.IsEnabled = false;
         fade = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Render, Fade);
         Deactivated += (_, _) => fade.Start();
@@ -96,21 +124,21 @@ internal sealed class ChatWindow : Window
     void RefreshIdentity()
     {
         Title = text["chat.title"];
-        heading.Text = companion.Name(settings) + "  ·  Lv." + (companion.Growth?.State.Level ?? 1) + "\n"
-            + settings.Personas.Single(p => p.Id == settings.Persona).Name.Text(settings.EffectiveLanguage);
+        heading.Text = companion.Name(settings);
+        ((TextBlock)level.Child!).Text = "Lv." + (companion.Growth?.State.Level ?? 1);
     }
 
     async void SendInput(string? quick = null)
     {
         try { await Send(quick ?? input.Text ?? ""); }
-        catch (Exception failure) { error.Text = failure.Message; }
+        catch (Exception failure) { error.Text = failure.Message; error.IsVisible = true; }
     }
 
     internal async Task Send(string message)
     {
         message = message.Trim();
         if (sending || message.Length == 0) return;
-        sending = true; composer.IsEnabled = false; error.Text = text["chat.thinking"];
+        sending = true; composer.IsEnabled = false; error.IsVisible = false; thinking.IsVisible = true;
         try
         {
             var turn = (await companion.Call("chat.send", new { text = message, narration, includeScreen = screen.IsChecked == true })).Read<ChatTurn>();
@@ -120,13 +148,17 @@ internal sealed class ChatWindow : Window
             await companion.Refresh();
             history.ScrollToEnd();
         }
-        finally { sending = false; composer.IsEnabled = true; send.IsEnabled = !string.IsNullOrWhiteSpace(input.Text); input.Focus(); }
+        finally { thinking.IsVisible = false; sending = false; composer.IsEnabled = true; send.IsEnabled = !string.IsNullOrWhiteSpace(input.Text); input.Focus(); }
     }
 
     void RenderHistory()
     {
         turns.Children.Clear();
-        if (conversation.Count == 0) turns.Children.Add(Views.Caption(text["chat.empty"]));
+        if (conversation.Count == 0)
+        {
+            var empty = Views.Label(text["chat.empty"]); empty.TextAlignment = TextAlignment.Center; empty.Margin = new Thickness(0, 28);
+            empty.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("Muted")); turns.Children.Add(empty);
+        }
         foreach (var turn in conversation) Append(turn);
     }
 
@@ -134,9 +166,10 @@ internal sealed class ChatWindow : Window
     {
         var user = new Border { Child = Views.Label(turn.User), Padding = new Thickness(12, 8),
             CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Right, MaxWidth = 300 };
-        user.Bind(Border.BackgroundProperty, this.GetResourceObservable("Soft")); turns.Children.Add(user);
+        user.Bind(Border.BackgroundProperty, this.GetResourceObservable("Paper")); turns.Children.Add(user);
         var reply = new BubbleVisual(turn.Id, turn.Reply, [], settings.EffectiveLanguage,
-            settings.ActiveStyle(companion.Growth) with { Shape = "rounded", Size = "small" }, settings.FontPersona(settings.Persona), narrow: true);
+            settings.ActiveStyle(companion.Growth), settings.FontPersona(settings.Persona), maxWidth: 240);
+        reply.HorizontalAlignment = HorizontalAlignment.Left;
         AutomationProperties.SetName(reply, turn.Reply); turns.Children.Add(reply);
         if (turn.Notice != null) turns.Children.Add(Views.Caption(turn.Notice));
     }
@@ -147,11 +180,17 @@ internal sealed class SpriteAvatar : Control
     public SpriteAvatar() { Width = Height = 42; }
     public override void Render(DrawingContext context)
     {
-        context.DrawRectangle(Brush.Parse("#F55DC2"), null, new Rect(0, 0, 42, 42), 10, 10);
-        context.DrawRectangle(Brushes.FloralWhite, null, new Rect(7, 10, 28, 23), 8, 8);
-        context.DrawGeometry(Brushes.FloralWhite, null, StreamGeometry.Parse("M 12,29 L 10,37 L 22,29 Z"));
-        context.DrawEllipse(Brush.Parse("#2B2226"), null, new Point(16, 19), 1.5, 2.5);
-        context.DrawEllipse(Brush.Parse("#2B2226"), null, new Point(26, 19), 1.5, 2.5);
-        context.DrawGeometry(null, new Pen(Brush.Parse("#2B2226"), 1.5), StreamGeometry.Parse("M 18,25 Q 21,30 24,25"));
+        var background = new LinearGradientBrush { StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+            GradientStops = [new GradientStop(Color.Parse("#FFC7EC"), 0), new GradientStop(Color.Parse("#F55DC2"), 1)] };
+        context.DrawRectangle(background, null, new Rect(0, 0, 42, 42), 10, 10);
+        var scale = 42d / 620;
+        using (context.PushTransform(new Matrix(scale, 0, 0, scale, -210 * scale, -230 * scale)))
+        {
+            var ink = Brush.Parse("#2B2226");
+            context.DrawGeometry(Brush.Parse("#FFFCF8"), null, StreamGeometry.Parse("M392,306 L614,306 C707,306 760,360 760,449 L760,539 C760,630 707,682 614,682 L456,682 L330,764 L350,677 C278,664 238,615 238,539 L238,449 C238,360 294,306 392,306 Z"));
+            context.DrawRectangle(ink, null, new Rect(361, 413, 66, 100), 33, 33);
+            context.DrawRectangle(ink, null, new Rect(558, 413, 66, 100), 33, 33);
+            context.DrawGeometry(ink, null, StreamGeometry.Parse("M449,554 C449,531 536,531 536,554 L536,577 C536,637 449,637 449,577 Z"));
+        }
     }
 }

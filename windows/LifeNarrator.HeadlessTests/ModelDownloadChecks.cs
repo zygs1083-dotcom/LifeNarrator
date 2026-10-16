@@ -89,6 +89,8 @@ internal static class ModelDownloadChecks
         Capture(window, "paused");
         log.WriteLine($"PAUSE retained {partialSize} bytes; no ready file");
         var reopened = new ModelDownloader(download.Model, Path.Combine(work, "Models"));
+        if (!reopened.HasPartial || reopened.Progress != (double)partialSize / download.Model.Size)
+            throw new Exception("Restart lost paused download progress");
         var ranges = new List<string?>();
         async Task Reply(byte[] bytes, bool ignoreRange = false)
         {
@@ -174,7 +176,7 @@ internal static class ModelDownloadChecks
         download.Delete();
 
         var wizard = new OnboardingWindow(settings, Configure, () => Task.FromResult(0d), () => { });
-        wizard.Show(); Wait(wizard.Advance()); Click(wizard, "choice-builtin");
+        wizard.Show(); Click(wizard, "choice-builtin");
         Capture(wizard, "onboarding");
         // Exercise the actual download button in onboarding and its completion configure callback.
         reply = Reply(data);

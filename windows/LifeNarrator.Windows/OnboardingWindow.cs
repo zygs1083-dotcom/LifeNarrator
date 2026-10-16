@@ -14,14 +14,18 @@ internal sealed class OnboardingWindow : Window
     readonly Func<Task> configure;
     readonly Func<Task<double>> testConnection;
     readonly Action completed;
+    readonly Func<Task<string[]>> ocrLanguages;
     int step;
-    TextBlock error = new() { IsVisible = false, TextWrapping = TextWrapping.Wrap };
+    TextBlock error = null!;
 
-    public OnboardingWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Action completed)
+    public OnboardingWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Action completed,
+        Func<Task<string[]>>? ocrLanguages = null)
     {
         this.settings = settings; this.configure = configure; this.testConnection = testConnection; this.completed = completed;
+        this.ocrLanguages = ocrLanguages ?? (() => Task.FromResult(Array.Empty<string>()));
         text = new Texts(settings); Title = text["app.name"];
-        Width = 660; Height = 600; MinWidth = 620; MinHeight = 480;
+        Width = 620; Height = 500; MinWidth = 620; MinHeight = 500;
+        FontFamily = Views.Font(settings);
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         AutomationProperties.SetAutomationId(this, "onboarding");
         Render();
@@ -29,46 +33,47 @@ internal sealed class OnboardingWindow : Window
 
     void Render()
     {
-        error = new TextBlock { IsVisible = false, TextWrapping = TextWrapping.Wrap };
+        error = Views.Caption(""); error.IsVisible = false;
         error.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
         var title = Views.Label(text["onboarding.title"]); title.FontSize = 26; title.FontWeight = FontWeight.Bold;
-        var progress = Views.Caption(text["onboarding.step"].Replace("%d", (step + 1).ToString()));
-        var page = step switch
+        var dots = Views.Horizontal(); dots.Spacing = 8;
+        for (var index = 0; index < 3; index++)
         {
-            0 => Views.Card(text["onboarding.accessibility"], Views.Label(text["windows.reading"]), Views.Caption(text["windows.privacy"])),
-            1 => (Control)new ModelView(settings, configure, testConnection),
-            _ => Views.Card(text["ready"], Views.Label(text["onboarding.done"]), Views.Caption(text["windows.privacy"]))
-        };
-        var back = Views.Button(text["back"], () => { step--; Render(); });
-        back.IsVisible = step > 0;
-        var next = Views.Button(text[step == 2 ? "finish" : "continue"], () => { });
-        next.IsDefault = true;
-        next.Classes.Add("primary"); AutomationProperties.SetAutomationId(next, "onboarding-next");
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var skip = Views.Button(text["skip"], () => { });
-        if (step == 1) actions.Children.Add(skip);
-        actions.Children.Add(next);
-        var footer = Views.Row(back, actions);
-        async Task Move(bool skipModel)
-        {
-            footer.IsEnabled = false;
-            try
-            {
-                if (skipModel) settings.Provider.Kind = "none";
-                await Advance();
-            }
-            finally { footer.IsEnabled = true; }
+            var dot = new Border { Width = step == index ? 20 : 6, Height = 6, CornerRadius = new CornerRadius(3) };
+            dot.Bind(Border.BackgroundProperty, this.GetResourceObservable(step == index ? "Accent" : "Stroke")); dots.Children.Add(dot);
         }
-        next.Click += async (_, _) => await Move(false);
-        skip.Click += async (_, _) => await Move(true);
-        var dock = new DockPanel { Margin = new Thickness(20) };
-        var heading = Views.Stack(title, progress); heading.Margin = new Thickness(0, 0, 0, 20);
-        DockPanel.SetDock(heading, Dock.Top); dock.Children.Add(heading);
-        var bottom = Views.Stack(error, footer); bottom.Margin = new Thickness(0, 14, 0, 0);
-        DockPanel.SetDock(bottom, Dock.Bottom); dock.Children.Add(bottom);
-        dock.Children.Add(new ScrollViewer { Content = page, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
-        Content = dock;
+        AutomationProperties.SetName(dots, text["onboarding.step"].Replace("%d", (step + 1).ToString()));
+        var icon = Views.Chip("\uE8F2"); icon.Width = icon.Height = 56; icon.CornerRadius = new CornerRadius(16); ((TextBlock)icon.Child!).FontSize = 28;
+        var header = Views.Horizontal(icon, Views.Stack(title, dots)); header.Spacing = 16;
+        var pageTitle = Views.Label(text[step == 0 ? "onboarding.model" : step == 1 ? "onboarding.accessibility" : "windows.screenTitle"]);
+        pageTitle.FontSize = 20; pageTitle.FontWeight = FontWeight.Bold;
+        Control page;
+        if (step == 0) page = new ModelView(settings, configure, testConnection, onboarding: true);
+        else if (step == 1) page = Views.Stack(Views.Label(text["windows.reading"]), Views.Caption(text["windows.privacy"]), Views.Badge(text["windows.readingReady"], 150));
+        else
+        {
+            var status = Views.Caption(text["ocr.checking"]);
+            status.AttachedToVisualTree += async (_, _) =>
+            {
+                try
+                {
+                    var languages = await ocrLanguages();
+                    status.Text = languages.Length == 0 ? text["ocr.unavailable"] : text["ocr.ready"].Replace("%@", string.Join(", ", languages));
+                }
+                catch (Exception failure) { error.Text = failure.Message; error.IsVisible = true; }
+            };
+            page = Views.Stack(Views.Label(text["windows.screenReading"]), Views.Card(text["ocr.title"], "\uE8D2", 42, null, status), Views.Caption(text["windows.privacy"]));
+        }
+        var back = Views.Button(text["back"], () => { step--; Render(); }); back.IsVisible = step > 0;
+        var next = Views.Primary(text[step == 2 ? "finish" : "continue"], () => { }); next.IsDefault = true;
+        AutomationProperties.SetAutomationId(next, "onboarding-next");
+        var footer = Views.Row(back, next);
+        next.Click += async (_, _) => { footer.IsEnabled = false; try { await Advance(); } finally { footer.IsEnabled = true; } };
+        var layout = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto"), RowSpacing = 14, Margin = new Thickness(20, 40, 20, 20) };
+        layout.Children.Add(header); Grid.SetRow(pageTitle, 1); layout.Children.Add(pageTitle);
+        var scroll = new ScrollViewer { Content = page, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        Grid.SetRow(scroll, 2); layout.Children.Add(scroll);
+        var bottom = Views.Stack(error, footer); Grid.SetRow(bottom, 3); layout.Children.Add(bottom); Content = layout;
     }
 
     internal async Task Advance()
@@ -80,9 +85,7 @@ internal sealed class OnboardingWindow : Window
             {
                 settings.OnboardingCompleted = true; await configure(); completed(); Close(); return;
             }
-            if (step > 0) await configure();
-            step++;
-            Render();
+            await configure(); step++; Render();
         }
         catch (Exception failure) { error.Text = failure.Message; error.IsVisible = true; }
     }
