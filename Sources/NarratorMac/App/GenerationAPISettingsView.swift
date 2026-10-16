@@ -5,6 +5,8 @@ struct GenerationAPISettingsView: View {
     @ObservedObject var store: AppStore
     @State private var key = ""
     @State private var keySaved = false
+    @State private var savedKey = ""
+    @State private var saveTask: Task<Void, Never>?
     @State private var models: [String] = []
     @State private var busy = false
     @State private var result: String?
@@ -41,16 +43,11 @@ struct GenerationAPISettingsView: View {
         if preset.keyRequired || preset.group == .custom {
             LabeledContent(store.text("api.key")) {
                 SecureField(store.text("api.key"), text: $key).textFieldStyle(.roundedBorder)
-                    .onChange(of: key) { keySaved = false }
+                    .onChange(of: key) { scheduleSave() }
                 if let keyURL = preset.keyURL { Link(store.text("api.getKey"), destination: keyURL).fixedSize() }
             }
             HStack {
-                Button(store.text("api.saveKey")) {
-                    store.perform {
-                        try store.saveAPIKey(key, account: store.settings.generationAPI.account)
-                        keySaved = true
-                    }
-                }.buttonStyle(AppTheme.CapsuleButton())
+                Button(store.text("api.saveKey")) { save(key) }.buttonStyle(AppTheme.CapsuleButton())
                 if keySaved { Badge(text: store.text("api.keySaved"), hue: AppTheme.hue(150)) }
             }
         }
@@ -83,8 +80,35 @@ struct GenerationAPISettingsView: View {
         if (try? store.settings.generationAPI.validatedURL()) == nil {
             Badge(text: store.text("api.invalidURL"), hue: AppTheme.hue(350))
         }
-        Color.clear.frame(height: 0).onAppear {
-            store.perform { key = try KeychainStore.read(account: store.settings.generationAPI.account) }
+        Color.clear.frame(height: 0).onAppear { loadKey() }
+            .onChange(of: store.settings.generationAPI.account) { loadKey() }
+    }
+
+    private func loadKey() {
+        saveTask?.cancel()
+        store.perform {
+            savedKey = try KeychainStore.read(account: store.settings.generationAPI.account)
+            key = savedKey
+        }
+    }
+
+    // Users expect a typed key to stick; save it once they pause typing instead of only on the button.
+    private func scheduleSave() {
+        keySaved = key == savedKey && !key.isEmpty
+        saveTask?.cancel()
+        guard key != savedKey else { return }
+        let value = key
+        saveTask = Task {
+            do { try await Task.sleep(for: .milliseconds(800)) } catch { return }
+            save(value)
+        }
+    }
+
+    private func save(_ value: String) {
+        store.perform {
+            try store.saveAPIKey(value, account: store.settings.generationAPI.account)
+            savedKey = value
+            keySaved = true
         }
     }
 
