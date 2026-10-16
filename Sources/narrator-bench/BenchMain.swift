@@ -79,6 +79,12 @@ ws ::= [ \t\n\r]{0,4}
 """#
 
 func run() async throws {
+    if let command = CommandLine.arguments.dropFirst().first, ["compare", "--compare-worker"].contains(command) {
+        let arguments = try CompareArguments(Array(CommandLine.arguments.dropFirst(2)))
+        if command == "compare" { try runCompare(arguments) }
+        else { try runCompareWorker(arguments) }
+        return
+    }
     if CommandLine.arguments.dropFirst().first == "variety" {
         let arguments = Array(CommandLine.arguments.dropFirst(2))
         let rounds: Int
@@ -133,9 +139,15 @@ func run() async throws {
     print("validation: 12 quips, text <= 14 characters, 1...3 emoji strings each")
 }
 
-do {
-    try await run()
-} catch {
-    fputs("narrator-bench failed: \(error)\n", stderr)
-    exit(1)
+@main
+struct BenchMain {
+    static func main() async {
+        do {
+            try await run()
+        } catch {
+            fputs("Usage: narrator-bench compare --models a.gguf,b.gguf [--draft draft.gguf [--draft-tokens 1...8] | --mtp]\n", stderr)
+            fputs("narrator-bench failed: \(error)\n", stderr)
+            exit(1)
+        }
+    }
 }

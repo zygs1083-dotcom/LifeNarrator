@@ -17,6 +17,9 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
     public nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
     private let modelPath: String
+    private let draftModelPath: String?
+    private let draftTokens: Int
+    private let mtp: Bool
     private var engine: LlamaEngine?
     private var waitForRelease: Task<Void, Never>?
     private var unload: Task<Void, Never>?
@@ -29,14 +32,22 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
     #endif
     public nonisolated var isBusy: Bool { generating.withLock { $0 } }
 
-    public init(modelPath: String, waitForRelease: Task<Void, Never>? = nil) {
+    public init(modelPath: String, waitForRelease: Task<Void, Never>? = nil,
+                draftModelPath: String? = nil, draftTokens: Int = 6, mtp: Bool = false) {
         self.modelPath = modelPath
+        self.draftModelPath = draftModelPath
+        self.draftTokens = draftTokens
+        self.mtp = mtp
         self.waitForRelease = waitForRelease
     }
 
     public func generateJSON(system: String?, prompt: String, schema: String, maxTokens: Int?) async throws -> String {
         try await generateJSON(system: system, prompt: prompt, schema: schema, maxTokens: maxTokens, partial: { _ in true })
     }
+
+    public var generatedTokens: Int { engine?.generatedTokens ?? 0 }
+    public var proposedTokens: Int { engine?.proposedTokens ?? 0 }
+    public var acceptedTokens: Int { engine?.acceptedTokens ?? 0 }
 
     public var lastPrefillSeconds: Double { engine?.lastPrefillSeconds ?? 0 }
     public var lastPrefixCached: Bool { engine?.lastPrefixCached ?? false }
@@ -56,13 +67,11 @@ public actor LlamaGenerator: TextGenerator, GeneratorMetrics {
             scheduleUnload()
         }
         let grammar = try LlamaGrammar.grammar(for: schema)
-        if engine == nil { engine = try LlamaEngine(modelPath: modelPath) }
-        let cachePrefix = system.map { "<|im_start|>system\n\($0)<|im_end|>\n" }
-        var chat = cachePrefix ?? ""
-        chat += "<|im_start|>user\n\(prompt)<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+        if engine == nil { engine = try LlamaEngine(modelPath: modelPath, draftModelPath: draftModelPath, draftTokens: draftTokens, mtp: mtp) }
+        let chat = try engine!.chat(system: system, user: prompt)
         try Task.checkCancellation()
-        return try engine!.generate(prompt: chat, grammar: grammar, maxTokens: maxTokens ?? 1024,
-                                    cachePrefix: cachePrefix) {
+        return try engine!.generate(prompt: chat.prompt, grammar: grammar, maxTokens: maxTokens ?? 1024,
+                                    cachePrefix: chat.prefix) {
             !Task.isCancelled && !closed.withLock({ $0 }) && partial($0)
         }
     }

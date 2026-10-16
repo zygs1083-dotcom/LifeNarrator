@@ -9,7 +9,7 @@ public final class LlamaEngine {
         case metalUnavailable, modelLoad, contextCreation, tokenization, emptyOption
         case prefixBoundary, decode(Int32), contextOverflow, cacheRemoval, missingLogits
         case invalidGrammar, tokenPiece, invalidUTF8, generationLimit
-        case snapshotSave, snapshotRestore
+        case snapshotSave, snapshotRestore, incompatibleVocabulary, invalidDraftCount, mtpUnavailable
     }
 
     private static let backend: Void = {
@@ -26,6 +26,10 @@ public final class LlamaEngine {
     private let model: OpaquePointer
     private let context: OpaquePointer
     private let vocabulary: OpaquePointer
+    private let draft: LlamaEngine?
+    private let draftCount: Int
+    public private(set) var proposedTokens = 0
+    public private(set) var acceptedTokens = 0
     private var cachedPrefix: String?
     private var prefixTokens: [llama_token] = []
     private struct PrefixSnapshot {
@@ -40,7 +44,11 @@ public final class LlamaEngine {
     public private(set) var lastPrefixRestoreSeconds = 0.0
     public var prefixSnapshotBytes: Int { generationPrefix?.data.count ?? 0 }
 
-    public init(modelPath: String) throws {
+    public init(modelPath: String, draftModelPath: String? = nil, draftTokens: Int = 6, mtp: Bool = false) throws {
+        if mtp { throw Failure.mtpUnavailable }
+        guard (1...8).contains(draftTokens) else { throw Failure.invalidDraftCount }
+        self.draftCount = draftTokens
+        self.draft = try draftModelPath.map { try LlamaEngine(modelPath: $0) }
         _ = Self.backend
         #if os(macOS)
         guard llama_supports_gpu_offload() else { throw Failure.metalUnavailable }
@@ -53,6 +61,7 @@ public final class LlamaEngine {
         var configuration = llama_context_default_params()
         configuration.n_ctx = 4096
         configuration.n_batch = 4096
+        if draftModelPath != nil { configuration.n_rs_seq = UInt32(draftTokens) }
         guard let context = llama_init_from_model(model, configuration) else {
             llama_model_free(model)
             throw Failure.contextCreation
@@ -60,11 +69,34 @@ public final class LlamaEngine {
         self.model = model
         self.context = context
         self.vocabulary = llama_model_get_vocab(model)!
+        if let draft {
+            guard llama_vocab_n_tokens(vocabulary) == llama_vocab_n_tokens(draft.vocabulary),
+                  llama_vocab_bos(vocabulary) == llama_vocab_bos(draft.vocabulary),
+                  llama_vocab_eos(vocabulary) == llama_vocab_eos(draft.vocabulary) else {
+                throw Failure.incompatibleVocabulary
+            }
+            for token in 0..<llama_vocab_n_tokens(vocabulary) {
+                guard String(cString: llama_vocab_get_text(vocabulary, token)) == String(cString: llama_vocab_get_text(draft.vocabulary, token)),
+                      llama_vocab_get_attr(vocabulary, token) == llama_vocab_get_attr(draft.vocabulary, token),
+                      llama_vocab_is_eog(vocabulary, token) == llama_vocab_is_eog(draft.vocabulary, token) else {
+                    throw Failure.incompatibleVocabulary
+                }
+            }
+        }
     }
 
     deinit {
         llama_free(context)
         llama_model_free(model)
+    }
+
+    public func chat(system: String?, user: String) throws -> (prompt: String, prefix: String?) {
+        guard let template = llama_model_chat_template(model, nil) else { throw LlamaChat.Failure.missingTemplate }
+        var architecture = [CChar](repeating: 0, count: 128)
+        let count = llama_model_meta_val_str(model, "general.architecture", &architecture, architecture.count)
+        guard count >= 0 && count < architecture.count else { throw LlamaChat.Failure.unsupportedTemplate }
+        return try LlamaChat.render(template: String(cString: template), system: system, user: user,
+                                    disableThinking: String(cString: architecture).hasPrefix("qwen"))
     }
 
     public func optionProbabilities(prefix: String, suffix: String, options: [String]) throws -> [Double] {
@@ -106,26 +138,17 @@ public final class LlamaEngine {
     }
 
     public func generate(prompt: String, grammar: String, maxTokens: Int,
-                         cachePrefix: String? = nil,
+                         cachePrefix: String? = nil, seed: UInt32 = LLAMA_DEFAULT_SEED,
                          onToken: (String) -> Bool = { _ in true }) throws -> String {
         clear()
         generatedTokens = 0
         lastPrefillSeconds = 0
         lastPrefixCached = false
         lastPrefixRestoreSeconds = 0
-        guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else {
-            throw Failure.invalidGrammar
-        }
-        let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params())!
+        proposedTokens = 0
+        acceptedTokens = 0
+        let sampler = try makeSampler(grammar: grammar, seed: seed, distribution: draft == nil)
         defer { llama_sampler_free(sampler) }
-        llama_sampler_chain_add(sampler, grammarSampler)
-        llama_sampler_chain_add(sampler, llama_sampler_init_penalties(
-            llama_vocab_n_tokens(vocabulary), 256, 1.15, 0, 0
-        ))
-        llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9, 1))
-        llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05, 1))
-        llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
-        llama_sampler_chain_add(sampler, llama_sampler_init_dist(LLAMA_DEFAULT_SEED))
         let tokens = try tokenize(prompt, special: true)
         guard !tokens.isEmpty else { throw Failure.tokenization }
         let start = ContinuousClock.now
@@ -158,7 +181,16 @@ public final class LlamaEngine {
         } else {
             try evaluate(tokens, position: 0)
         }
+        if let draft {
+            guard try draft.tokenize(prompt, special: true) == tokens else { throw Failure.incompatibleVocabulary }
+            draft.clear()
+            try draft.evaluate(tokens, position: 0)
+        }
         lastPrefillSeconds = seconds(since: start)
+        if let draft {
+            return try generateSpeculative(tokens: tokens, sampler: sampler, draft: draft,
+                                           maxTokens: maxTokens, seed: seed, onToken: onToken)
+        }
         var text = ""
         var bytes: [UInt8] = []
         for index in 0..<maxTokens {
@@ -173,6 +205,135 @@ public final class LlamaEngine {
             if let complete = String(bytes: bytes, encoding: .utf8) { text = complete }
             guard onToken(text) else { throw CancellationError() }
             try evaluate([token], position: tokens.count + index)
+        }
+        throw Failure.generationLimit
+    }
+
+    private func makeSampler(grammar: String, seed: UInt32, distribution: Bool) throws -> UnsafeMutablePointer<llama_sampler> {
+        guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else {
+            throw Failure.invalidGrammar
+        }
+        let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params())!
+        llama_sampler_chain_add(sampler, grammarSampler)
+        llama_sampler_chain_add(sampler, llama_sampler_init_penalties(llama_vocab_n_tokens(vocabulary), 256, 1.15, 0, 0))
+        llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9, 1))
+        llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05, 1))
+        llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
+        if distribution { llama_sampler_chain_add(sampler, llama_sampler_init_dist(seed)) }
+        return sampler
+    }
+
+    private func logits(at row: Int32 = -1) throws -> [Float] {
+        guard let pointer = llama_get_logits_ith(context, row) else { throw Failure.missingLogits }
+        return Array(UnsafeBufferPointer(start: pointer, count: Int(llama_vocab_n_tokens(vocabulary))))
+    }
+
+    private func probabilities(_ logits: [Float], sampler: UnsafeMutablePointer<llama_sampler>) throws -> [Double] {
+        var candidates = logits.enumerated().map { llama_token_data(id: Int32($0.offset), logit: $0.element, p: 0) }
+        return try candidates.withUnsafeMutableBufferPointer { buffer in
+            var data = llama_token_data_array(data: buffer.baseAddress, size: buffer.count, selected: -1, sorted: false)
+            llama_sampler_apply(sampler, &data)
+            let filtered = UnsafeBufferPointer(start: data.data, count: data.size)
+            let maximum = filtered.map(\.logit).max()!
+            guard maximum.isFinite else { throw Failure.invalidGrammar }
+            let weights = filtered.map { exp(Double($0.logit - maximum)) }
+            let total = weights.reduce(0, +)
+            var probabilities = [Double](repeating: 0, count: logits.count)
+            for (candidate, weight) in zip(filtered, weights) { probabilities[Int(candidate.id)] = weight / total }
+            return probabilities
+        }
+    }
+
+    private func saveSequence() throws -> [UInt8] {
+        let size = llama_state_seq_get_size(context, 0)
+        guard size > 0 else { throw Failure.snapshotSave }
+        var data = [UInt8](repeating: 0, count: size)
+        let saved = data.withUnsafeMutableBufferPointer { llama_state_seq_get_data(context, $0.baseAddress, $0.count, 0) }
+        guard saved == size else { throw Failure.snapshotSave }
+        return data
+    }
+
+    private func restoreSequence(_ data: [UInt8]) throws {
+        let restored = data.withUnsafeBufferPointer { llama_state_seq_set_data(context, $0.baseAddress, $0.count, 0) }
+        guard restored == data.count else { throw Failure.snapshotRestore }
+    }
+
+    private func generateSpeculative(tokens: [llama_token],
+                                     sampler: UnsafeMutablePointer<llama_sampler>, draft: LlamaEngine,
+                                     maxTokens: Int, seed: UInt32, onToken: (String) -> Bool) throws -> String {
+        var random = SpeculativeRandom(state: seed == LLAMA_DEFAULT_SEED ? UInt64.random(in: .min ... .max) : UInt64(seed))
+        var position = tokens.count
+        var bytes: [UInt8] = []
+        var text = ""
+        while generatedTokens < maxTokens {
+            try Task.checkCancellation()
+            // Sequential draft decodes only retain the last recurrent rollback plane. Save the
+            // round boundary so rejection can restore any accepted prefix without corrupting GDN state.
+            let snapshot = try draft.saveSequence()
+            let proposalSampler = llama_sampler_clone(sampler)!
+            defer { llama_sampler_free(proposalSampler) }
+            var proposals: [llama_token] = []
+            var proposalProbabilities: [[Double]] = []
+            let initialLogits = try logits()
+            for index in 0..<min(draftCount, maxTokens - generatedTokens) {
+                let q = try draft.probabilities(draft.logits(), sampler: proposalSampler)
+                let token = llama_token(SpeculativeSampling.sample(q, uniform: random.uniform()))
+                proposals.append(token)
+                proposalProbabilities.append(q)
+                llama_sampler_accept(proposalSampler, token)
+                try draft.evaluate([token], position: position + index)
+                if llama_vocab_is_eog(vocabulary, token) { break }
+            }
+            proposedTokens += proposals.count
+            try evaluate(proposals, position: position, allLogits: true)
+            var committed: [llama_token] = []
+            var rejected = false
+            for (index, token) in proposals.enumerated() {
+                let p = try probabilities(index == 0 ? initialLogits : logits(at: Int32(index - 1)), sampler: sampler)
+                let q = proposalProbabilities[index]
+                if SpeculativeSampling.accepts(token: Int(token), target: p, draft: q, uniform: random.uniform()) {
+                    acceptedTokens += 1
+                    committed.append(token)
+                    llama_sampler_accept(sampler, token)
+                } else {
+                    let replacement = llama_token(SpeculativeSampling.sample(
+                        SpeculativeSampling.residual(target: p, draft: q), uniform: random.uniform()))
+                    committed.append(replacement)
+                    llama_sampler_accept(sampler, replacement)
+                    rejected = true
+                    break
+                }
+                if llama_vocab_is_eog(vocabulary, token) { break }
+            }
+            if !rejected && !llama_vocab_is_eog(vocabulary, committed.last!) && generatedTokens + committed.count < maxTokens {
+                let p = try probabilities(logits(at: Int32(proposals.count - 1)), sampler: sampler)
+                let bonus = llama_token(SpeculativeSampling.sample(p, uniform: random.uniform()))
+                committed.append(bonus)
+                llama_sampler_accept(sampler, bonus)
+            }
+            for token in committed {
+                if llama_vocab_is_eog(vocabulary, token) {
+                    guard let complete = String(bytes: bytes, encoding: .utf8) else { throw Failure.invalidUTF8 }
+                    return complete
+                }
+                bytes += try tokenBytes(token)
+                generatedTokens += 1
+                if let complete = String(bytes: bytes, encoding: .utf8) { text = complete }
+                guard onToken(text) else { throw CancellationError() }
+            }
+            if rejected {
+                let accepted = committed.count - 1
+                guard llama_memory_seq_rm(llama_get_memory(context), 0, Int32(position + accepted), -1) else {
+                    throw Failure.cacheRemoval
+                }
+                try evaluate([committed.last!], position: position + accepted)
+                try draft.restoreSequence(snapshot)
+                try draft.evaluate(committed, position: position)
+            } else if committed.count > proposals.count {
+                try evaluate([committed.last!], position: position + proposals.count)
+                try draft.evaluate([committed.last!], position: position + proposals.count)
+            }
+            position += committed.count
         }
         throw Failure.generationLimit
     }
@@ -205,7 +366,7 @@ public final class LlamaEngine {
         return piece.prefix(Int(count)).map { UInt8(bitPattern: $0) }
     }
 
-    private func evaluate(_ tokens: [llama_token], position: Int) throws {
+    private func evaluate(_ tokens: [llama_token], position: Int, allLogits: Bool = false) throws {
         guard position + tokens.count <= Int(llama_n_ctx(context)) else { throw Failure.contextOverflow }
         if tokens.isEmpty { return }
         var batch = llama_batch_init(Int32(tokens.count), 0, 1)
@@ -216,7 +377,7 @@ public final class LlamaEngine {
             batch.pos[index] = Int32(position + index)
             batch.n_seq_id[index] = 1
             batch.seq_id[index]![0] = 0
-            batch.logits[index] = index == tokens.count - 1 ? 1 : 0
+            batch.logits[index] = allLogits || index == tokens.count - 1 ? 1 : 0
         }
         let result = llama_decode(context, batch)
         guard result == 0 else {
