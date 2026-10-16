@@ -6,6 +6,7 @@ import NarratorBrain
 final class MacBrainSensor: BrainSensor {
     let sensor: ContextSensor
     let host: MacBrainHost
+    private let screenText = ScreenText()
     var lines: [TextLine] = []
     var tracks: [String: MarkTrack] = [:]
 
@@ -23,6 +24,9 @@ final class MacBrainSensor: BrainSensor {
     func isLowPowerMode() async -> Bool { ProcessInfo.processInfo.isLowPowerModeEnabled }
     func refresh() async { sensor.refresh() }
     func boundsProbe() async throws -> Bool { try sensor.boundsProbe() }
+    func windowImage(windowID: UInt32, windowFrame: CGRect, redactions: [CGRect]) async throws -> Data {
+        try await screenText.windowImage(windowID: windowID, frame: windowFrame, redactions: redactions)
+    }
     func startVisualLines() async {
         do { _ = try await sensor.visualLines() }
         catch is CancellationError { return }
@@ -92,7 +96,9 @@ final class MacBrainHost: BrainHost {
 
     func reportNow(_ error: any Error) {
         if Task.isCancelled { return }
-        if let failure = error as? AXFailure, failure.code == .apiDisabled {
+        if error is ImageCaptureFailure {
+            store.error = String(describing: error)
+        } else if let failure = error as? AXFailure, failure.code == .apiDisabled {
             store.error = String(describing: error)
         } else if case HTTPClientError.status(let code, let body) = error, code == 401 || code == 403 {
             FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
@@ -100,6 +106,8 @@ final class MacBrainHost: BrainHost {
                 keyRejectedShown = true
                 store.error = store.text("api.keyRejected") + "\n\(code): \(body)"
             }
+        } else if case HTTPClientError.status(let code, let body) = error, (400..<500).contains(code) {
+            store.error = "\(code): \(body)"
         } else {
             FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
         }

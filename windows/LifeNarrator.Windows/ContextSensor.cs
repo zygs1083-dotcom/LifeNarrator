@@ -211,6 +211,7 @@ internal sealed class ContextSensor : IDisposable
             var recognized = ocr.Read(window, display.Physical(frame), display);
             if (recognized.Length > 0)
             {
+                sensitive.AddRange(lines.Where(x => x.Line.Role == "field").Select(x => x.Line.Rect));
                 lines.Clear();
                 lines.AddRange(recognized.Where(x => content.Rect.Contains(x.TextLine.Rect.Rect)
                     && !sensitive.Any(r => r.Rect.Intersects(x.TextLine.Rect.Rect)))
@@ -294,6 +295,16 @@ internal sealed class ContextSensor : IDisposable
                          ((IUIAutomationValuePattern)focus.GetCurrentPattern(10002)).CurrentIsReadOnly == 0)
                         || ((bool)focus.GetCurrentPropertyValue(30040) &&
                             ((IUIAutomationTextPattern)focus.GetCurrentPattern(10014)).DocumentRange.GetAttributeValue(40015) is false));
+            case "sensor.windowImage":
+            {
+                var target = (nint)(long)p.GetProperty("windowID").GetUInt32();
+                var frame = p.GetProperty("windowFrame").Read<Box>();
+                if (!Native.GetWindowRect(target, out var physical)) throw new WindowUnavailableException();
+                var targetDisplay = displays.FirstOrDefault(d => d.Bounds.Contains(new Avalonia.PixelPoint(
+                    physical.Left + (physical.Right - physical.Left) / 2, physical.Top + (physical.Bottom - physical.Top) / 2))) ?? throw new WindowUnavailableException();
+                var jpeg = WindowImage.Capture(target, frame, p.GetProperty("redactions").Read<Box[]>(), targetDisplay);
+                return new { jpeg = Convert.ToBase64String(jpeg) };
+            }
             case "sensor.isSecureFocused": return automation.GetFocusedElement().CurrentIsPassword != 0;
             case "sensor.idleSeconds": return Native.IdleSeconds();
             case "sensor.lastTypedAt": return lastTypedAt();

@@ -161,5 +161,7 @@
   "model.notDownloaded": "Not downloaded",
   "model.downloading": "Downloading",
   "model.verifying": "Verifying",
-  "model.ready": "Ready"
+  "model.ready": "Ready",
+  "api.vision": "Vision",
+  "api.vision.hint": "Requires a vision model such as deepseek-flash, GPT, Claude or Gemini. Narrations and chats with screen attached send the current window image to this provider, after masking email, phone numbers, URLs and input fields."
 }

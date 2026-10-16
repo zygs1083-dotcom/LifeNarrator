@@ -14,6 +14,7 @@ public struct BrainSettings: Sendable {
 
     public var liveliness: Liveliness
     public var markGap: TimeInterval
+    public var vision: Bool
     public var memoryEnabled: Bool
     public var paused: Bool
     public var blacklist: [String]
@@ -27,7 +28,8 @@ public struct BrainSettings: Sendable {
 
     public init(liveliness: Liveliness, markGap: TimeInterval, paused: Bool, blacklist: [String],
                 persona: Persona, lang: Lang, disabledBuiltinIds: Set<String>, maxOnScreen: Int,
-                modelAvailable: Bool, systemOne: SystemOne?, ownProcessID: Int32, memoryEnabled: Bool = true) {
+                modelAvailable: Bool, systemOne: SystemOne?, ownProcessID: Int32, memoryEnabled: Bool = true, vision: Bool = false) {
+        self.vision = vision
         self.memoryEnabled = memoryEnabled
         self.liveliness = liveliness
         self.markGap = markGap
@@ -63,6 +65,7 @@ public struct BrainContent: Sendable {
     func isLowPowerMode() async -> Bool
     func refresh() async
     func boundsProbe() async throws -> Bool
+    func windowImage(windowID: UInt32, windowFrame: CGRect, redactions: [CGRect]) async throws -> Data
     func startVisualLines() async
     func textRect(lineIndex: Int, range: NSRange) async throws -> (rect: CGRect, kind: RectKind)?
     func markTrack(lineIndex: Int, kind: RectKind?) async throws -> String?
@@ -83,4 +86,9 @@ public struct BrainContent: Sendable {
     func report(_ error: any Error) async
     func saveRule(input: String) async throws
     func applySetting(_ setting: ChatSetting) async throws
+}
+
+public struct ImageCaptureFailure: Error, CustomStringConvertible {
+    public let description: String
+    init(_ error: any Error) { description = "Window image: \(error)" }
 }

@@ -35,6 +35,7 @@ private actor ConnectionGenerator: TextGenerator {
     let written = AsyncStream<RPCValue>.makeStream()
     var script: [String: RPCValue] = [:]
     var remoteError: String?
+    var remoteErrorCode: Decimal = 42
 
     func send(_ method: String, params: RPCValue = .object([:]), id: RPCValue? = .number(1)) throws {
         var object: [String: RPCValue] = ["jsonrpc": .string("2.0"), "method": .string(method), "params": params]
@@ -61,6 +62,7 @@ private actor ConnectionGenerator: TextGenerator {
         let result: RPCValue
         switch method {
         case "sensor.isTyping", "sensor.isSecureFocused", "sensor.isLowPowerMode": result = .bool(false)
+        case "sensor.windowImage": result = .object(["jpeg": .string(WindowImage.connectionTestJPEG.base64EncodedString())])
         case "sensor.boundsProbe": result = .bool(true)
         case "sensor.idleSeconds": result = .number(0)
         case "sensor.lastTypedAt": result = .string("2020-01-01T00:00:00Z")
@@ -76,7 +78,7 @@ private actor ConnectionGenerator: TextGenerator {
         }
         var reply: [String: RPCValue] = ["jsonrpc": .string("2.0"), "id": try #require(value["id"])]
         if remoteError == method {
-            reply["error"] = .object(["code": .number(42), "message": .string("shell failed")])
+            reply["error"] = .object(["code": .number(remoteErrorCode), "message": .string("shell failed")])
         } else { reply["result"] = script[method] ?? result }
         input.continuation.yield(try RPCValue.object(reply).line())
     }
@@ -428,6 +430,21 @@ private actor ConnectionGenerator: TextGenerator {
         await sensor.refresh()
         #expect(try await sensor.boundsProbe())
         await sensor.startVisualLines()
+        #expect(try await sensor.windowImage(windowID: 42, windowFrame: rect, redactions: [rect]) == WindowImage.connectionTestJPEG)
+        let imageCall = try #require(shell.output.last)
+        #expect(imageCall["method"] == .string("sensor.windowImage"))
+        #expect(imageCall["params"]?["windowID"] == .number(42))
+        #expect(imageCall["params"]?["windowFrame"] == (try .encode(rect)))
+        #expect(imageCall["params"]?["redactions"] == (try .encode([rect])))
+        shell.remoteError = "sensor.windowImage"; shell.remoteErrorCode = -32005
+        await #expect(throws: WindowImageError.self) {
+            try await sensor.windowImage(windowID: 42, windowFrame: rect, redactions: [])
+        }
+        shell.remoteErrorCode = -32000
+        await #expect(throws: BrainRPCError.self) {
+            try await sensor.windowImage(windowID: 42, windowFrame: rect, redactions: [])
+        }
+        shell.remoteError = nil
         let hit = try await sensor.textRect(lineIndex: 3, range: NSRange(location: 2, length: 4))
         #expect(hit?.kind == .bounds)
         #expect(try await sensor.markTrack(lineIndex: 3, kind: .ocr) == "opaque-track")
@@ -473,5 +490,84 @@ private actor CompanionGenerator: TextGenerator {
         let memories: RPCValue = intent == "remember" ? .array([.object(["kind": .string("fact"), "text": .string("喜欢抹茶")])]) : .array([])
         return try RPCValue.object(["intent": .string(intent), "reply": .string("我在呢。"), "rule": rule,
             "setting": setting, "memories": memories, "forget": intent == "forget" ? .string("喜欢抹茶") : .null]).line()
+    }
+}
+
+@Suite(.timeLimit(.minutes(1))) @MainActor struct VisionRPCScenarios {
+    @Test func testConnectionAttachesFixtureOnlyWhenEnabled() async throws {
+        let recorder = VisionRecorder(), shell = ScriptedShell()
+        let server = BrainRPCServer(writeLine: shell.write, generatorFactory: { _ in VisionGenerator(recorder: recorder) })
+        let task = Task { try await server.run(lines: shell.input.stream) }
+        for (index, vision) in [false, true].enumerated() {
+            let id = RPCValue.number(Decimal(index + 1))
+            try shell.send("testConnection", params: .object(["generator": .object([
+                "kind": .string("api"), "presetId": .string("openai"), "model": .string("fixture"),
+                "key": .string(""), "vision": .bool(vision)])]), id: id)
+            await shell.waitForReply(id)
+            #expect(shell.output.last?["error"] == nil)
+        }
+        #expect(await recorder.calls.map(\.jpeg) == [nil, WindowImage.connectionTestJPEG])
+        #expect(!shell.output.contains { $0["method"] == .string("sensor.windowImage") })
+        shell.input.continuation.finish()
+        try await task.value
+    }
+
+    @Test func chatImagesUseLastExternalWindowAndCancelUnavailableCapture() async throws {
+        let recorder = VisionRecorder(), shell = ScriptedShell()
+        let directory = try memoryTestDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let server = BrainRPCServer(writeLine: shell.write, generatorFactory: { config in
+            config.kind == .api ? VisionGenerator(recorder: recorder) : nil
+        })
+        let task = Task { try await server.run(lines: shell.input.stream) }
+        var nextID = 100
+        func call(_ method: String, _ params: RPCValue) async throws -> RPCValue {
+            nextID += 1
+            let id = RPCValue.number(Decimal(nextID))
+            try shell.send(method, params: params, id: id)
+            await shell.waitForReply(id)
+            return try #require(shell.output.last { $0["id"] == id })
+        }
+        let frame = CGRect(x: -50, y: 20, width: 1000, height: 800)
+        let external = ContextSnapshot(bundleId: "fixture", appName: "Fixture", pid: 1,
+            windowFrame: frame, contentFrame: frame, capturedAt: Date())
+        let own = ContextSnapshot(bundleId: "self", appName: "Self", pid: 999,
+            windowFrame: frame, contentFrame: frame, capturedAt: Date())
+        for (kind, vision) in [("none", true), ("api", false), ("api", true)] {
+            guard case .object(var config) = try configuration(directory: directory, kind: kind) else { return }
+            guard case .object(var generator) = config["generator"] else { return }
+            generator["vision"] = .bool(vision); config["generator"] = .object(generator)
+            _ = try await call("configure", .object(config))
+            for (snapshot, id) in [(external, 42), (own, 99)] {
+                _ = try await call("snapshot", .object(["snapshot": try .encode(snapshot), "windowID": .number(Decimal(id)),
+                    "change": try .encode(ContextChange(appChanged: true, windowChanged: true, hostChanged: false))]))
+            }
+            let result = try await call("chat.send", .object(["text": .string("hello"), "includeScreen": .bool(true)]))
+            if kind == "none" { #expect(result["error"] != nil) }
+            else { #expect(result["result"]?["reply"] == .string("我在呢。")) }
+        }
+        #expect(await recorder.calls.map(\.jpeg) == [nil, WindowImage.connectionTestJPEG])
+        let capture = try #require(shell.output.first { $0["method"] == .string("sensor.windowImage") })
+        #expect(capture["params"]?["windowID"] == .number(42))
+        #expect(shell.output.filter { $0["method"] == .string("sensor.windowImage") }.count == 1)
+        shell.remoteError = "sensor.windowImage"; shell.remoteErrorCode = -32005
+        let cancelled = try await call("chat.send", .object(["text": .string("hello"), "includeScreen": .bool(true)]))
+        #expect(cancelled["result"] == .null)
+        #expect(cancelled["error"] == nil)
+        #expect(!shell.output.contains { $0["method"] == .string("host.report") })
+        #expect(await recorder.calls.count == 2)
+        shell.input.continuation.finish()
+        try await task.value
+    }
+
+    @Test func nonAPIConfigurationIgnoresVision() throws {
+        let directory = URL(fileURLWithPath: "/fixture")
+        let value = try configuration(directory: directory)
+        guard case .object(var object) = value else { throw BrainRPCError(code: -1, message: "fixture") }
+        object["generator"] = .object(["kind": .string("none"), "vision": .bool(true)])
+        let config = try RPCValue.object(object).decode(RPCConfiguration.self)
+        let settings = try config.settings.makeSettings(modelAvailable: false,
+            vision: config.generator.kind == .api && config.generator.vision == true)
+        #expect(!settings.vision)
     }
 }

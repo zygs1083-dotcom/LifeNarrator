@@ -13,6 +13,7 @@ public final class NarratorEngine {
     private var windowID: CGWindowID?
     private var bundleID: String?
     private var chatSnapshot: ContextSnapshot?
+    private var chatWindowID: UInt32?
 
     init(store: AppStore) throws {
         self.store = store
@@ -23,7 +24,7 @@ public final class NarratorEngine {
             if self.windowID != id || self.sensorPort.lines != snapshot.textLines { self.sensorPort.tracks = [:] }
             self.windowID = id
             self.bundleID = snapshot.bundleId
-            if snapshot.pid != getpid() { self.chatSnapshot = snapshot }
+            if snapshot.pid != getpid() { self.chatSnapshot = snapshot; self.chatWindowID = id }
             self.sensorPort.lines = snapshot.textLines
             self.brain.snapshot(snapshot, windowID: id, change: change)
         }, onWindowFrame: { [unowned self] in self.brain.windowFrameChanged($0) },
@@ -72,7 +73,8 @@ public final class NarratorEngine {
             paused: settings.paused, blacklist: settings.blacklist, persona: settings.persona,
             lang: settings.language.lang, disabledBuiltinIds: settings.disabledBuiltinIds,
             maxOnScreen: settings.bubbleStyle.maxOnScreen, modelAvailable: available,
-            systemOne: systemOne, ownProcessID: getpid(), memoryEnabled: settings.memoryEnabled),
+            systemOne: systemOne, ownProcessID: getpid(), memoryEnabled: settings.memoryEnabled,
+            vision: settings.provider == .api && settings.generationAPI.vision),
             content: BrainContent(rules: store.rules, builtin: store.builtin, personas: store.personas),
             generator: generator)
     }
@@ -80,7 +82,7 @@ public final class NarratorEngine {
     var chatTurns: [ChatTurn] { brain.chat.turns }
 
     func chatContext(narration: String?) async throws -> ChatContext {
-        try await brain.chatContext(snapshot: chatSnapshot, narration: narration)
+        try await brain.chatContext(snapshot: chatSnapshot, windowID: chatWindowID, narration: narration)
     }
 
     func sendChat(_ input: String, context: ChatContext, includeScreen: Bool) async throws -> ChatTurn {

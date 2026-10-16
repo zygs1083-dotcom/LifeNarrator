@@ -461,7 +461,9 @@ public final class ContextSensor {
                                        pid: application.processIdentifier, windowTitle: title, windowFrame: currentFrame,
                                        contentFrame: contentFrame, screenIndex: screenIndex, url: reading.url, host: host,
                                        textLines: lines, textSource: source,
-                                       sensitiveRects: reading.sensitiveRects.map { $0.offsetBy(dx: dx, dy: dy) },
+                                       sensitiveRects: (reading.sensitiveRects + (source == .ocr
+                                            ? reading.lines.filter { $0.line.role == .field }.map { $0.line.rect } : []))
+                                            .map { $0.offsetBy(dx: dx, dy: dy) },
                                        secureFocused: reading.secureFocused, fullScreen: reading.fullScreen, capturedAt: Date())
         onSnapshot(snapshot, change)
     }

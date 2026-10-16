@@ -13,6 +13,7 @@ struct RPCGeneratorConfiguration: Decodable {
     let structured: StructuredOutput?
     let key: String?
     let modelPath: String?
+    let vision: Bool?
 
     func makeGenerator(waitForRelease: () -> Task<Void, Never>? = { nil }) throws -> (any TextGenerator)? {
         switch kind {
@@ -55,7 +56,7 @@ struct RPCConfiguration: Decodable {
         let ownProcessID: Int32
         let memoryEnabled: Bool
 
-        func makeSettings(modelAvailable: Bool) throws -> BrainSettings {
+        func makeSettings(modelAvailable: Bool, vision: Bool = false) throws -> BrainSettings {
             guard markGap >= 0, maxOnScreen > 0 else {
                 throw BrainRPCError(code: -32602, message: "markGap must be nonnegative and maxOnScreen positive")
             }
@@ -68,7 +69,7 @@ struct RPCConfiguration: Decodable {
             return BrainSettings(liveliness: liveliness, markGap: markGap, paused: paused, blacklist: blacklist,
                 persona: persona, lang: lang, disabledBuiltinIds: disabledBuiltinIds, maxOnScreen: maxOnScreen,
                 modelAvailable: modelAvailable, systemOne: connection, ownProcessID: ownProcessID,
-                memoryEnabled: memoryEnabled)
+                memoryEnabled: memoryEnabled, vision: vision)
         }
     }
     let settings: Settings

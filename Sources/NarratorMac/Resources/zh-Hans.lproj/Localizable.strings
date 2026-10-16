@@ -247,3 +247,6 @@
 "chat.quick.quiet" = "安静点";
 "chat.quick.more" = "多说点";
 "chat.quick.recall" = "你记得我什么";
+
+"api.vision" = "识图";
+"api.vision.hint" = "需要模型支持看图（如 deepseek-flash、GPT、Claude、Gemini）。开启后，旁白和附带屏幕的聊天会把当前窗口截图发给这家服务商；邮箱、电话、网址和输入框会先打码。Mac 需要录屏权限。";

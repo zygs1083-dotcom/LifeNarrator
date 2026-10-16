@@ -12,11 +12,13 @@ internal static class SettingsChecks
     {
         var settings = new Settings { Liveliness = "rowdy", Persona = "cat", Lang = "en", Paused = true,
             MarkGap = 7, Dwell = 12, MaxOnScreen = 4, Blacklist = ["private"],
-            Provider = new ProviderSettings { Kind = "api", PresetId = "custom-openai", Model = "fixture", BaseURL = "http://localhost:18765/v1" } };
+            Provider = new ProviderSettings { Kind = "api", PresetId = "custom-openai", Model = "fixture", Vision = true, BaseURL = "http://localhost:18765/v1" } };
         var json = JsonSerializer.Serialize(settings, Protocol.Json);
         var roundTrip = JsonSerializer.Deserialize<Settings>(json, Protocol.Json)!;
         if (JsonSerializer.Serialize(roundTrip, Protocol.Json) != json || json.Contains("key", StringComparison.OrdinalIgnoreCase))
             throw new Exception("Settings round trip or credential separation failed");
+        if (!roundTrip.Provider.Vision || JsonSerializer.Deserialize<ProviderSettings>("{}", Protocol.Json)!.Vision)
+            throw new Exception("Vision settings default or persistence failed");
         if (!OperatingSystem.IsWindows()) return;
         var provider = "ci-" + Guid.NewGuid();
         const string key = "fixture-密钥-😺";

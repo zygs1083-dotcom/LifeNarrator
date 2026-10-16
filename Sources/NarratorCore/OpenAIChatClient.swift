@@ -3,7 +3,8 @@ import Foundation
 import FoundationNetworking
 #endif
 
-public struct OpenAIChatClient: TextGenerator {
+public struct OpenAIChatClient: ImageTextGenerator {
+    public var jpeg: Data?
     public var baseURL: URL
     public var path: String
     public var key: String
@@ -21,6 +22,12 @@ public struct OpenAIChatClient: TextGenerator {
         self.configuration = configuration
     }
 
+    public func attachingJPEG(_ image: Data) -> any TextGenerator {
+        var copy = self
+        copy.jpeg = image
+        return copy
+    }
+
     public func makeRequest(system: String?, prompt: String, schema: String, maxTokens: Int? = nil) throws -> URLRequest {
         let schemaObject = try JSONSerialization.jsonObject(with: Data(schema.utf8))
         var system = system
@@ -31,6 +38,15 @@ public struct OpenAIChatClient: TextGenerator {
         if let system { messages.append(["role": "system", "content": system]) }
         messages.append(["role": "user", "content": prompt])
         var body: [String: Any] = ["model": model, "messages": messages, "stream": stream]
+        if let jpeg {
+            var multimodal: [[String: Any]] = []
+            if let system { multimodal.append(["role": "system", "content": system]) }
+            multimodal.append(["role": "user", "content": [
+                ["type": "text", "text": prompt],
+                ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + jpeg.base64EncodedString()]]
+            ]])
+            body["messages"] = multimodal
+        }
         switch structured {
         case .jsonSchema: body["response_format"] = ["type": "json_schema", "json_schema": ["name": "lifenarrator", "schema": schemaObject]]
         case .jsonObject: body["response_format"] = ["type": "json_object"]

@@ -50,6 +50,23 @@ internal static class UIChecks
         if (settings.AutomaticUpdates) throw new Exception("Automatic update toggle did not change settings");
         if (window.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetAutomationId(b) == "updates-check").Content?.ToString() != "Check for updates")
             throw new Exception("Update check button was not localized");
+        if (OperatingSystem.IsWindows())
+        {
+            settings.Provider = new ProviderSettings { Kind = "api", Model = "fixture" };
+            window.SelectTab(1); window.UpdateLayout();
+            var vision = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == "Vision");
+            vision.IsChecked = true;
+            vision.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (!settings.Provider.Vision) throw new Exception("Vision toggle did not update provider settings");
+            window.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Content is ModelView).ScrollToEnd();
+            foreach (var variant in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+            {
+                Application.Current.RequestedThemeVariant = variant;
+                window.UpdateLayout();
+                using var frame = window.CaptureRenderedFrame() ?? throw new Exception("No API settings pixels");
+                frame.Save($"artifacts/ui-headless-api-vision-{variant}.png");
+            }
+        }
         window.Close();
         var complete = false;
         var wizard = new OnboardingWindow(new Settings(), () => Task.CompletedTask, () => Task.FromResult(1d), () => complete = true);

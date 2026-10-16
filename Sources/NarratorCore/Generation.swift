@@ -158,7 +158,7 @@ public enum SpriteGenerator {
 
     public static func generate(screen: SpriteScreen, snapshot: ContextSnapshot, app: String, title: String,
                                 exclude: [String], persona: Persona, lang: Lang, k: Int, recent: [String] = [],
-                                generator: any TextGenerator, catalog: PersonaCatalog = .builtin, memoryContext: String = "",
+                                generator: any TextGenerator, catalog: PersonaCatalog = .builtin, memoryContext: String = "", vision: Bool = false,
                                 isRepeat: @escaping @Sendable (String) -> Bool,
                                 onMark: @escaping @Sendable (SpriteMark) -> Void) async throws -> [SpriteMark] {
         final class State: @unchecked Sendable {
@@ -172,7 +172,7 @@ public enum SpriteGenerator {
         let limit = spriteLimit(persona: persona, catalog: catalog)
         let lines = screen.lines.map { snapshot.textLines[$0.lineIndex] }
         let prompt = GenerationPrompts.spriteMarks(app: app, title: title, screen: screen, exclude: exclude,
-                                                   persona: persona, lang: lang, k: k, recent: recent, catalog: catalog)
+                                                   persona: persona, lang: lang, k: k, recent: recent, catalog: catalog, vision: vision)
         let receive: @Sendable (String) -> Bool = { partial in
             let accepted = state.lock.withLock { () -> [SpriteMark] in
                 do {

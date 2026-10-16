@@ -139,6 +139,7 @@ jobs:
         with:
           name: windows-shell-e2e
           path: |
+            artifacts/e2e-*.jpg
             artifacts/e2e-*.png
             artifacts/e2e*.json
             artifacts/e2e*.log

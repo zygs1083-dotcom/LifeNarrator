@@ -3,7 +3,8 @@ import Foundation
 import FoundationNetworking
 #endif
 
-public struct AnthropicClient: TextGenerator {
+public struct AnthropicClient: ImageTextGenerator {
+    public var jpeg: Data?
     public var baseURL: URL
     public var path: String
     public var model: String
@@ -17,11 +18,23 @@ public struct AnthropicClient: TextGenerator {
         self.stream = stream; self.configuration = configuration
     }
 
+    public func attachingJPEG(_ image: Data) -> any TextGenerator {
+        var copy = self
+        copy.jpeg = image
+        return copy
+    }
+
     public func makeRequest(system: String?, prompt: String, schema: String, maxTokens: Int? = nil) throws -> URLRequest {
         var body: [String: Any] = ["model": model, "max_tokens": maxTokens ?? 1024, "stream": stream,
             "messages": [["role": "user", "content": prompt]],
             "tools": [["name": "emit", "input_schema": try JSONSerialization.jsonObject(with: Data(schema.utf8))]],
             "tool_choice": ["type": "tool", "name": "emit"]]
+        if let jpeg {
+            body["messages"] = [["role": "user", "content": [
+                ["type": "image", "source": ["type": "base64", "media_type": "image/jpeg", "data": jpeg.base64EncodedString()]],
+                ["type": "text", "text": prompt]
+            ]]]
+        }
         if let system { body["system"] = system }
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = "POST"

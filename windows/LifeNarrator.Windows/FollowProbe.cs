@@ -28,6 +28,26 @@ internal static class FollowProbe
             var rect = new Avalonia.Rect(rectangles[0], rectangles[1], rectangles[2], rectangles[3]);
             for (var j = 4; j < rectangles.Length; j += 4)
                 rect = rect.Union(new Avalonia.Rect(rectangles[j], rectangles[j + 1], rectangles[j + 2], rectangles[j + 3]));
+            var window = Native.GetForegroundWindow();
+            if (!Native.GetWindowRect(window, out var bounds)) throw new System.ComponentModel.Win32Exception();
+            var display = new DisplayMap(new Avalonia.PixelRect(bounds.Left, bounds.Top,
+                bounds.Right - bounds.Left, bounds.Bottom - bounds.Top), default, 1);
+            var mask = Box.From(rect);
+            var jpeg = WindowImage.Capture(window, bounds.Box, [mask], display);
+            using (var decoded = SkiaSharp.SKBitmap.Decode(jpeg))
+            {
+                if (Math.Max(decoded.Width, decoded.Height) > 1280) throw new Exception("Vision image exceeds 1280px");
+                var pixel = decoded.GetPixel((int)((mask.X + mask.W / 2 - bounds.Left) * decoded.Width / bounds.Box.W),
+                    (int)((mask.Y + mask.H / 2 - bounds.Top) * decoded.Height / bounds.Box.H));
+                if (pixel.Red > 10 || pixel.Green > 10 || pixel.Blue > 10) throw new Exception("Vision redaction is not black");
+            }
+            File.WriteAllBytes(Artifact.PathFor("e2e-vision.jpg"), jpeg);
+            try
+            {
+                WindowImage.Capture(window, bounds.Box.Offset(1, 0), [], display);
+                throw new Exception("Vision accepted a stale window frame");
+            }
+            catch (WindowUnavailableException) { }
             Artifact.Write("e2e-probe.json", new { window = root.CurrentName, text = range.GetText(-1), rectangles, rect = Box.From(rect) });
             return;
         }

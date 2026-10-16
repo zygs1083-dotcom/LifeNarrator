@@ -155,6 +155,9 @@ internal sealed class ModelView : StackPanel
         advanced.IsVisible = false;
         body.Children.Add(Views.Button(text["api.advanced"] + "  ⌄", () => advanced.IsVisible = !advanced.IsVisible));
         body.Children.Add(advanced);
+        body.Children.Add(Views.Toggle(text["api.vision"], settings.Provider.Vision, enabled => Run(async () =>
+        { settings.Provider.Vision = enabled; await configure(); })));
+        body.Children.Add(Views.Caption(text["api.vision.hint"]));
         var result = Views.Caption("");
         var test = Views.Button(text["api.test"], () => { });
         AutomationProperties.SetAutomationId(test, "test-connection");

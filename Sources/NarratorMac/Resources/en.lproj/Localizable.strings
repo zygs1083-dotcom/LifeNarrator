@@ -247,3 +247,6 @@
 "chat.quick.quiet" = "Be quieter";
 "chat.quick.more" = "Talk more";
 "chat.quick.recall" = "What do you remember?";
+
+"api.vision" = "Vision";
+"api.vision.hint" = "Requires a vision model such as deepseek-flash, GPT, Claude or Gemini. Narrations and chats with screen attached send the current window image to this provider, after masking email, phone numbers, URLs and input fields. Mac requires Screen Recording permission.";

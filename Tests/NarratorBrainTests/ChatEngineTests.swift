@@ -35,6 +35,7 @@ private func response(_ intent: String = "chat", reply: String = "我在呢。",
     func isLowPowerMode() async -> Bool { false }
     func refresh() async {}
     func boundsProbe() async throws -> Bool { true }
+    func windowImage(windowID: UInt32, windowFrame: CGRect, redactions: [CGRect]) async throws -> Data { throw WindowImageError.windowUnavailable }
     func startVisualLines() async {}
     func textRect(lineIndex: Int, range: NSRange) async throws -> (rect: CGRect, kind: RectKind)? { nil }
     func markTrack(lineIndex: Int, kind: RectKind?) async throws -> String? { nil }

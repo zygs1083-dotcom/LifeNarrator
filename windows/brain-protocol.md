@@ -52,21 +52,21 @@ customPersonas 是完整 PersonaProfile 数组：`{id,emoji,name,caption,descrip
 生成器三种形态：
 
 - `{"kind":"none"}`：只使用离线规则和台词。
-- `{"kind":"api","presetId":"openai","model":"MODEL","key":"KEY","baseURL":"https://example.com/v1","structured":"json_schema"}`：presetId、model、key 必填，baseURL 和 structured 可省略，沿用 preset。model 不可为空，baseURL 必须为 http(s) URL。structured 为 `json_schema/json_object/prompt`。presetId 使用 `Sources/NarratorCore/Resources/providers.json` 中的 id；通过 ProviderConfiguration / ProviderCatalog 构造 OpenAIChatClient 或 AnthropicClient。Anthropic 沿用其工具结构化输出，不使用 OpenAI 的 structured 选项。key 允许空字符串（本地免鉴权服务）；不写入数据目录，也不输出到日志。
+- `{"kind":"api","presetId":"openai","model":"MODEL","key":"KEY","baseURL":"https://example.com/v1","structured":"json_schema","vision":false}`：presetId、model、key 必填，baseURL 和 structured 可省略，沿用 preset。model 不可为空，baseURL 必须为 http(s) URL。structured 为 `json_schema/json_object/prompt`。presetId 使用 `Sources/NarratorCore/Resources/providers.json` 中的 id；通过 ProviderConfiguration / ProviderCatalog 构造 OpenAIChatClient 或 AnthropicClient。Anthropic 沿用其工具结构化输出，不使用 OpenAI 的 structured 选项。vision 可省略，默认 false；仅 kind=api 生效。开启后只在旁白标记生成及 includeScreen=true 的聊天请求附上打码后的当前窗口 JPEG，不用于环境旁白、规则编译或台词预生成。key 允许空字符串（本地免鉴权服务）；不写入数据目录，也不输出到日志。
 - `{"kind":"builtin","modelPath":"C:\\LifeNarrator\\models\\model.gguf"}`：macOS / Windows 上使用本机 GGUF 模型和 GBNF 约束生成。modelPath 必填且必须指向进程可访问的文件；缺失、空路径或文件不存在返回 -32602。首次生成时加载模型，空闲 10 分钟释放；重新配置会关闭旧生成器，configure 的成功回复会等待旧生成任务结束和旧模型释放（期间仍处理端口回复），宿主收到后可删除旧 GGUF；新模型等待旧模型释放后加载，EOF / 会话失败退出前也释放。Windows 使用官方 llama.cpp b11429 CPU 后端，有可用 Vulkan 设备时自动卸载到 GPU；Mac 仍使用 Metal。模型加载或生成失败经 host.report 暴露。Linux 不编译 NarratorLlama，builtin 返回 -32001。下载及选择模型由宿主负责，本协议不提供下载功能。
 
 ### testConnection
 
-参数：`{generator:{kind:"api",presetId:string,model:string,key:string,baseURL?:string,structured?:string}}`。
+参数：`{generator:{kind:"api",presetId:string,model:string,key:string,baseURL?:string,structured?:string,vision?:bool}}`。
 通过现有生成器发送一个最小 JSON 请求（`{"ok":true}`），验证响应并返回 `{elapsedMilliseconds:number}`。
-不要求 configure，不替换当前配置，也不使用屏幕文字。调用异步执行，等待时仍处理其他 RPC。
+vision=true 时附带 Core 内置的小型纯色 JPEG，以检测模型是否接受图片。不要求 configure，不替换当前配置，也不使用屏幕文字。调用异步执行，等待时仍处理其他 RPC。
 配置错误返回 -32602；请求失败或响应无效返回 -32003。会话关闭时取消未完成的测试。
 
 ### chat.send / chat.history
 
-`chat.send` 参数：`{text:string,narration?:string,includeScreen:bool}`。text 不可为空；narration 是点击旁白时附带的文字。result 为 `ChatTurn = {id:UUID字符串,user:string,reply:string,notice?:string}`，notice 为首次记忆隐私提示。`chat.history` 参数 `{}`，result 为最近最多 50 轮的 `ChatTurn[]`。对话存于数据目录的 `chat.json`。
+`chat.send` 参数：`{text:string,narration?:string,includeScreen:bool}`。text 不可为空；narration 是点击旁白时附带的文字。result 为 `ChatTurn = {id:UUID字符串,user:string,reply:string,notice?:string}`，notice 为首次记忆隐私提示。`chat.history` 参数 `{}`，result 为最近最多 50 轮的 `ChatTurn[]`。对话存于数据目录的 `chat.json`。截图窗口已失效或截图失败取消本次请求时 result 为 null；外壳保留输入、不展示聊天错误。其他截图错误通过 host.report 每次 configure 最多报告一次。
 
-大脑从最近的外部窗口 snapshot 生成上下文，复用 `SpriteBrain.chatContext` 的密码焦点、黑名单和隐私过滤；外壳不传原始 screen/title。只在 includeScreen=true 时附上过滤后的屏幕文字。外壳打开聊天窗口时应默认取消勾选。生成异步执行，期间继续分发 RPC（包括 host 端口及其嵌套 configure/rules.compile）。模型未配置、生成失败、无效意图、宿主操作失败返回 -32004，不伪造回复；外壳保留输入并展示错误。
+大脑从最近的外部窗口 snapshot 生成上下文，复用 `SpriteBrain.chatContext` 的密码焦点、黑名单和隐私过滤；外壳不传原始 screen/title。只在 includeScreen=true 时附上过滤后的屏幕文字；API 的 vision=true 时，同时附上快照对应窗口的打码 JPEG。外壳打开聊天窗口时应默认取消勾选。生成异步执行，期间继续分发 RPC（包括 host 端口及其嵌套 configure/rules.compile）。模型未配置、生成失败、无效意图、宿主操作失败返回 -32004，不伪造回复；外壳保留输入并展示错误。
 
 ### memory.list/add/edit/pin/delete/clear
 
@@ -172,6 +172,7 @@ covered 时 Mac 会改圆角、取消旋转、使用 0.92 填充并重新测量�
 | sensor.isLowPowerMode | `{}` | bool |
 | sensor.refresh | `{}` | null |
 | sensor.boundsProbe | `{}` | bool |
+| sensor.windowImage | `{windowID:uint32,windowFrame:Rect,redactions:Rect[]}` | `{jpeg:string}`，base64 JPEG |
 | sensor.startVisualLines | `{}` | null；开始后台 OCR，结果另发 snapshot |
 | sensor.textRect | `{lineIndex:integer,range:Range}` | `{rect:Rect,kind:RectKind}` 或 null |
 | sensor.markTrack | `{lineIndex:integer,kind?:RectKind}` | string 跟随句柄或 null |
@@ -191,12 +192,14 @@ covered 时 Mac 会改圆角、取消旋转、使用 0.92 填充并重新测量�
 
 Narration 必填：`id:string,quipID:string,ruleID:string,sequence:integer,text:string,emoji:string[],language:"zh"|"en",persona:Persona,framed:bool,obstacles:Rect[],windowID:uint32,window:Window`；可选 `anchor:Rect,line:Rect,trackID:string`。id 标识本次气泡实例，quipID 标识台词，ruleID 标识规则；trackID 是外壳给 markTrack 的不透明句柄，大脑原样转发给浮层。framed 控制文字框装饰；即使 false，仍可有 anchor 供定位。
 
-sensor.isTyping、isSecureFocused、boundsProbe、textRect、markTrack 的错误会抛回 SpriteBrain，由其现有错误处理通过 host.report 报告。其他端口在 Swift 协议中不能抛错，其 error 或无法解码的 result 会终止整个会话，绝不伪造成功/默认值。host.report 对远端 BrainRPCError 保留 code/message/data；其他引擎错误 code 为 -32000。
+sensor.windowImage 仅截 windowID 对应窗口，截图前后都校验实际 frame 与 windowFrame 相同。redactions 是屏幕逻辑坐标，外壳换算为截图像素并涂黑；JPEG 长边不超过 1280px，质量约 0.7，全程在内存处理，不落盘、不记录内容。窗口消失、最小化或 frame 改变时返回 -32005（窗口不可用），大脑取消请求并记 reason=image-unavailable，不报告错误。其他错误每次 configure 后最多报告一次，绝不退回文字请求。打码区域由 Core 计算：敏感框外扩 60pt、输入框行，以及邮箱/电话/长数字/网址的估算文字框略外扩。
+
+sensor.isTyping、isSecureFocused、boundsProbe、textRect、markTrack、windowImage 的错误会抛回 SpriteBrain，由其现有错误处理通过 host.report 报告。其他端口在 Swift 协议中不能抛错，其 error 或无法解码的 result 会终止整个会话，绝不伪造成功/默认值。host.report 对远端 BrainRPCError 保留 code/message/data；其他引擎错误 code 为 -32000。
 
 ## 错误码与 T19
 
 - -32700：JSON 解析错误；-32600：无效请求；-32601：未知方法；-32602：参数/配置错误。
-- -32004：聊天、规则编译或宿主意图执行失败。
+- -32004：聊天、规则编译或宿主意图执行失败；-32005：截图窗口不可用。
 - -32000：数据目录、记忆、成长、名字或历史文件 IO 错误；-32001：builtin 不支持；-32002：事件之前尚未 configure。
 - 可抛错端口保留外壳返回的错误码。错误通知不产生回复。
 

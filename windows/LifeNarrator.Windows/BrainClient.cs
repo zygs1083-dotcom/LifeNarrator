@@ -95,7 +95,7 @@ internal sealed class BrainClient : IAsyncDisposable
             {
                 if (!message.TryGetProperty("id", out var id)) throw;
                 response = new { jsonrpc = "2.0", id,
-                    error = new { code = error is MissingMethodException ? -32601 : -32000, message = error.Message } };
+                    error = new { code = error is WindowUnavailableException ? -32005 : error is MissingMethodException ? -32601 : -32000, message = error.Message } };
             }
             await Write(response);
         }
@@ -151,3 +151,5 @@ internal sealed class BrainClient : IAsyncDisposable
 }
 
 internal sealed class BrainException(JsonElement error) : Exception(error.GetProperty("message").GetString());
+
+internal sealed class WindowUnavailableException() : Exception("Window unavailable");

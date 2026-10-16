@@ -13,6 +13,7 @@ import NarratorLlama
     private var brain: SpriteBrain?
     private var directory: URL?
     private var lastSnapshot: ContextSnapshot?
+    private var lastWindowID: UInt32?
     private var configuration: RPCConfiguration?
     private var generator: (any TextGenerator)?
     private var spriteName = ""
@@ -110,6 +111,11 @@ import NarratorLlama
                         if let id = object["id"] {
                             try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": response]))
                         }
+                    } catch is CancellationError where method == "chat.send" {
+                        if let id = object["id"] {
+                            do { try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": .null])) }
+                            catch { events.continuation.yield(.failure(error)) }
+                        }
                     } catch {
                         if let id = object["id"] {
                             let failure = error as? BrainRPCError ?? BrainRPCError(
@@ -155,7 +161,8 @@ import NarratorLlama
         case "configure":
             let configuration = try params.decode(RPCConfiguration.self)
             let content = try configuration.makeContent()
-            let settings = try configuration.settings.makeSettings(modelAvailable: configuration.generator.kind != .none)
+            let settings = try configuration.settings.makeSettings(modelAvailable: configuration.generator.kind != .none,
+                vision: configuration.generator.kind == .api && configuration.generator.vision == true)
             let url = URL(fileURLWithPath: configuration.dataDirectory, isDirectory: true).standardizedFileURL
             guard directory == nil || directory == url else {
                 throw BrainRPCError(code: -32602, message: "dataDirectory cannot change within a session")
@@ -194,8 +201,12 @@ import NarratorLlama
         case "snapshot":
             struct Params: Decodable { let snapshot: ContextSnapshot; let windowID: UInt32; let change: ContextChange }
             let p = try params.decode(Params.self)
-            lastSnapshot = p.snapshot
-            try configured().snapshot(p.snapshot, windowID: p.windowID, change: p.change)
+            let brain = try configured()
+            if p.snapshot.pid != configuration!.settings.ownProcessID {
+                lastSnapshot = p.snapshot
+                lastWindowID = p.windowID
+            }
+            brain.snapshot(p.snapshot, windowID: p.windowID, change: p.change)
             return .null
         case "windowFrameChanged":
             struct Params: Decodable { let frame: CGRect }
@@ -277,7 +288,14 @@ import NarratorLlama
             guard configuration.kind == .api, let generator = try generatorFactory(configuration) else {
                 throw BrainRPCError(code: -32602, message: "testConnection requires an API generator")
             }
-            return { try await Self.testConnection(generator) }
+            return {
+                let testGenerator: any TextGenerator
+                if configuration.vision == true {
+                    guard let imageGenerator = generator as? any ImageTextGenerator else { throw WindowImageError.unsupportedGenerator }
+                    testGenerator = imageGenerator.attachingJPEG(WindowImage.connectionTestJPEG)
+                } else { testGenerator = generator }
+                return try await Self.testConnection(testGenerator)
+            }
         }
         let brain = try configured()
         if method == "chat.send" {
@@ -286,9 +304,9 @@ import NarratorLlama
             guard !p.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw BrainRPCError(code: -32602, message: "Chat text cannot be empty")
             }
-            let snapshot = lastSnapshot
+            let snapshot = lastSnapshot, windowID = lastWindowID
             return {
-                let context = try await brain.chatContext(snapshot: snapshot, narration: p.narration)
+                let context = try await brain.chatContext(snapshot: snapshot, windowID: windowID, narration: p.narration)
                 return try .encode(await brain.sendChat(p.text, context: context, includeScreen: p.includeScreen))
             }
         }

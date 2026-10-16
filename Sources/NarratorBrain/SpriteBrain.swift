@@ -90,6 +90,8 @@ public final class SpriteBrain {
     private var settings: BrainSettings!
     private var content: BrainContent!
     private var generator: Result<(any TextGenerator)?, any Error>!
+    private var configurationRevision = 0
+    private var imageFailureShown = false
     private var revision = 0
     private var presenting = false
     private var presentationWaiters: [CheckedContinuation<Void, Never>] = []
@@ -152,6 +154,7 @@ public final class SpriteBrain {
         let level: Liveliness
         let exclude: [String]
         let generator: any TextGenerator
+        let vision: Bool
     }
 
     public init(sensor: any BrainSensor, overlay: any BrainOverlay, host: any BrainHost, saidURL: URL) throws {
@@ -201,6 +204,8 @@ public final class SpriteBrain {
         let levelChanged = (self.settings?.liveliness ?? .lively) != settings.liveliness
         let personaChanged = configuredPersona != settings.persona
         let memoryChanged = self.settings?.memoryEnabled != settings.memoryEnabled
+        configurationRevision += 1
+        imageFailureShown = false
         self.settings = settings
         self.content = content
         self.generator = generator
@@ -236,22 +241,36 @@ public final class SpriteBrain {
         }
     }
 
-    public func chatContext(snapshot: ContextSnapshot?, narration: String? = nil) async throws -> ChatContext {
+    public func chatContext(snapshot: ContextSnapshot?, windowID: UInt32? = nil, narration: String? = nil) async throws -> ChatContext {
         let secureFocused = try await sensor.isSecureFocused()
         guard let snapshot, !snapshot.secureFocused, !secureFocused,
               !settings.blacklist.contains(snapshot.bundleId) else { return ChatContext(narration: narration) }
         var title = snapshot.windowTitle ?? ""
         for range in SpritePrompt.privacyRanges(in: title).reversed() { title.replaceSubrange(range, with: "***") }
         return ChatContext(title: title, quotes: recentChatQuotes, narration: narration,
-                           screen: SpritePrompt.screen(in: snapshot).text)
+                           screen: SpritePrompt.screen(in: snapshot).text, snapshot: snapshot, windowID: windowID)
     }
 
     public func sendChat(_ input: String, context: ChatContext, includeScreen: Bool = false) async throws -> ChatTurn {
         guard let generator = try generator.get() else { throw ChatEngine.Failure.modelUnavailable }
+        let configurationRevision = configurationRevision
+        let vision = includeScreen && settings.vision && context.snapshot != nil
+        let requestGenerator: any TextGenerator
+        if vision {
+            guard let windowID = context.windowID else { throw CancellationError() }
+            let jpeg: Data
+            do { jpeg = try await captureImage(snapshot: context.snapshot!, windowID: windowID) }
+            catch is WindowImageError { throw CancellationError() }
+            catch is ImageCaptureFailure { throw CancellationError() }
+            try Task.checkCancellation()
+            guard configurationRevision == self.configurationRevision else { throw CancellationError() }
+            guard let imageGenerator = generator as? any ImageTextGenerator else { throw WindowImageError.unsupportedGenerator }
+            requestGenerator = imageGenerator.attachingJPEG(jpeg)
+        } else { requestGenerator = generator }
         let entries = settings.memoryEnabled ? try memoryStore.chat() : []
         return try await chat.send(input, context: context, includeScreen: includeScreen, settings: settings,
             catalog: content.personas, memories: entries,
-            relationship: growth.state.relationship(lang: settings.lang, now: Date()), generator: generator) { intent in
+            relationship: growth.state.relationship(lang: settings.lang, now: Date()), generator: requestGenerator, vision: vision) { intent in
                 switch intent.intent {
                 case .rule: try await self.host.saveRule(input: intent.rule!)
                 case .setting: try await self.host.applySetting(intent.setting!)
@@ -624,7 +643,7 @@ public final class SpriteBrain {
                 persona: settings.persona, catalog: content.personas, level: level,
                 exclude: level == .rowdy
                     ? memory.requestQuotes(bundleId: snapshot.bundleId, queued: queuedPlaces.values.map(\.quote), now: now)
-                    : memory.shownQuotes(bundleId: snapshot.bundleId, now: now), generator: generator))
+                    : memory.shownQuotes(bundleId: snapshot.bundleId, now: now), generator: generator, vision: settings.vision))
         } else if marks.isEmpty {
             let local = attempts.filter { $0.target != nil && $0.target?.category != .rule }
             releaseTargets(local, tick: kind, generation: generation)
@@ -884,6 +903,25 @@ public final class SpriteBrain {
         modelTask = Task { await generate(request, started: now) }
     }
 
+    private func captureImage(snapshot: ContextSnapshot, windowID: UInt32) async throws -> Data {
+        let configurationRevision = configurationRevision
+        do {
+            return try await sensor.windowImage(windowID: windowID, windowFrame: snapshot.windowFrame,
+                redactions: WindowImage.redactions(in: snapshot))
+        } catch is CancellationError { throw CancellationError() }
+        catch WindowImageError.windowUnavailable {
+            if debug { FileHandle.standardError.write(Data("[sprite] skipped reason=image-unavailable\n".utf8)) }
+            throw WindowImageError.windowUnavailable
+        } catch {
+            let failure = ImageCaptureFailure(error)
+            if configurationRevision == self.configurationRevision && !imageFailureShown && !Task.isCancelled {
+                imageFailureShown = true
+                await host.report(failure)
+            }
+            throw failure
+        }
+    }
+
     private func generate(_ request: ModelRequest, started: Date) async {
         let progress = SpriteRequestProgress()
         let (incoming, continuation) = AsyncStream<SpriteMark>.makeStream()
@@ -940,23 +978,34 @@ public final class SpriteBrain {
         }
         let said = said
         var reason = "ok"
+        var imageBytes = 0
         do {
+            let generator: any TextGenerator
+            if request.vision {
+                let jpeg = try await captureImage(snapshot: request.snapshot, windowID: request.windowID)
+                try checkGeneration(request.generation)
+                imageBytes = jpeg.count
+                guard let imageGenerator = request.generator as? any ImageTextGenerator else { throw WindowImageError.unsupportedGenerator }
+                generator = imageGenerator.attachingJPEG(jpeg)
+            } else { generator = request.generator }
             let memoryContext = try memoryContext(screenText: request.screen.text)
             _ = try await SpriteGenerator.generate(screen: request.screen, snapshot: request.snapshot,
                 app: request.snapshot.appName, title: request.snapshot.windowTitle ?? "", exclude: request.exclude,
                 persona: request.persona, lang: request.lang, k: k, recent: said.recent(8),
-                generator: SpriteRequestGenerator(base: request.generator, progress: progress,
+                generator: SpriteRequestGenerator(base: generator, progress: progress,
                     lines: request.screen.lines.map { request.snapshot.textLines[$0.lineIndex] },
                     lineIndices: request.screen.lines.map(\.lineIndex), onMissing: { index in
                         Task { @MainActor in
                             self.log(request.snapshot, .mark, pick: index, source: "model", shown: false, reason: "quote-missing")
                         }
-                    }), catalog: request.catalog, memoryContext: memoryContext, isRepeat: { said.isRepeat($0, now: Date()) }) { mark in
+                    }), catalog: request.catalog, memoryContext: memoryContext, vision: request.vision, isRepeat: { said.isRepeat($0, now: Date()) }) { mark in
                     progress.accepted()
                     continuation.yield(mark)
                 }
         } catch {
-            if progress.metrics.timedOut { reason = "timeout" }
+            if case WindowImageError.windowUnavailable = error { reason = "image-unavailable" }
+            else if error is ImageCaptureFailure { reason = "image-error" }
+            else if progress.metrics.timedOut { reason = "timeout" }
             else if Task.isCancelled || error is CancellationError { reason = "cancelled" }
             else { reason = "error"; await report(error) }
         }
@@ -970,7 +1019,7 @@ public final class SpriteBrain {
         let metrics = progress.metrics
         if debug {
             let first = metrics.first.map { Int($0.timeIntervalSince(started) * 1000) } ?? -1
-            FileHandle.standardError.write(Data("[sprite] model request k=\(k) lines=\(request.screen.lines.count) tokens≈\(Int(request.screen.tokens)) prefill=\(Int(prefill * 1000)) first=\(first) total=\(Int(finished.timeIntervalSince(started) * 1000)) marks=\(metrics.marks) located=\(metrics.located) reason=\(reason) exclude=\(request.exclude.count) started=\(Int(started.timeIntervalSince1970 * 1000))\n".utf8))
+            FileHandle.standardError.write(Data("[sprite] model request k=\(k) lines=\(request.screen.lines.count) tokens≈\(Int(request.screen.tokens))\(imageBytes > 0 ? " image=\((imageBytes + 1023) / 1024)KB" : "") prefill=\(Int(prefill * 1000)) first=\(first) total=\(Int(finished.timeIntervalSince(started) * 1000)) marks=\(metrics.marks) located=\(metrics.located) reason=\(reason) exclude=\(request.exclude.count) started=\(Int(started.timeIntervalSince1970 * 1000))\n".utf8))
         }
         if reason == "ok" {
             locatedByScreen[request.key] = metrics.located

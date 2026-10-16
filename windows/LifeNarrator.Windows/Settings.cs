@@ -73,7 +73,7 @@ internal sealed class Settings
                 ? new { kind = "builtin", modelPath = SelectedDownload.Destination } : (object)new { kind = "none" };
         return new
         {
-            kind = "api", Provider.PresetId, Provider.Model, Provider.BaseURL, Provider.Structured,
+            kind = "api", Provider.PresetId, Provider.Model, Provider.BaseURL, Provider.Structured, Provider.Vision,
             key = CredentialStore.Read(Provider.PresetId)
         };
     }
@@ -95,6 +95,7 @@ internal sealed class ProviderSettings
     public string Model { get; set; } = "";
     public string? BaseURL { get; set; }
     public string? Structured { get; set; }
+    public bool Vision { get; set; }
 }
 
 internal static class CredentialStore

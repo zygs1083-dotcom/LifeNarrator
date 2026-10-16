@@ -27,6 +27,7 @@ final class ChatPanelModel: ObservableObject {
                 turns.append(turn)
                 turns = Array(turns.suffix(50))
                 input = ""
+            } catch is CancellationError {
             } catch { self.error = String(describing: error) }
             sending = false
         }

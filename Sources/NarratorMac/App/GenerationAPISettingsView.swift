@@ -66,6 +66,9 @@ struct GenerationAPISettingsView: View {
                 }.pickerStyle(.menu)
             }
         }
+        Toggle(store.text("api.vision"), isOn: configuration.vision)
+        Text(store.text("api.vision.hint")).font(AppTheme.font(.caption)).foregroundStyle(AppTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
         HStack {
             Button(store.text("api.test")) { testConnection() }.buttonStyle(AppTheme.CapsuleButton()).disabled(busy)
             if busy { ProgressView().controlSize(.small) }
@@ -132,7 +135,9 @@ struct GenerationAPISettingsView: View {
         Task {
             defer { busy = false }
             do {
-                let generator = try selection.generator(key: key)
+                let base = try selection.generator(key: key)
+                let generator = selection.vision
+                    ? (base as! any ImageTextGenerator).attachingJPEG(WindowImage.connectionTestJPEG) : base
                 let start = ContinuousClock.now
                 let json = try await generator.generateJSON(system: nil, prompt: "Return JSON with ok set to true.",
                     schema: #"{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":false}"#, maxTokens: 1024)

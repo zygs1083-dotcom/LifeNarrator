@@ -57,14 +57,17 @@ public struct ProviderConfiguration: Codable, Sendable {
     public var model: String
     public var baseURL: String?
     public var structured: StructuredOutput?
-    public init(presetID: String = "openai", model: String = "", baseURL: String? = nil, structured: StructuredOutput? = nil) {
+    public var vision: Bool
+    public init(presetID: String = "openai", model: String = "", baseURL: String? = nil, structured: StructuredOutput? = nil, vision: Bool = false) {
         self.presetID = presetID; self.model = model; self.baseURL = baseURL; self.structured = structured
+        self.vision = vision
     }
 
-    private enum CodingKeys: String, CodingKey { case presetID, model, baseURL, structured }
+    private enum CodingKeys: String, CodingKey { case presetID, model, baseURL, structured, vision }
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         model = try c.decode(String.self, forKey: .model)
+        vision = try c.decodeIfPresent(Bool.self, forKey: .vision) ?? false
         structured = try c.decodeIfPresent(StructuredOutput.self, forKey: .structured)
         if let presetID = try c.decodeIfPresent(String.self, forKey: .presetID) {
             self.presetID = presetID

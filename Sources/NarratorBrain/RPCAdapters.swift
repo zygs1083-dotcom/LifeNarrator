@@ -13,6 +13,18 @@ import NarratorCore
     func isLowPowerMode() async -> Bool { await peer.required("sensor.isLowPowerMode") }
     func refresh() async { let _: RPCNull = await peer.required("sensor.refresh") }
     func boundsProbe() async throws -> Bool { try await peer.request("sensor.boundsProbe") }
+    func windowImage(windowID: UInt32, windowFrame: CGRect, redactions: [CGRect]) async throws -> Data {
+        struct Params: Encodable { let windowID: UInt32; let windowFrame: CGRect; let redactions: [CGRect] }
+        struct Image: Decodable { let jpeg: String }
+        do {
+            let image: Image = try await peer.request("sensor.windowImage", try .encode(Params(
+                windowID: windowID, windowFrame: windowFrame, redactions: redactions)))
+            guard let data = Data(base64Encoded: image.jpeg), !data.isEmpty else { throw ProviderConfigurationError.invalidResponse }
+            return data
+        } catch let error as BrainRPCError where error.code == -32005 {
+            throw WindowImageError.windowUnavailable
+        }
+    }
     func startVisualLines() async { let _: RPCNull = await peer.required("sensor.startVisualLines") }
     func textRect(lineIndex: Int, range: NSRange) async throws -> (rect: CGRect, kind: RectKind)? {
         struct Hit: Decodable { let rect: CGRect; let kind: RectKind }

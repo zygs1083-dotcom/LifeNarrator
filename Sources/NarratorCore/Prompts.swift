@@ -89,15 +89,15 @@ Screen:
 """#
 
     public static func spriteMarks(app: String, title: String, screen: SpriteScreen, exclude: [String],
-                                   persona: Persona, lang: Lang, k: Int, recent: [String] = [], catalog: PersonaCatalog = .builtin) -> (system: String, user: String) {
+                                   persona: Persona, lang: Lang, k: Int, recent: [String] = [], catalog: PersonaCatalog = .builtin, vision: Bool = false) -> (system: String, user: String) {
         var random = SystemRandomNumberGenerator()
         return spriteMarks(app: app, title: title, screen: screen, exclude: exclude,
-                           persona: persona, lang: lang, k: k, recent: recent, using: &random, catalog: catalog)
+                           persona: persona, lang: lang, k: k, recent: recent, using: &random, catalog: catalog, vision: vision)
     }
 
     public static func spriteMarks<R: RandomNumberGenerator>(app: String, title: String, screen: SpriteScreen, exclude: [String],
                                    persona: Persona, lang: Lang, k: Int, recent: [String] = [],
-                                   using random: inout R, catalog: PersonaCatalog = .builtin) -> (system: String, user: String) {
+                                   using random: inout R, catalog: PersonaCatalog = .builtin, vision: Bool = false) -> (system: String, user: String) {
         let profile = catalog[persona]
         let values = ["app": app, "title": title.isEmpty ? "-" : title, "screen": screen.text,
                       "persona_desc": profile.description[lang], "k": String(k),
@@ -111,7 +111,8 @@ Screen:
             }
             return result
         }
-        let system = fill(lang == .zh ? spriteMarksZH : spriteMarksEN)
+        var system = fill(lang == .zh ? spriteMarksZH : spriteMarksEN)
+        if vision { system += "\n\n" + WindowImagePrompt.narration(lang: lang) }
         var user = fill(lang == .zh ? spriteMarksUserZH : spriteMarksUserEN)
         // The system prompt says "quality over quantity"; with a high on-screen limit the model needs a nudge to fill it.
         // It goes in the user part so the cached system prefix stays the same.
