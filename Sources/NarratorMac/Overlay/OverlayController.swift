@@ -511,9 +511,12 @@ public final class OverlayController: NSObject {
                 obstacles: obstacles, narrowSize: narrow.outerSize, inkInset: inkInset(appearance)) else { return false }
             if placement.narrow { appearance = narrow }
             if placement.covered {
-                appearance.shape = .rounded
+                // Covering text needs an opaque card to stay readable; plain text keeps its outline instead, as chosen.
+                if appearance.shape != .text {
+                    appearance.shape = .rounded
+                    appearance.fillOpacity = 0.92
+                }
                 appearance.rotation = .zero
-                appearance.fillOpacity = 0.92
                 appearance.measure(maxWidth: placement.narrow ? 160 : appearance.size.maxWidth)
             }
             frame = CGRect(origin: placement.frame.origin, size: appearance.outerSize)
@@ -624,9 +627,11 @@ public final class OverlayController: NSObject {
             model.bubbles[i].connector = placement.connector
             model.bubbles[i].outside = placement.outside
             if placement.covered {
-                model.bubbles[i].appearance.shape = .rounded
+                if model.bubbles[i].appearance.shape != .text {
+                    model.bubbles[i].appearance.shape = .rounded
+                    model.bubbles[i].appearance.fillOpacity = 0.92
+                }
                 model.bubbles[i].appearance.rotation = .zero
-                model.bubbles[i].appearance.fillOpacity = 0.92
                 model.bubbles[i].appearance.tail = nil
             }
             if model.bubbles[i].appearance.shape == .speech && model.bubbles[i].framed && placement.connector && !placement.outside {
