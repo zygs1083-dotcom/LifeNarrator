@@ -15,7 +15,9 @@ private func percentile(_ values: [Double], _ fraction: Double) -> Any {
 }
 
 func runCompare(_ arguments: CompareArguments) throws {
-    if arguments.mtp { throw LlamaEngine.Failure.mtpUnavailable }
+    if arguments.mtp {
+        throw BenchError.measurement("b11429 MTP requires nextn hidden-state APIs from internal llama-ext.h; public llama.h cannot drive it.")
+    }
     let executable = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
     for model in arguments.models {
         var baseline: Double?
@@ -80,14 +82,16 @@ func runCompareWorker(_ arguments: CompareArguments) throws {
             var firstSeconds: Double?
             var streamError: (any Error)?
             let start = ContinuousClock.now
-            let output = try engine.generate(prompt: chat.prompt, grammar: LlamaGrammar.spriteMarks,
-                maxTokens: SpriteGenerator.maxTokens, cachePrefix: chat.prefix, seed: UInt32(20261016 + run)) { partial in
-                do {
-                    if !(try stream.feed(partial)).isEmpty && firstSeconds == nil { firstSeconds = elapsed(start) }
-                } catch { streamError = error; return false }
-                return true
-            }
-            if let streamError { throw streamError }
+            let output: String
+            do {
+                output = try engine.generate(prompt: chat.prompt, grammar: LlamaGrammar.spriteMarks,
+                    maxTokens: SpriteGenerator.maxTokens, cachePrefix: chat.prefix, seed: UInt32(20261016 + run)) { partial in
+                    do {
+                        if !(try stream.feed(partial)).isEmpty && firstSeconds == nil { firstSeconds = elapsed(start) }
+                    } catch { streamError = error; return false }
+                    return true
+                }
+            } catch { throw streamError ?? error }
             let total = elapsed(start)
             struct Batch: Decodable { let marks: [RawMark] }
             let marks = try JSONDecoder().decode(Batch.self, from: Data(output.utf8)).marks
