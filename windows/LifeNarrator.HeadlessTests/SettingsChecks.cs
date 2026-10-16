@@ -11,7 +11,7 @@ internal static class SettingsChecks
     public static void Run()
     {
         var settings = new Settings { Liveliness = "rowdy", Persona = "cat", Lang = "en", Paused = true,
-            MarkGap = 7, Dwell = 12, MaxOnScreen = 4, Blacklist = ["private"], Persistent = true,
+            MarkGap = 7, Dwell = 12, MaxOnScreen = 4, Blacklist = ["private"], BubblePersistent = true,
             PauseShortcut = new HotKey(3, 0x4B), InputShortcut = null, DisabledBuiltinIds = ["builtin.app.dingtalk"],
             Provider = new ProviderSettings { Kind = "api", PresetId = "custom-openai", Model = "fixture", Vision = true, BaseURL = "http://localhost:18765/v1" } };
         var json = JsonSerializer.Serialize(settings, Protocol.Json);

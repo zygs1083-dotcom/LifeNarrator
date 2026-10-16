@@ -94,14 +94,14 @@ internal sealed class SettingsWindow : Window
         {
             pace.Children.Clear();
             pace.Children.Add(Pace("pace.gap", settings.MarkGap, 30, value => settings.MarkGap = value, text["pace.gap.hint"]));
-            pace.Children.Add(Views.Toggle(text["dwell.persistent"], settings.Persistent, value => Run(async () =>
-            { settings.Persistent = value; UpdatePace(); await configure(); })));
-            if (!settings.Persistent) pace.Children.Add(Pace("pace.dwell", settings.Dwell, 30, value => settings.Dwell = value));
+            pace.Children.Add(Views.Toggle(text["dwell.persistent"], settings.BubblePersistent, value => Run(async () =>
+            { settings.BubblePersistent = value; UpdatePace(); await configure(); })));
+            if (!settings.BubblePersistent) pace.Children.Add(Pace("pace.dwell", settings.Dwell, 30, value => settings.Dwell = value));
             var dwellHint = Views.Caption("");
             void UpdateHint()
             {
                 dwellHint.Text = text["pace.dwell.hint"].Replace("%.1f", (2.5 * settings.MaxOnScreen).ToString("0.0"));
-                dwellHint.IsVisible = !settings.Persistent && settings.MaxOnScreen > 3;
+                dwellHint.IsVisible = !settings.BubblePersistent && settings.MaxOnScreen > 3;
             }
             UpdateHint(); pace.Children.Add(dwellHint);
             pace.Children.Add(Pace("pace.maxOnScreen", settings.MaxOnScreen, 10, value => { settings.MaxOnScreen = (int)value; UpdateHint(); }));

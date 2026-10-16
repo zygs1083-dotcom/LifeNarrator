@@ -12,12 +12,13 @@ internal sealed class OverlayController : IDisposable
     {
         public bool Interactive;
     }
-    sealed class Bubble(Narration narration, Surface surface, Control visual, Control? highlight, Box frame, Box? anchor)
+    sealed class Bubble(Narration narration, Surface surface, BubbleVisual visual, AnchorDecor? highlight, Box frame, Box? anchor, Placement placement)
     {
         public readonly Narration Narration = narration;
         public readonly Surface Surface = surface;
-        public readonly Control Visual = visual;
-        public readonly Control? Highlight = highlight;
+        public readonly BubbleVisual Visual = visual;
+        public readonly AnchorDecor? Highlight = highlight;
+        public Placement Placement = placement;
         public Box Frame = frame;
         public Box? Anchor = anchor;
         public Box? Line = narration.Line;
@@ -31,6 +32,13 @@ internal sealed class OverlayController : IDisposable
     readonly Surface[] surfaces;
     readonly List<Bubble> bubbles = [];
     readonly Settings settings;
+    readonly bool reduceMotion;
+    readonly double baseHue = Random.Shared.NextDouble() * 360;
+    int randomIndex;
+    readonly List<(string Theme, int Index)> recentGroups = [];
+    readonly Dictionary<BubbleVisual, int> colorIndices = [];
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    static extern bool SystemParametersInfoW(uint action, uint parameter, out int value, uint flags);
     readonly Companion companion;
     readonly Action<string, PixelPoint> openChat;
     readonly DispatcherTimer timer;
@@ -45,6 +53,8 @@ internal sealed class OverlayController : IDisposable
 
     public OverlayController(Settings settings, Action<string> failed, Companion companion, Action<string, PixelPoint> openChat)
     {
+        if (!SystemParametersInfoW(0x1042, 0, out var animations, 0)) throw new System.ComponentModel.Win32Exception();
+        reduceMotion = animations == 0;
         this.settings = settings; this.failed = failed; this.companion = companion; this.openChat = openChat;
         var probe = new Window();
         surfaces = probe.Screens.All.Select(screen =>
@@ -98,22 +108,22 @@ internal sealed class OverlayController : IDisposable
         try
         {
             var currentRevision = revision;
-            var tierResult = await brain.Call("layout.sizeTier", new { requested = "medium", window = narration.Window });
+            var style = settings.ActiveStyle(companion.Growth);
+            var tierResult = await brain.Call("layout.sizeTier", new { requested = style.Size, window = narration.Window });
             if (tierResult.ValueKind == JsonValueKind.Null) return new { shown = false, placement = "none" };
             var tier = tierResult.GetString()!;
             var surface = surfaces.FirstOrDefault(x => x.Map.Logical(x.Map.Bounds).Rect.Contains(narration.Window.Frame.Rect.Center)) ?? surfaces[0];
-            var rounded = !narration.Framed;
-            var shape = settings.ActiveShape(companion.Growth);
+            style = style with { Size = tier };
+            var (group, groupIndex) = SelectColor(style, narration);
             var fillOpacity = 1d;
-            var visual = MakeVisual(rounded, false);
-            var narrow = MakeVisual(rounded, true);
+            var visual = MakeVisual(false);
+            var narrow = MakeVisual(true);
             Placement? placement = await Place(visual, narrow);
-            if (placement?.Covered == true && !rounded)
+            if (placement?.Covered == true && style.Shape != "text")
             {
-                rounded = true;
+                style = style with { Shape = "rounded" };
                 fillOpacity = .92;
-                visual = MakeVisual(true, false); narrow = MakeVisual(true, true);
-                placement = await Place(visual, narrow);
+                visual = MakeVisual(false); narrow = MakeVisual(true);
             }
             if (placement == null || currentRevision != revision || settings.Paused) return new { shown = false, placement = "none" };
             var stack = bubbles.Where(x => x.Dismissed == null && x.Narration.WindowID == narration.WindowID && x.Narration.Anchor == null).Reverse().ToArray();
@@ -121,25 +131,32 @@ internal sealed class OverlayController : IDisposable
                 for (var i = 0; i < stack.Length; i++)
                 {
                     var frame = placement.StackFrames[i + 1];
-                    if (frame == null) Remove(stack[i]);
-                    else { stack[i].Frame = frame; Position(stack[i]); }
+                    if (frame == null) Dismiss(stack[i]);
+                    else
+                    {
+                        stack[i].Frame = frame;
+                        stack[i].Placement = stack[i].Placement with { Corner = placement.Corner };
+                        Position(stack[i]);
+                    }
                 }
             while (bubbles.Count(x => x.Dismissed == null) >= settings.MaxOnScreen)
-                Remove(bubbles.First(x => x.Dismissed == null));
+                Dismiss(bubbles.First(x => x.Dismissed == null));
             visual = placement.Narrow ? narrow : visual;
-            var highlight = narration.Framed && placement.Highlight != null ? new Border
+            placement = placement with { Frame = placement.Frame with { W = visual.Width, H = visual.Height } };
+            var highlight = placement.Highlight != null && (narration.Framed || placement.Outside) ? new AnchorDecor
             {
-                Width = placement.Highlight.W, Height = placement.Highlight.H,
-                CornerRadius = new CornerRadius(4), BorderThickness = new Thickness(1),
-                BorderBrush = Brush.Parse("#F55DC2"), Background = new SolidColorBrush(Color.Parse("#F55DC2"), .08)
+                Width = surface.Window.Width, Height = surface.Window.Height, IsHitTestVisible = false,
+                Side = placement.Side!, Shape = visual.Style.Shape, Size = visual.Style.Size, Group = group,
+                Connector = placement.Connector, Outside = placement.Outside, Framed = narration.Framed
             } : null;
-            var bubble = new Bubble(narration, surface, visual, highlight, placement.Frame,
-                placement.Highlight);
+            var bubble = new Bubble(narration, surface, visual, highlight, placement.Frame, placement.Highlight, placement);
+            if (groupIndex is { } index) colorIndices.Add(visual, index);
             visual.PointerReleased += (_, e) =>
             {
                 if (e.InitialPressMouseButton != Avalonia.Input.MouseButton.Left) return;
                 var position = surface.Map.Physical(bubble.Frame);
                 openChat(narration.Text, new PixelPoint((int)(position.X + position.W), (int)position.Y));
+                if (bubble.Visual.Style.Dwell == null) Dismiss(bubble);
                 e.Handled = true;
             };
             visual.Opacity = 0;
@@ -153,8 +170,9 @@ internal sealed class OverlayController : IDisposable
             HasShown |= bubbles.Contains(bubble) && bubble.Dismissed == null;
             return new { shown = bubbles.Contains(bubble) && bubble.Dismissed == null, placement = placement.PlacementName };
 
-            BubbleVisual MakeVisual(bool round, bool small) => new(narration.Id, narration.Text, settings.ActiveEmoji(narration.Emoji, companion.Growth), narration.Language, tier, round, small, fillOpacity,
-                shape, settings.ActiveTheme(companion.Growth));
+            BubbleVisual MakeVisual(bool small) => new(narration.QuipID, narration.Text, narration.Emoji,
+                narration.Language, small ? style with { Size = "small" } : style, narration.Persona, small,
+                fillOpacity, narration.Anchor == null && style.Shape == "speech", group);
             async Task<Placement?> Place(BubbleVisual normal, BubbleVisual small)
             {
                 var existing = bubbles.Where(x => x.Dismissed == null && x.Narration.WindowID == narration.WindowID).ToArray();
@@ -164,7 +182,7 @@ internal sealed class OverlayController : IDisposable
                     narration.Anchor, narration.Line, narration.Window,
                     visibleFrame = surface.Map.Logical(surface.Map.WorkArea),
                     occupied = existing.SelectMany(x => x.Anchor == null ? new[] { x.Frame } : new[] { x.Frame, x.Anchor }).ToArray(),
-                    obstacles = narration.Obstacles, inkInset = new Dimensions(rounded || shape == "star" ? 0 : 8, rounded || shape == "star" ? 0 : 6),
+                    obstacles = narration.Obstacles, inkInset = style.Shape == "text" ? new Dimensions(new BubbleMetrics(style.Size).HorizontalPadding, new BubbleMetrics(style.Size).VerticalPadding) : new Dimensions(0, 0),
                     stackSizes = existing.Where(x => x.Narration.Anchor == null).Reverse().Select(x => new Dimensions(x.Frame.W, x.Frame.H)).ToArray()
                 });
                 return result.ValueKind == JsonValueKind.Null ? null : Placement.Read(result);
@@ -176,6 +194,36 @@ internal sealed class OverlayController : IDisposable
         }
     }
 
+    (BubbleColors Group, int? Index) SelectColor(BubbleStyle style, Narration narration)
+    {
+        if (style.Theme == "random") return (BubbleColors.Random(baseHue, randomIndex++), null);
+        var palette = BubbleColors.Palette(style.Theme);
+        var occupied = bubbles.Where(b => b.Dismissed == null && b.Visual.Style.Theme == style.Theme)
+            .Select(b => colorIndices[b.Visual]).ToHashSet();
+        int index;
+        if (settings.Liveliness == "quiet")
+        {
+            index = (int)(unchecked(BubbleStyle.StableHash(narration.RuleID) + (ulong)narration.Sequence) % (ulong)palette.Length);
+            if (occupied.Contains(index)) index = (index + 1) % palette.Length;
+        }
+        else
+        {
+            var recent = recentGroups.Where(g => g.Theme == style.Theme).TakeLast(style.Theme == "clear" ? 2 : 1).Select(g => g.Index).ToHashSet();
+            var choices = Enumerable.Range(0, palette.Length).Where(i => !occupied.Contains(i) && !recent.Contains(i)
+                && (style.Theme != "clear" || !occupied.Any(other =>
+                {
+                    var delta = Math.Abs(BubbleColors.ClearHues[i] - BubbleColors.ClearHues[other]);
+                    return Math.Min(delta, 360 - delta) < 45;
+                }))).ToArray();
+            if (choices.Length == 0) choices = Enumerable.Range(0, palette.Length).Where(i => !occupied.Contains(i)).ToArray();
+            if (choices.Length == 0) choices = Enumerable.Range(0, palette.Length).ToArray();
+            index = choices[Random.Shared.Next(choices.Length)];
+            recentGroups.Add((style.Theme, index));
+            if (recentGroups.Count > 2) recentGroups.RemoveAt(0);
+        }
+        return (palette[index], index);
+    }
+
     void Position(Bubble bubble)
     {
         var map = bubble.Surface.Map;
@@ -183,8 +231,15 @@ internal sealed class OverlayController : IDisposable
         Canvas.SetTop(bubble.Visual, bubble.Frame.Y - map.Bounds.Y);
         if (bubble.Highlight != null && bubble.Anchor is { } anchor)
         {
-            Canvas.SetLeft(bubble.Highlight, anchor.X - map.Bounds.X);
-            Canvas.SetTop(bubble.Highlight, anchor.Y - map.Bounds.Y);
+            bubble.Highlight.Highlight = anchor.Rect.Translate(new Vector(-map.Bounds.X, -map.Bounds.Y));
+            bubble.Highlight.BubbleFrame = bubble.Frame.Rect.Translate(new Vector(-map.Bounds.X, -map.Bounds.Y));
+            bubble.Highlight.InvalidateVisual();
+        }
+        if (bubble.Visual.Style.Shape == "speech")
+        {
+            if (bubble.Anchor is { } target && bubble.Narration.Framed && bubble.Placement.Connector && !bubble.Placement.Covered && !bubble.Placement.Outside)
+                bubble.Visual.SetAnchoredTail(bubble.Frame.Rect, target.Rect, bubble.Placement.Side!);
+            else if (bubble.Anchor == null) bubble.Visual.SetAppTail(bubble.Placement.Corner!);
         }
     }
 
@@ -263,14 +318,14 @@ internal sealed class OverlayController : IDisposable
         Log("leave", bubble);
         // Drop the decoration at once; fade the narration at its current position.
         if (bubble.Highlight != null) bubble.Highlight.Opacity = 0;
-        bubble.Dismissed = DateTimeOffset.UtcNow;
+        Dismiss(bubble);
         bubble.Leaving = true;
     }
 
     public void DismissAll()
     {
         revision++;
-        foreach (var bubble in bubbles) bubble.Dismissed = DateTimeOffset.UtcNow;
+        foreach (var bubble in bubbles) Dismiss(bubble);
     }
 
     void Animate()
@@ -284,25 +339,45 @@ internal sealed class OverlayController : IDisposable
             { Native.SetOverlayInteractive(surface.Window.TryGetPlatformHandle()!.Handle, interactive); surface.Interactive = interactive; }
         }
         var now = DateTimeOffset.UtcNow;
-        // Same rule as the Mac: with more than 3 allowed on screen, bubbles stay long enough to appear together.
-        var dwell = settings.MaxOnScreen > 3 ? Math.Max(settings.Dwell, 2.5 * settings.MaxOnScreen) : settings.Dwell;
         foreach (var bubble in bubbles.ToArray())
         {
-            if (!settings.Persistent && bubble.Dismissed == null && (now - bubble.Born).TotalSeconds >= dwell) bubble.Dismissed = now;
-            var opacity = bubble.Dismissed is { } dismissed
-                ? 1 - (now - dismissed).TotalMilliseconds / 180
-                : Math.Min(1, (now - bubble.Born).TotalMilliseconds / 180);
-            if (opacity <= 0 && bubble.Dismissed != null) { Remove(bubble); continue; }
-            bubble.Visual.Opacity = opacity;
-            if (bubble.Highlight != null && !bubble.Leaving) bubble.Highlight.Opacity = opacity;
+            var animation = reduceMotion ? "fade" : bubble.Visual.Style.Animation;
+            var delay = bubble.Anchor == null || !bubble.Narration.Framed ? 0 : .12;
+            var age = (now - bubble.Born).TotalSeconds;
+            if (bubble.Visual.Style.EffectiveDwell is { } dwell && bubble.Dismissed == null && age >= delay + BubbleTransitions.EntranceDuration(animation) + dwell)
+                Dismiss(bubble);
+            var elapsed = bubble.Dismissed is { } dismissed ? (now - dismissed).TotalSeconds : age - delay;
+            if (bubble.Dismissed != null && elapsed >= Math.Max(BubbleTransitions.ExitDuration(animation), bubble.Highlight == null ? 0 : .6)) { Remove(bubble); continue; }
+            var slide = BubbleTransitions.Slide(bubble.Frame.Rect, bubble.Window.Frame.Rect);
+            var motion = BubbleTransitions.Sample(animation, elapsed, bubble.Dismissed != null, slide, reduceMotion);
+            bubble.Visual.Opacity = motion.Opacity;
+            var size = new Size(bubble.Visual.Width, bubble.Visual.Height);
+            var origin = bubble.Visual.TailTip ?? (bubble.Placement.Side switch
+            {
+                "above" => new Point(size.Width / 2, size.Height), "below" => new Point(size.Width / 2, 0),
+                "right" => new Point(0, size.Height / 2), "left" => new Point(size.Width, size.Height / 2),
+                _ => new Point(bubble.Placement.Corner == "topRight" ? size.Width : 0, 0)
+            });
+            bubble.Visual.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute);
+            bubble.Visual.RenderTransform = new MatrixTransform(Matrix.CreateTranslation(-origin.X, -origin.Y)
+                * Matrix.CreateScale(motion.Scale, motion.Scale) * Matrix.CreateTranslation(origin.X + motion.Offset.X, origin.Y + motion.Offset.Y));
+            if (bubble.Highlight != null && !bubble.Leaving)
+            {
+                bubble.Highlight.Progress = reduceMotion ? 1 : BubbleTransitions.DecorProgress(age);
+                bubble.Highlight.Opacity = bubble.Dismissed is { } end ? BubbleTransitions.Sample("fade", (now - end).TotalSeconds, true, default).Opacity : 1;
+                bubble.Highlight.InvalidateVisual();
+            }
         }
     }
+
+    static void Dismiss(Bubble bubble) => bubble.Dismissed ??= DateTimeOffset.UtcNow;
 
     void Remove(Bubble bubble)
     {
         bubble.Surface.Canvas.Children.Remove(bubble.Visual);
         if (bubble.Highlight != null) bubble.Surface.Canvas.Children.Remove(bubble.Highlight);
         bubbles.Remove(bubble);
+        colorIndices.Remove(bubble.Visual);
         if (bubble.Narration.TrackID is { } id) Sensor.ReleaseTrack(id);
     }
 

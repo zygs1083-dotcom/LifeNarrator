@@ -10,6 +10,10 @@
     <PackageReference Include="Avalonia.Skia" Version="11.3.10" />
     <Compile Include="../LifeNarrator.Windows/BubbleSample.cs" Link="BubbleSample.cs" />
     <Compile Include="../LifeNarrator.Windows/BubbleVisual.cs" Link="BubbleVisual.cs" />
+    <Compile Include="../LifeNarrator.Windows/BubbleStyle.cs" Link="BubbleStyle.cs" />
+    <Compile Include="../LifeNarrator.Windows/BubblePreview.cs" Link="BubblePreview.cs" />
+    <Compile Include="../LifeNarrator.Windows/AnchorDecor.cs" Link="AnchorDecor.cs" />
+    <Compile Include="../LifeNarrator.Windows/BubbleTransitions.cs" Link="BubbleTransitions.cs" />
     <Compile Include="../LifeNarrator.Windows/Protocol.cs" Link="Protocol.cs" />
     <Compile Include="../LifeNarrator.Windows/BrainClient.cs" Link="BrainClient.cs" />
     <Compile Include="../LifeNarrator.Windows/Updates.cs" Link="Updates.cs" />

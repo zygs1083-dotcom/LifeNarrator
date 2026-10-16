@@ -135,8 +135,8 @@ internal sealed class ChatWindow : Window
         var user = new Border { Child = Views.Label(turn.User), Padding = new Thickness(12, 8),
             CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Right, MaxWidth = 300 };
         user.Bind(Border.BackgroundProperty, this.GetResourceObservable("Soft")); turns.Children.Add(user);
-        var reply = new BubbleVisual(turn.Id, turn.Reply, [], settings.EffectiveLanguage, "small", true, true,
-            shape: settings.ActiveShape(companion.Growth), theme: settings.ActiveTheme(companion.Growth));
+        var reply = new BubbleVisual(turn.Id, turn.Reply, [], settings.EffectiveLanguage,
+            settings.ActiveStyle(companion.Growth) with { Shape = "rounded", Size = "small" }, settings.Persona, narrow: true);
         AutomationProperties.SetName(reply, turn.Reply); turns.Children.Add(reply);
         if (turn.Notice != null) turns.Children.Add(Views.Caption(turn.Notice));
     }

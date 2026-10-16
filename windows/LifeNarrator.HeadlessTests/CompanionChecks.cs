@@ -39,7 +39,7 @@ internal static class CompanionChecks
         if (companion.Name(settings) != "小星" || settings.ActiveShape(growth) != "star" || settings.ActiveTheme(growth) != "starry"
             || !settings.ActiveEmoji(["😺"], growth).SequenceEqual(["🌈"])) throw new Exception("Unlocked preferences not applied");
         var locked = growth with { State = numbers with { Level = 1, Unlocked = [] } };
-        if (settings.ActiveShape(locked) != "automatic" || settings.ActiveTheme(locked) != "random" || settings.ActiveEmoji(["😺"], locked)[0] != "😺")
+        if (settings.ActiveShape(locked) != "text" || settings.ActiveTheme(locked) != "clear" || settings.ActiveEmoji(["😺"], locked)[0] != "😺")
             throw new Exception("Locked appearance leaked into overlay");
         using var updater = new Updater();
         var window = new SettingsWindow(settings, () => Task.CompletedTask, () => Task.FromResult(1d), updater, () => Task.CompletedTask, companion);
@@ -67,7 +67,7 @@ internal static class CompanionChecks
         if (!calls.Any(c => c.Method == "chat.send" && c.Params.GetProperty("includeScreen").GetBoolean()
             && c.Params.GetProperty("narration").GetString() == "有我陪你呀") || input.Text != "") throw new Exception("Chat Enter send did not preserve context/checkbox");
         Capture(chat, "chat"); chat.Close();
-        var starry = new BubbleVisual("star", "辛苦啦，慢慢来", ["🌈"], "zh", "medium", true, false, shape: "star", theme: "starry");
+        var starry = new BubbleVisual("star", "辛苦啦，慢慢来", ["🌈"], "zh", new BubbleStyle { Shape = "star", Theme = "starry", Size = "medium" });
         var bubble = new Window { Width = starry.Width, Height = starry.Height, Content = starry };
         bubble.Show(); Capture(bubble, "star-bubble"); bubble.Close();
         Console.WriteLine("PASS: chat Enter send/context/screen checkbox; memory pin RPC; locked controls; growth, memory, chat and starry star screenshots");
