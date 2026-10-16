@@ -108,24 +108,24 @@ internal static class BubbleFonts
 {
     public static string WindowsFamily(string mac) => mac switch
     {
-        "hannotate" or "Hannotate SC" => "Microsoft YaHei UI",
-        "yuanti" or "Yuanti SC" => "Microsoft JhengHei UI",
-        "wawati" or "Wawati SC" => "Microsoft JhengHei UI",
-        "hanzipen" or "Hanzipen SC" or "Kaiti SC" => "SimSun",
+        "hannotate" or "Hannotate SC" or "hanzipen" or "Hanzipen SC" or "Kaiti SC" => "KaiTi, 楷体",
+        "yuanti" or "Yuanti SC" => "DengXian, 等线",
+        "wawati" or "Wawati SC" => "Microsoft YaHei UI",
         "noteworthy" or "Noteworthy" => "Segoe Print",
         "chalkboard" or "Chalkboard" or "Chalkboard SE" => "Comic Sans MS",
-        "markerFelt" or "Marker Felt" or "Chalkduster" => "Comic Sans MS",
+        "markerFelt" or "Marker Felt" => "Ink Free",
+        "Chalkduster" => "Comic Sans MS",
         "Bradley Hand" => "Segoe Script",
         "PingFang SC" => "Microsoft YaHei UI",
         _ => mac
     };
     public static Typeface Typeface(string choice, string persona, string language)
     {
-        var chain = choice == "persona"
-            ? Catalog.Personas.Single(p => p.Id == persona).Fonts[language == "zh" ? "zh" : "en"].Select(WindowsFamily)
-            : new[] { WindowsFamily(choice) };
-        var family = chain.FirstOrDefault(f => FontManager.Current.SystemFonts.Any(installed => installed.Name == f)) ?? "Microsoft YaHei UI";
-        return new Typeface(new FontFamily(family + ", Microsoft YaHei UI"), FontStyle.Normal,
-            choice is "wawati" or "markerFelt" || choice == "persona" && persona is "chuuni" or "cat" ? FontWeight.Bold : FontWeight.Normal);
+        var fonts = choice == "persona"
+            ? Catalog.Personas.Single(p => p.Id == persona).Fonts[language == "zh" ? "zh" : "en"]
+            : new[] { choice };
+        var family = string.Join(", ", fonts.Select(WindowsFamily).Append("Microsoft YaHei UI"));
+        return new Typeface(new FontFamily(family), FontStyle.Normal,
+            fonts[0] is "wawati" or "Wawati SC" or "Chalkduster" ? FontWeight.Bold : FontWeight.Normal);
     }
 }
