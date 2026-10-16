@@ -147,8 +147,6 @@ public final class LlamaEngine {
         lastPrefixRestoreSeconds = 0
         proposedTokens = 0
         acceptedTokens = 0
-        let sampler = try makeSampler(grammar: grammar, seed: seed, distribution: draft == nil)
-        defer { llama_sampler_free(sampler) }
         let tokens = try tokenize(prompt, special: true)
         guard !tokens.isEmpty else { throw Failure.tokenization }
         let start = ContinuousClock.now
@@ -188,13 +186,19 @@ public final class LlamaEngine {
         }
         lastPrefillSeconds = seconds(since: start)
         if let draft {
+            let sampler = try makeSampler(grammar: grammar, seed: seed, distribution: false)
+            defer { llama_sampler_free(sampler) }
             return try generateSpeculative(tokens: tokens, sampler: sampler, draft: draft,
                                            maxTokens: maxTokens, seed: seed, onToken: onToken)
         }
+        guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else { throw Failure.invalidGrammar }
+        defer { llama_sampler_free(grammarSampler) }
+        let sampler = try makeSampler(grammar: nil, seed: seed, distribution: true)
+        defer { llama_sampler_free(sampler) }
         var text = ""
         var bytes: [UInt8] = []
         for index in 0..<maxTokens {
-            let token = llama_sampler_sample(sampler, context, -1)
+            let token = try sample(grammar: grammarSampler, chain: sampler)
             if llama_vocab_is_eog(vocabulary, token) {
                 guard let text = String(bytes: bytes, encoding: .utf8) else { throw Failure.invalidUTF8 }
                 return text
@@ -209,12 +213,40 @@ public final class LlamaEngine {
         throw Failure.generationLimit
     }
 
-    private func makeSampler(grammar: String, seed: UInt32, distribution: Bool) throws -> UnsafeMutablePointer<llama_sampler> {
-        guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else {
-            throw Failure.invalidGrammar
+    // Checking all ~250k Qwen tokens against the grammar on every step made decoding about 3x slower, so sample
+    // without it and mask the vocabulary only when that token breaks the grammar, as llama.cpp's common sampler does.
+    private func sample(grammar: UnsafeMutablePointer<llama_sampler>,
+                        chain: UnsafeMutablePointer<llama_sampler>) throws -> llama_token {
+        let logits = try logits()
+        var token = try select(logits, through: [chain])
+        var candidate = llama_token_data(id: token, logit: 0, p: 0)
+        withUnsafeMutablePointer(to: &candidate) { pointer in
+            var single = llama_token_data_array(data: pointer, size: 1, selected: -1, sorted: false)
+            llama_sampler_apply(grammar, &single)
+        }
+        if !candidate.logit.isFinite { token = try select(logits, through: [grammar, chain]) }
+        llama_sampler_accept(grammar, token)
+        llama_sampler_accept(chain, token)
+        return token
+    }
+
+    private func select(_ logits: [Float], through samplers: [UnsafeMutablePointer<llama_sampler>]) throws -> llama_token {
+        var candidates = logits.enumerated().map { llama_token_data(id: Int32($0.offset), logit: $0.element, p: 0) }
+        return try candidates.withUnsafeMutableBufferPointer { buffer in
+            var data = llama_token_data_array(data: buffer.baseAddress, size: buffer.count, selected: -1, sorted: false)
+            for sampler in samplers { llama_sampler_apply(sampler, &data) }
+            guard data.selected >= 0 else { throw Failure.invalidGrammar }
+            return data.data[Int(data.selected)].id
+        }
+    }
+
+    private func makeSampler(grammar: String?, seed: UInt32, distribution: Bool) throws -> UnsafeMutablePointer<llama_sampler> {
+        let grammarSampler = try grammar.map { grammar in
+            guard let sampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else { throw Failure.invalidGrammar }
+            return sampler
         }
         let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params())!
-        llama_sampler_chain_add(sampler, grammarSampler)
+        if let grammarSampler { llama_sampler_chain_add(sampler, grammarSampler) }
         llama_sampler_chain_add(sampler, llama_sampler_init_penalties(llama_vocab_n_tokens(vocabulary), 256, 1.15, 0, 0))
         llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9, 1))
         llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05, 1))

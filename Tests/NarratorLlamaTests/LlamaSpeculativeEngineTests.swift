@@ -27,4 +27,21 @@ final class LlamaSpeculativeEngineTests: XCTestCase {
         XCTAssertThrowsError(try LlamaEngine(modelPath: path, mtp: true))
     }
 
+    func testPlainSamplingFallsBackToTheGrammar() throws {
+        guard let path = ProcessInfo.processInfo.environment["NARRATOR_TEST_MODEL"] else {
+            throw XCTSkip("Set NARRATOR_TEST_MODEL to run real GGUF integration tests.")
+        }
+        let engine = try LlamaEngine(modelPath: path)
+        // The model wants to write a sentence here, so most free samples break the grammar and take the fallback.
+        let chat = try engine.chat(system: "Write a friendly sentence.", user: "Say hello.")
+        let grammar = #"root ::= "{\"n\":" [0-9] [0-9]? "}""#
+        for seed: UInt32 in 1...6 {
+            let output = try engine.generate(prompt: chat.prompt, grammar: grammar, maxTokens: 16, seed: seed)
+            let digits = output.dropFirst(5).dropLast()
+            XCTAssertTrue(output.hasPrefix(#"{"n":"#) && output.hasSuffix("}") && (1...2).contains(digits.count)
+                && digits.allSatisfy(\.isNumber), output)
+            XCTAssertEqual(try engine.generate(prompt: chat.prompt, grammar: grammar, maxTokens: 16, seed: seed), output)
+        }
+    }
+
 }
