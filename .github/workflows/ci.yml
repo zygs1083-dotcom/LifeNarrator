@@ -28,6 +28,7 @@ jobs:
         with:
           name: windows-bubble-headless
           path: |
+            artifacts/bubbles/
             artifacts/bubble-*.png
             artifacts/ui-headless-*.png
             artifacts/model-download-test/*.log
@@ -110,6 +111,7 @@ jobs:
             artifacts/builtin-model-test/*.log
             artifacts/builtin-model-test/*.json
             artifacts/ui-headless-model-*.png
+            artifacts/bubbles/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: always()

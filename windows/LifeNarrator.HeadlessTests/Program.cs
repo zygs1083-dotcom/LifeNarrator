@@ -7,9 +7,10 @@ using Avalonia.Media;
 using LifeNarrator.Windows;
 
 if (args.SequenceEqual(new[] { "--updates-only" })) { UpdateChecks.Run().GetAwaiter().GetResult(); return; }
+var bubblesOnly = args.SequenceEqual(new[] { "--bubbles-only" });
 SettingsChecks.Run();
 if (args.Length == 0) UpdateChecks.Run().GetAwaiter().GetResult();
-if (args.Length > 0) BrainChecks.Run(args[0]).GetAwaiter().GetResult();
+if (args.Length > 0 && !bubblesOnly) BrainChecks.Run(args[0]).GetAwaiter().GetResult();
 var map = new DisplayMap(new PixelRect(-1920, 120, 1920, 1080), new PixelRect(-1920, 120, 1920, 1040), 1.5);
 var physical = new Box(-1770, 270, 300, 60);
 var logical = map.Logical(physical);
@@ -20,6 +21,7 @@ if (JsonSerializer.Serialize(DateTimeOffset.UtcNow, Protocol.Json).Contains('.')
 
 AppBuilder.Configure<Application>().UseSkia()
     .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+if (bubblesOnly) { BubbleChecks.Run(); return; }
 var window = new Window { Width = 600, Height = 320, Background = Brushes.Transparent, Content = new BubbleSample() };
 window.Show();
 using var bitmap = window.CaptureRenderedFrame() ?? throw new Exception("No rendered frame");
@@ -35,7 +37,7 @@ Console.WriteLine("PASS: bubble rendered at 600x320; pink fill verified; artifac
 
 foreach (var rounded in new[] { false, true })
 {
-    var bubble = new BubbleVisual("windows-shell", "辛苦啦，慢慢来", ["😺"], "zh", "medium", rounded, false);
+    var bubble = new BubbleVisual("windows-shell", "辛苦啦，慢慢来", ["😺"], "zh", new BubbleStyle { Shape = rounded ? "rounded" : "text", Size = "medium" });
     var sample = new Window { Width = bubble.Width, Height = bubble.Height, Background = Brushes.Transparent, Content = bubble };
     sample.Show();
     using var frame = sample.CaptureRenderedFrame() ?? throw new Exception("No bubble pixels");
@@ -52,6 +54,8 @@ foreach (var rounded in new[] { false, true })
     sample.Close();
 }
 Console.WriteLine("PASS: text and rounded production bubbles rendered; negative-origin 150% DPI conversion; wire rectangles/dates");
+
+BubbleChecks.Run();
 
 UIChecks.Run();
 

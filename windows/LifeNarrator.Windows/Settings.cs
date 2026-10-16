@@ -26,13 +26,30 @@ internal sealed class Settings
     public int MaxOnScreen { get; set; } = 3;
     public string[] Blacklist { get; set; } = [];
     public bool MemoryEnabled { get; set; } = true;
-    public string BubbleShape { get; set; } = "automatic";
-    public string BubbleTheme { get; set; } = "random";
+    string bubbleShape = "text";
+    public string BubbleShape { get => bubbleShape; set => bubbleShape = value == "automatic" ? "text" : value; }
+    public string BubbleSize { get; set; } = "small";
+    public string BubbleFont { get; set; } = "persona";
+    public bool BubbleOutline { get; set; } = true;
+    public bool BubbleShadow { get; set; } = true;
+    public bool BubbleGradient { get; set; }
+    public string BubbleAnimation { get; set; } = "fade";
+    public string EmojiDensity { get; set; } = "moderate";
+    public bool BubblePersistent { get; set; }
+    public string BubbleTheme { get; set; } = "clear";
     public string Emoji { get; set; } = "";
     public JsonElement[] Rules { get; set; } = [];
-    public string ActiveShape(GrowthInfo? growth) => BubbleShape == "star" && growth?.Has("starBubble") == true ? "star" : "automatic";
-    public string ActiveTheme(GrowthInfo? growth) => BubbleTheme == "starry" && growth?.Has("starryTheme") == true ? "starry" : "random";
-    public string[] ActiveEmoji(string[] original, GrowthInfo? growth) => growth?.Has("emoji") == true && Emoji.Length > 0 ? [Emoji] : original;
+    public string ActiveShape(GrowthInfo? growth) => BubbleShape == "star" && growth?.Has("starBubble") != true ? "text" : BubbleShape;
+    public string ActiveTheme(GrowthInfo? growth) => BubbleTheme == "starry" && growth?.Has("starryTheme") != true ? "clear" : BubbleTheme;
+    public string[] ActiveEmoji(string[] original, GrowthInfo? growth) => ActiveStyle(growth).DisplayedEmoji(original);
+    public BubbleStyle ActiveStyle(GrowthInfo? growth) => new()
+    {
+        Shape = ActiveShape(growth), Size = BubbleSize, Theme = ActiveTheme(growth), Font = BubbleFont,
+        TextEffects = (BubbleOutline ? TextEffects.Outline : 0) | (BubbleShadow ? TextEffects.Shadow : 0) | (BubbleGradient ? TextEffects.Gradient : 0),
+        Animation = BubbleAnimation, EmojiDensity = EmojiDensity,
+        Emoji = Emoji.Length > 0 && growth?.Has("emoji") == true ? Emoji : null,
+        Dwell = BubblePersistent ? null : Dwell, MaxOnScreen = MaxOnScreen
+    };
     public string BuiltinModel { get; set; } = Catalog.Models[1].Name;
     [JsonIgnore] public ModelDownloader[] Downloaders => downloaders ??= Catalog.Models.Select(model =>
         new ModelDownloader(model, Path.Combine(DataDirectory, "Models"))).ToArray();
@@ -54,8 +71,10 @@ internal sealed class Settings
             || settings.Persona is not ("sharp" or "gentle" or "chuuni" or "teacher" or "mom" or "hype" or "cat")
             || settings.Lang is not ("zh" or "en") || settings.Language is not ("system" or "zh" or "en") || !double.IsFinite(settings.MarkGap) || settings.MarkGap < 0
             || !double.IsFinite(settings.Dwell) || settings.Dwell <= 0 || settings.MaxOnScreen <= 0
-            || settings.BubbleShape is not ("automatic" or "star") || settings.BubbleTheme is not ("random" or "starry")
-            || !new[] { "", "✨", "🌷", "😺", "🥹", "🫶", "🌈", "🎉" }.Contains(settings.Emoji)
+            || !BubbleStyle.Shapes.Contains(settings.BubbleShape) || !BubbleStyle.Themes.Contains(settings.BubbleTheme)
+            || !BubbleStyle.Sizes.Contains(settings.BubbleSize) || !BubbleStyle.Fonts.Contains(settings.BubbleFont)
+            || !BubbleStyle.Animations.Contains(settings.BubbleAnimation) || !BubbleStyle.Densities.Contains(settings.EmojiDensity)
+            || !(new[] { "", "✨", "🌷", "😺", "🥹", "🫶", "🎉" }.Concat(BubbleStyle.ExtraEmoji)).Contains(settings.Emoji)
             || settings.Provider.Kind is not ("none" or "api" or "builtin")
             || !Catalog.Models.Any(m => m.Name == settings.BuiltinModel))
             throw new InvalidDataException("Invalid Windows shell settings");

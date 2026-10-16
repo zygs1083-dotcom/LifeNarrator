@@ -36,13 +36,15 @@ internal record Snapshot(string BundleId, string AppName, int Pid, string Window
 internal record Narration(string Id, string Text, string[] Emoji, string Language, string Persona,
     bool Framed, uint WindowID, WindowGeometry Window, Box? Anchor, Box? Line, Box[] Obstacles, string? TrackID = null);
 internal record Placement(Box Frame, Box? Highlight, bool Narrow, bool Covered, string PlacementName,
-    Box?[]? StackFrames)
+    Box?[]? StackFrames, string? Side, bool Connector, bool Outside, string? Corner)
 {
     public static Placement Read(JsonElement json) => new(json.GetProperty("frame").Read<Box>(),
         json.TryGetProperty("highlight", out var h) ? h.Read<Box?>() : null,
         json.GetProperty("narrow").GetBoolean(), json.GetProperty("covered").GetBoolean(),
         json.GetProperty("placement").GetString()!,
-        json.TryGetProperty("stackFrames", out var s) ? s.Read<Box?[]>() : null);
+        json.TryGetProperty("stackFrames", out var s) ? s.Read<Box?[]>() : null,
+        json.GetProperty("side").GetString(), json.GetProperty("connector").GetBoolean(),
+        json.GetProperty("outside").GetBoolean(), json.GetProperty("corner").GetString());
 }
 
 // Keep each monitor's physical origin; scale distances from it in both directions.

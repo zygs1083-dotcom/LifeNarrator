@@ -9,7 +9,7 @@ internal sealed record Localized(string Zh, string En)
 }
 internal sealed record ProviderPreset(string Id, Localized Name, string Group, string Api,
     string BaseURL, string Structured, bool KeyRequired, string? KeyURL, string[] SuggestedModels);
-internal sealed record PersonaPreset(string Id, string Emoji, Localized Name, Localized Caption);
+internal sealed record PersonaPreset(string Id, string Emoji, Localized Name, Localized Caption, Dictionary<string, string[]> Fonts);
 
 internal static class Catalog
 {
