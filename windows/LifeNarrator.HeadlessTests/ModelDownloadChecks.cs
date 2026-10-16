@@ -172,7 +172,7 @@ internal static class ModelDownloadChecks
         download.Delete();
 
         var wizard = new OnboardingWindow(settings, Configure, () => Task.FromResult(0d), () => { });
-        wizard.Show(); Wait(wizard.Advance()); Click(wizard, "choice-builtin"); Wait(wizard.Advance());
+        wizard.Show(); Wait(wizard.Advance()); Click(wizard, "choice-builtin");
         Capture(wizard, "onboarding");
         // Exercise the actual download button in onboarding and its completion configure callback.
         reply = Reply(data);
