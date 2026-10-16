@@ -147,5 +147,19 @@
   "updates.available": "有新版本 %@",
   "updates.install": "立即更新",
   "updates.downloading": "正在下载更新… %d%%",
-  "updates.installFailed": "更新安装失败，查看安装日志"
+  "updates.installFailed": "更新安装失败，查看安装日志",
+  "provider.builtin.hint": "离线运行，屏幕文字留在本机",
+  "model.windows.hint": "Windows 推荐快速档；没有独立显卡时，标准档生成较慢。下载完成后自动启用所选模型。",
+  "model.standard": "标准",
+  "model.fast": "快速 · Windows 推荐",
+  "model.standard.hint": "效果更好，速度较慢",
+  "model.fast.hint": "占用更少，速度更快",
+  "model.source": "下载源",
+  "model.download": "下载",
+  "model.resume": "继续",
+  "model.pause": "暂停",
+  "model.notDownloaded": "未下载",
+  "model.downloading": "下载中",
+  "model.verifying": "校验中",
+  "model.ready": "已就绪"
 }

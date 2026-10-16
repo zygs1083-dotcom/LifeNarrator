@@ -313,6 +313,40 @@ private actor ConnectionGenerator: TextGenerator {
         #expect(output.last?["error"]?["code"] == .number(-32602))
     }
 
+    #if os(macOS) || os(Windows)
+    @Test func builtinReleaseAcknowledgementKeepsDispatching() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = directory.appendingPathComponent("unloaded.gguf")
+        try Data().write(to: model)
+        var output: [RPCValue] = []
+        let replies = AsyncStream<RPCValue>.makeStream()
+        let server = BrainRPCServer {
+            let value = try JSONDecoder().decode(RPCValue.self, from: Data($0.utf8))
+            output.append(value); replies.continuation.yield(value)
+        }
+        func call(_ id: Int, _ method: String, _ params: RPCValue = .object([:])) throws {
+            try server.receive(RPCValue.object(["jsonrpc": .string("2.0"), "id": .number(Decimal(id)),
+                "method": .string(method), "params": params]).line())
+        }
+        var builtin = try configuration(directory: directory).decode([String: RPCValue].self)
+        builtin["generator"] = .object(["kind": .string("builtin"), "modelPath": .string(model.path)])
+        try call(1, "configure", .object(builtin))
+        try call(2, "configure", configuration(directory: directory))
+        #expect(!output.contains { $0["id"] == .number(2) })
+        try call(3, "ping")
+        #expect(output.last?["id"] == .number(3))
+        for await reply in replies.stream where reply["id"] == .number(2) {
+            #expect(reply["result"] == .null)
+            break
+        }
+        let input = AsyncThrowingStream<String, any Error>.makeStream()
+        input.continuation.finish()
+        try await server.run(lines: input.stream)
+    }
+    #endif
+
     @Test func requiredPortErrorTerminatesSession() async throws {
         let shell = ScriptedShell()
         shell.remoteError = "overlay.dismissAll"

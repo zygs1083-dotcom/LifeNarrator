@@ -53,7 +53,7 @@ customPersonas 是完整 PersonaProfile 数组：`{id,emoji,name,caption,descrip
 
 - `{"kind":"none"}`：只使用离线规则和台词。
 - `{"kind":"api","presetId":"openai","model":"MODEL","key":"KEY","baseURL":"https://example.com/v1","structured":"json_schema"}`：presetId、model、key 必填，baseURL 和 structured 可省略，沿用 preset。model 不可为空，baseURL 必须为 http(s) URL。structured 为 `json_schema/json_object/prompt`。presetId 使用 `Sources/NarratorCore/Resources/providers.json` 中的 id；通过 ProviderConfiguration / ProviderCatalog 构造 OpenAIChatClient 或 AnthropicClient。Anthropic 沿用其工具结构化输出，不使用 OpenAI 的 structured 选项。key 允许空字符串（本地免鉴权服务）；不写入数据目录，也不输出到日志。
-- `{"kind":"builtin","modelPath":"C:\\LifeNarrator\\models\\model.gguf"}`：macOS / Windows 上使用本机 GGUF 模型和 GBNF 约束生成。modelPath 必填且必须指向进程可访问的文件；缺失、空路径或文件不存在返回 -32602。首次生成时加载模型，空闲 10 分钟释放；重新配置会关闭旧生成器，新模型等待旧模型释放后加载，EOF / 会话失败退出前也释放。Windows 使用官方 llama.cpp b11429 CPU 后端，有可用 Vulkan 设备时自动卸载到 GPU；Mac 仍使用 Metal。模型加载或生成失败经 host.report 暴露。Linux 不编译 NarratorLlama，builtin 返回 -32001。下载及选择模型由宿主负责，本协议不提供下载功能。
+- `{"kind":"builtin","modelPath":"C:\\LifeNarrator\\models\\model.gguf"}`：macOS / Windows 上使用本机 GGUF 模型和 GBNF 约束生成。modelPath 必填且必须指向进程可访问的文件；缺失、空路径或文件不存在返回 -32602。首次生成时加载模型，空闲 10 分钟释放；重新配置会关闭旧生成器，configure 的成功回复会等待旧生成任务结束和旧模型释放（期间仍处理端口回复），宿主收到后可删除旧 GGUF；新模型等待旧模型释放后加载，EOF / 会话失败退出前也释放。Windows 使用官方 llama.cpp b11429 CPU 后端，有可用 Vulkan 设备时自动卸载到 GPU；Mac 仍使用 Metal。模型加载或生成失败经 host.report 暴露。Linux 不编译 NarratorLlama，builtin 返回 -32001。下载及选择模型由宿主负责，本协议不提供下载功能。
 
 ### testConnection
 

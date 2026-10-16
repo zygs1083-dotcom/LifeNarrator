@@ -119,6 +119,7 @@ public final class SpriteBrain {
     private var followup: Task<Void, Never>?
     private var ocr: Task<Void, Never>?
     private var modelTask: Task<Void, Never>?
+    var modelCompletion: Task<Void, Never>? { modelTask }
     private var requestPending = false
     private var emptyScreens: Set<UInt64> = []
     private var windowRequests: [UInt32: Date] = [:]

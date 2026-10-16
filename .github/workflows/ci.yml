@@ -30,6 +30,7 @@ jobs:
           path: |
             artifacts/bubble-*.png
             artifacts/ui-headless-*.png
+            artifacts/model-download-test/*.log
           if-no-files-found: error
 
   windows:
@@ -64,10 +65,19 @@ jobs:
       - run: swift test
       - run: swift build -c release --product narrator-brain
       - run: windows/scripts/package-brain.ps1
+      - name: Prepare controlled builtin model fixture
+        run: |
+          Copy-Item artifacts/brain .dev-data/builtin-fixture-brain -Recurse
+          # Fix the scene and short example quips for the small GGUF integration check.
+          $scene = Get-Content Sources/NarratorCore/Resources/sprite-examples.json -Raw | ConvertFrom-Json |
+            Where-Object id -EQ 'headphones'
+          foreach ($mark in $scene.en.marks) { $mark.voices.sharp.t = 'Ouch.' }
+          ConvertTo-Json -InputObject @($scene) -Depth 30 |
+            Set-Content .dev-data/builtin-fixture-brain/LifeNarrator_NarratorCore.resources/sprite-examples.json
       - name: Shell brain protocol checks
-        run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- artifacts/brain/narrator-brain.exe
+        run: dotnet run --project windows/LifeNarrator.HeadlessTests -c Release -- .dev-data/builtin-fixture-brain/narrator-brain.exe
       - name: Builtin model RPC generation (packaged runtime)
-        run: python windows/scripts/check-builtin-model.py artifacts/brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL
+        run: python windows/scripts/check-builtin-model.py .dev-data/builtin-fixture-brain/narrator-brain.exe $env:NARRATOR_TEST_MODEL
       - name: Publish shell
         if: ${{ !cancelled() }}
         run: |
@@ -88,6 +98,19 @@ jobs:
         run: windows/scripts/verify-installer.ps1
       - name: Verify in-app update from an installed older version
         run: windows/scripts/verify-updater.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-model-download
+          path: |
+            artifacts/model-download-test/*.log
+            artifacts/builtin-ui-test/*.log
+            artifacts/builtin-ui-test/*.json
+            artifacts/builtin-ui-test/*.jsonl
+            artifacts/builtin-model-test/*.log
+            artifacts/builtin-model-test/*.json
+            artifacts/ui-headless-model-*.png
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: always()
         with:

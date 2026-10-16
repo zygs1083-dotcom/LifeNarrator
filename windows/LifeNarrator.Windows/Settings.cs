@@ -9,6 +9,8 @@ namespace LifeNarrator.Windows;
 
 internal sealed class Settings
 {
+    public Settings() { }
+    internal Settings(ModelDownloader[] downloaders) { this.downloaders = downloaders; }
     public string Liveliness { get; set; } = "lively";
     public string Persona { get; set; } = "gentle";
     public string Lang { get; set; } = "zh";
@@ -31,6 +33,11 @@ internal sealed class Settings
     public string ActiveShape(GrowthInfo? growth) => BubbleShape == "star" && growth?.Has("starBubble") == true ? "star" : "automatic";
     public string ActiveTheme(GrowthInfo? growth) => BubbleTheme == "starry" && growth?.Has("starryTheme") == true ? "starry" : "random";
     public string[] ActiveEmoji(string[] original, GrowthInfo? growth) => growth?.Has("emoji") == true && Emoji.Length > 0 ? [Emoji] : original;
+    public string BuiltinModel { get; set; } = Catalog.Models[1].Name;
+    [JsonIgnore] public ModelDownloader[] Downloaders => downloaders ??= Catalog.Models.Select(model =>
+        new ModelDownloader(model, Path.Combine(DataDirectory, "Models"))).ToArray();
+    ModelDownloader[]? downloaders;
+    [JsonIgnore] public ModelDownloader SelectedDownload => Downloaders.Single(d => d.Model.Name == BuiltinModel);
     public ProviderSettings Provider { get; set; } = new();
 
     public static string DataDirectory => Path.Combine(
@@ -49,7 +56,8 @@ internal sealed class Settings
             || !double.IsFinite(settings.Dwell) || settings.Dwell <= 0 || settings.MaxOnScreen <= 0
             || settings.BubbleShape is not ("automatic" or "star") || settings.BubbleTheme is not ("random" or "starry")
             || !new[] { "", "✨", "🌷", "😺", "🥹", "🫶", "🌈", "🎉" }.Contains(settings.Emoji)
-            || settings.Provider.Kind is not ("none" or "api"))
+            || settings.Provider.Kind is not ("none" or "api" or "builtin")
+            || !Catalog.Models.Any(m => m.Name == settings.BuiltinModel))
             throw new InvalidDataException("Invalid Windows shell settings");
         return settings;
     }
@@ -57,11 +65,18 @@ internal sealed class Settings
     public void Save() => File.WriteAllText(FilePath, JsonSerializer.Serialize(this,
         new JsonSerializerOptions(Protocol.Json) { WriteIndented = true }));
 
-    public object GeneratorConfiguration() => Provider.Kind == "none" ? (object)new { kind = "none" } : new
+    public object GeneratorConfiguration()
     {
-        kind = "api", Provider.PresetId, Provider.Model, Provider.BaseURL, Provider.Structured,
-        key = CredentialStore.Read(Provider.PresetId)
-    };
+        if (Provider.Kind == "none") return new { kind = "none" };
+        if (Provider.Kind == "builtin")
+            return SelectedDownload.State == ModelDownloadState.Ready
+                ? new { kind = "builtin", modelPath = SelectedDownload.Destination } : (object)new { kind = "none" };
+        return new
+        {
+            kind = "api", Provider.PresetId, Provider.Model, Provider.BaseURL, Provider.Structured,
+            key = CredentialStore.Read(Provider.PresetId)
+        };
+    }
 
     public object Configuration() => new
     {

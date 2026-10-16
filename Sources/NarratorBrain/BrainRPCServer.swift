@@ -51,7 +51,8 @@ import NarratorLlama
     private func releaseBuiltin() {
         if let previous = builtin {
             let pending = modelRelease
-            modelRelease = Task { await pending?.value; await previous.close() }
+            let generation = brain?.modelCompletion
+            modelRelease = Task { await pending?.value; await generation?.value; await previous.close() }
             builtin = nil
         }
     }
@@ -121,6 +122,20 @@ import NarratorLlama
                 return
             }
             result = try handle(method, params: params, line: line)
+            #if canImport(NarratorLlama)
+            // The host can delete the old GGUF after this reply; ports must still dispatch while it closes.
+            if method == "configure", let release = modelRelease, let id = object["id"] {
+                let token = UUID()
+                connectionTests[token] = Task {
+                    defer { connectionTests.removeValue(forKey: token) }
+                    await release.value
+                    guard !Task.isCancelled else { return }
+                    do { try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": result])) }
+                    catch { events.continuation.yield(.failure(error)) }
+                }
+                return
+            }
+            #endif
         }
         catch {
             if let id = object["id"] {

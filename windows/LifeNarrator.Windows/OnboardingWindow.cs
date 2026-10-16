@@ -39,8 +39,8 @@ internal sealed class OnboardingWindow : Window
             1 => Views.Card(text["onboarding.model"], Views.Choices([
                 ("api", text["provider.api"], text["provider.api.hint"]),
                 ("none", text["provider.none"], text["provider.none.hint"]),
-                ("builtin", text["provider.builtin"], text["comingSoon"])], settings.Provider.Kind,
-                id => { settings.Provider.Kind = id; }, disabled: "builtin")),
+                ("builtin", text["provider.builtin"], text["provider.builtin.hint"])], settings.Provider.Kind,
+                id => { settings.Provider.Kind = id; })),
             2 => (Control)new ModelView(settings, configure, testConnection),
             _ => Views.Card(text["ready"], Views.Label(text["onboarding.done"]), Views.Caption(text["windows.privacy"]))
         };
