@@ -36,22 +36,17 @@ internal sealed class OnboardingWindow : Window
         var page = step switch
         {
             0 => Views.Card(text["onboarding.accessibility"], Views.Label(text["windows.reading"]), Views.Caption(text["windows.privacy"])),
-            1 => Views.Card(text["onboarding.model"], Views.Choices([
-                ("api", text["provider.api"], text["provider.api.hint"]),
-                ("none", text["provider.none"], text["provider.none.hint"]),
-                ("builtin", text["provider.builtin"], text["provider.builtin.hint"])], settings.Provider.Kind,
-                id => { settings.Provider.Kind = id; })),
-            2 => (Control)new ModelView(settings, configure, testConnection),
+            1 => (Control)new ModelView(settings, configure, testConnection),
             _ => Views.Card(text["ready"], Views.Label(text["onboarding.done"]), Views.Caption(text["windows.privacy"]))
         };
-        var back = Views.Button(text["back"], () => { step = step == 3 && settings.Provider.Kind == "none" ? 1 : step - 1; Render(); });
+        var back = Views.Button(text["back"], () => { step--; Render(); });
         back.IsVisible = step > 0;
-        var next = Views.Button(text[step == 3 ? "finish" : "continue"], () => { });
+        var next = Views.Button(text[step == 2 ? "finish" : "continue"], () => { });
         next.IsDefault = true;
         next.Classes.Add("primary"); AutomationProperties.SetAutomationId(next, "onboarding-next");
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var skip = Views.Button(text["skip"], () => { });
-        if (step == 2) actions.Children.Add(skip);
+        if (step == 1) actions.Children.Add(skip);
         actions.Children.Add(next);
         var footer = Views.Row(back, actions);
         async Task Move(bool skipModel)
@@ -81,13 +76,12 @@ internal sealed class OnboardingWindow : Window
         error.IsVisible = false;
         try
         {
-            if (step == 3)
+            if (step == 2)
             {
                 settings.OnboardingCompleted = true; await configure(); completed(); Close(); return;
             }
-            if (step == 1 && settings.Provider.Kind == "api") settings.Save();
-            else if (step > 0) await configure();
-            step += step == 1 && settings.Provider.Kind == "none" ? 2 : 1;
+            if (step > 0) await configure();
+            step++;
             Render();
         }
         catch (Exception failure) { error.Text = failure.Message; error.IsVisible = true; }

@@ -41,6 +41,18 @@
         <Style Selector="^:checked"><Setter Property="Background" Value="{DynamicResource Soft}"/><Setter Property="Foreground" Value="{DynamicResource AccentInk}"/><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>
       </ControlTheme>
       <ControlTheme x:Key="{x:Type RepeatButton}" TargetType="RepeatButton" BasedOn="{StaticResource {x:Type Button}}"/>
+      <ControlTheme x:Key="Switch" TargetType="ToggleButton">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template"><ControlTemplate>
+          <Border Name="track" Width="40" Height="22" CornerRadius="11" Background="{DynamicResource Stroke}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1">
+            <Border Name="knob" Width="16" Height="16" CornerRadius="8" Margin="2,0" Background="{DynamicResource Card}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+          </Border>
+        </ControlTemplate></Setter>
+        <Style Selector="^:checked /template/ Border#track"><Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>
+        <Style Selector="^:checked /template/ Border#knob"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
+        <Style Selector="^:focus-visible /template/ Border#track"><Setter Property="BorderBrush" Value="{DynamicResource AccentInk}"/></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5"/></Style>
+      </ControlTheme>
       <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox">
         <Setter Property="Background" Value="{DynamicResource Paper}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Stroke}"/><Setter Property="BorderThickness" Value="1"/>
@@ -134,7 +146,7 @@
           <Border Background="{DynamicResource Paper}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1" CornerRadius="8">
             <Grid ColumnDefinitions="*,Auto">
               <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" Margin="{TemplateBinding Padding}"/>
-              <ToggleButton Grid.Column="1" Content="⌄" Focusable="False" IsChecked="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"/>
+              <Path Grid.Column="1" Data="M0,0 L5,5 L10,0" Stroke="{DynamicResource Muted}" StrokeThickness="1.5" Margin="0,0,14,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
               <Popup Name="PART_Popup" MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="360" IsLightDismissEnabled="True" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}" PlacementTarget="{TemplateBinding}">
                 <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1" Padding="4" CornerRadius="10">
                   <ScrollViewer><ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/></ScrollViewer>

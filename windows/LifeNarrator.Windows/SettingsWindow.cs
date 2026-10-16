@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace LifeNarrator.Windows;
 
@@ -46,7 +47,7 @@ internal sealed class SettingsWindow : Window
 
     void Render()
     {
-        Title = text["app.name"] + " · " + text["settings"];
+        Title = text["app.name"] + " · " + text["settings.title"];
         root.Children.Clear();
         var tabs = Views.Choices([
             ("0", text["tab.sprite"], ""), ("1", text["models"], ""), ("2", text["general"], ""), ("3", text["tab.memory"], "")],
@@ -183,13 +184,14 @@ internal static class Views
     public static Control Field(string title, Control control) => Stack(Label(title), control);
     public static Button Button(string title, Action action)
     {
-        var button = new Button { Content = title }; button.Click += (_, _) => action(); return button;
+        var button = new Button { Content = title, HorizontalAlignment = HorizontalAlignment.Left };
+        button.Click += (_, _) => action(); return button;
     }
     public static Control Toggle(string title, bool selected, Action<bool> change)
     {
-        var toggle = new ToggleButton { Content = selected ? "●" : "○", IsChecked = selected, MinWidth = 48 };
+        var toggle = new ToggleButton { IsChecked = selected, Theme = (ControlTheme)Application.Current!.FindResource("Switch")! };
         AutomationProperties.SetName(toggle, title);
-        toggle.Click += (_, _) => { toggle.Content = toggle.IsChecked == true ? "●" : "○"; change(toggle.IsChecked == true); };
+        toggle.Click += (_, _) => change(toggle.IsChecked == true);
         return Row(Label(title), toggle);
     }
     public static Control Choices(IEnumerable<(string Id, string Title, string Caption)> options, string selection,

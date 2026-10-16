@@ -155,7 +155,7 @@ try {
     # Opening the app again while it runs must bring up its settings, since the tray icon is often hidden.
     Start-Process ./artifacts/shell/LifeNarrator.exe -Wait
     Wait-For 'settings from a second launch' {
-        $titles = "LifeNarrator $([char]0xB7) Settings$([char]0x2026)", "$([char]0x4EBA)$([char]0x751F)$([char]0x65C1)$([char]0x767D) $([char]0xB7) $([char]0x8BBE)$([char]0x7F6E)$([char]0x2026)"
+        $titles = "LifeNarrator $([char]0xB7) Settings", "$([char]0x4EBA)$([char]0x751F)$([char]0x65C1)$([char]0x767D) $([char]0xB7) $([char]0x8BBE)$([char]0x7F6E)"
         @($titles | Where-Object { [E2EWindow]::FindWindow([IntPtr]::Zero, $_) -ne [IntPtr]::Zero }).Count -gt 0
     }
     Screenshot 'e2e-reopen-settings.png'
