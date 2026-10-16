@@ -48,7 +48,7 @@
   "menu.onDuty": "在岗",
   "models": "模型",
   "onboarding.accessibility": "让我看看屏幕上的字",
-  "onboarding.done": "我在系统托盘里等你。右键图标可以暂停或打开设置。",
+  "onboarding.done": "我在任务栏右下角的托盘里等你，看不到就点“^”。右键图标可以暂停或打开设置；再打开一次人生旁白也会弹出设置。",
   "onboarding.model": "给我挑个模型",
   "onboarding.step": "第 %d 步，共 4 步",
   "onboarding.title": "你好呀，我是你的小精灵",

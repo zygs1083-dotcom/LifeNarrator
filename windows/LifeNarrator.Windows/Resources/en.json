@@ -48,7 +48,7 @@
   "menu.onDuty": "On duty",
   "models": "Models",
   "onboarding.accessibility": "Let me read the screen",
-  "onboarding.done": "Find me in the system tray. Right-click my icon to pause or open Settings.",
+  "onboarding.done": "Find me in the system tray at the right end of the taskbar (click ^ if you do not see me). Right-click my icon to pause or open Settings; opening LifeNarrator again also shows Settings.",
   "onboarding.model": "Pick a model for me",
   "onboarding.step": "Step %d of 4",
   "onboarding.title": "Hi there, I'm your little narrator",

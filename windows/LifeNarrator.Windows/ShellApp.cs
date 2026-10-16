@@ -87,6 +87,8 @@ public sealed partial class ShellApp : Application
         quit = Item("退出", Quit); menu.Items.Add(quit);
         tray = new TrayIcon { Menu = menu, ToolTipText = "人生旁白", Icon = MakeIcon(42, 166, 100), IsVisible = true };
         tray.Clicked += (_, _) => ShowSettings();
+        var show = new EventWaitHandle(false, EventResetMode.AutoReset, Program.ShowSettingsEvent);
+        new Thread(() => { while (show.WaitOne()) Dispatcher.UIThread.Post(ShowSettings); }) { IsBackground = true }.Start();
         TrayIcon.SetIcons(this, new TrayIcons { tray });
         Dispatcher.UIThread.Post(async () =>
         {

@@ -9,6 +9,7 @@ internal static class Program
 {
     internal static bool VerifyUI, VerifyCompanion;
     internal static bool VerifyUpdate, VerifyUpdateResult;
+    internal const string ShowSettingsEvent = "Local\\LifeNarrator.Windows.ShowSettings";
     [STAThread]
     public static int Main(string[] args)
     {
@@ -26,7 +27,13 @@ internal static class Program
         if (args.Length == 0 || VerifyUI || VerifyCompanion || VerifyUpdate)
         {
             using var single = new Mutex(true, "Local\\LifeNarrator.Windows", out var first);
-            if (!first) return 0;
+            if (!first)
+            {
+                // The tray icon often sits in the hidden overflow, so opening the app again shows the running copy's settings.
+                using var show = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSettingsEvent);
+                show.Set();
+                return 0;
+            }
             try { return Builder<ShellApp>().StartWithClassicDesktopLifetime(args); }
             finally { single.ReleaseMutex(); }
         }

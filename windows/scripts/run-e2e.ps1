@@ -152,6 +152,13 @@ try {
     Wait-For 'offscreen mark removal' { @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'leave' -and $_.id -eq $before.id }).Count -gt 0 }
     Start-Sleep -Milliseconds 250
     Screenshot 'e2e-offscreen.png'
+    # Opening the app again while it runs must bring up its settings, since the tray icon is often hidden.
+    Start-Process ./artifacts/shell/LifeNarrator.exe -Wait
+    Wait-For 'settings from a second launch' {
+        $titles = "LifeNarrator $([char]0xB7) Settings$([char]0x2026)", "$([char]0x4EBA)$([char]0x751F)$([char]0x65C1)$([char]0x767D) $([char]0xB7) $([char]0x8BBE)$([char]0x7F6E)$([char]0x2026)"
+        @($titles | Where-Object { [E2EWindow]::FindWindow([IntPtr]::Zero, $_) -ne [IntPtr]::Zero }).Count -gt 0
+    }
+    Screenshot 'e2e-reopen-settings.png'
     taskkill /PID $shell.Id /T /F | Out-Null
     $shell.WaitForExit(); $shell = $null
     Copy-Item (Join-Path $data 'brain.log') artifacts/e2e-follow-brain.log
