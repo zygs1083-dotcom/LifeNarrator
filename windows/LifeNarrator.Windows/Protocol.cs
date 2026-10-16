@@ -34,7 +34,7 @@ internal record Snapshot(string BundleId, string AppName, int Pid, string Window
     Box WindowFrame, Box ContentFrame, int ScreenIndex, TextLine[] TextLines, string TextSource,
     Box[] SensitiveRects, bool SecureFocused, bool FullScreen, DateTimeOffset CapturedAt);
 internal record Narration(string Id, string Text, string[] Emoji, string Language, string Persona,
-    bool Framed, uint WindowID, WindowGeometry Window, Box? Anchor, Box? Line, Box[] Obstacles, string? TrackID = null);
+    bool Framed, uint WindowID, WindowGeometry Window, Box? Anchor, Box? Line, Box[] Obstacles, string QuipID, string RuleID, int Sequence, string? TrackID = null);
 internal record Placement(Box Frame, Box? Highlight, bool Narrow, bool Covered, string PlacementName,
     Box?[]? StackFrames, string? Side, bool Connector, bool Outside, string? Corner)
 {
@@ -43,8 +43,8 @@ internal record Placement(Box Frame, Box? Highlight, bool Narrow, bool Covered, 
         json.GetProperty("narrow").GetBoolean(), json.GetProperty("covered").GetBoolean(),
         json.GetProperty("placement").GetString()!,
         json.TryGetProperty("stackFrames", out var s) ? s.Read<Box?[]>() : null,
-        json.GetProperty("side").GetString(), json.GetProperty("connector").GetBoolean(),
-        json.GetProperty("outside").GetBoolean(), json.GetProperty("corner").GetString());
+        json.TryGetProperty("side", out var side) ? side.GetString() : null, json.GetProperty("connector").GetBoolean(),
+        json.GetProperty("outside").GetBoolean(), json.TryGetProperty("corner", out var corner) ? corner.GetString() : null);
 }
 
 // Keep each monitor's physical origin; scale distances from it in both directions.

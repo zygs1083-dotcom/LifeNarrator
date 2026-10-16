@@ -114,7 +114,7 @@ internal sealed class OverlayController : IDisposable
             var tier = tierResult.GetString()!;
             var surface = surfaces.FirstOrDefault(x => x.Map.Logical(x.Map.Bounds).Rect.Contains(narration.Window.Frame.Rect.Center)) ?? surfaces[0];
             style = style with { Size = tier };
-            var (group, groupIndex) = SelectColor(style, narration.Id);
+            var (group, groupIndex) = SelectColor(style, narration);
             var fillOpacity = 1d;
             var visual = MakeVisual(false);
             var narrow = MakeVisual(true);
@@ -165,7 +165,7 @@ internal sealed class OverlayController : IDisposable
             HasShown |= bubbles.Contains(bubble) && bubble.Dismissed == null;
             return new { shown = bubbles.Contains(bubble) && bubble.Dismissed == null, placement = placement.PlacementName };
 
-            BubbleVisual MakeVisual(bool small) => new(narration.Id, narration.Text, narration.Emoji,
+            BubbleVisual MakeVisual(bool small) => new(narration.QuipID, narration.Text, narration.Emoji,
                 narration.Language, small ? style with { Size = "small" } : style, narration.Persona, small,
                 fillOpacity, narration.Anchor == null && style.Shape == "speech", group);
             async Task<Placement?> Place(BubbleVisual normal, BubbleVisual small)
@@ -189,7 +189,7 @@ internal sealed class OverlayController : IDisposable
         }
     }
 
-    (BubbleColors Group, int? Index) SelectColor(BubbleStyle style, string id)
+    (BubbleColors Group, int? Index) SelectColor(BubbleStyle style, Narration narration)
     {
         if (style.Theme == "random") return (BubbleColors.Random(baseHue, randomIndex++), null);
         var palette = BubbleColors.Palette(style.Theme);
@@ -198,7 +198,7 @@ internal sealed class OverlayController : IDisposable
         int index;
         if (settings.Liveliness == "quiet")
         {
-            index = (int)(BubbleStyle.StableHash(id) % (ulong)palette.Length);
+            index = (int)(unchecked(BubbleStyle.StableHash(narration.RuleID) + (ulong)narration.Sequence) % (ulong)palette.Length);
             if (occupied.Contains(index)) index = (index + 1) % palette.Length;
         }
         else

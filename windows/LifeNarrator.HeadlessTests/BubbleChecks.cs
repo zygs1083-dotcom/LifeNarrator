@@ -84,6 +84,18 @@ internal static class BubbleChecks
             if ((active.Shape == "star") != (level >= 5) || (active.Theme == "starry") != (level >= 15) || (active.Emoji != null) != (level >= 3))
                 throw new Exception("Mac growth levels not enforced");
         }
+        foreach (var appLevel in new[] { false, true })
+        {
+            var json = JsonSerializer.SerializeToElement(new Dictionary<string, object>
+            {
+                ["frame"] = new { x = 0, y = 0, w = 200, h = 40 }, ["narrow"] = false, ["covered"] = false,
+                ["connector"] = !appLevel, ["outside"] = false, ["placement"] = appLevel ? "corner" : "above",
+                [appLevel ? "corner" : "side"] = appLevel ? "topRight" : "above"
+            });
+            var placement = Placement.Read(json);
+            if (appLevel ? placement.Side != null || placement.Corner != "topRight" : placement.Side != "above" || placement.Corner != null)
+                throw new Exception("Optional Swift placement fields did not decode");
+        }
         if (BubbleFonts.WindowsFamily("Hannotate SC") != "Microsoft YaHei UI" || BubbleStyle.StableHash("hello") != 0xa430d84680aabd0bUL)
             throw new Exception("Font mapping/UTF8 stable hash failed");
     }
