@@ -34,19 +34,17 @@ public struct OpenAIChatClient: ImageTextGenerator {
         if structured != .jsonSchema {
             system = [system, schema, "只输出符合这个 schema 的 JSON"].compactMap { $0 }.joined(separator: "\n")
         }
-        var messages: [[String: String]] = []
+        var messages: [[String: Any]] = []
         if let system { messages.append(["role": "system", "content": system]) }
-        messages.append(["role": "user", "content": prompt])
-        var body: [String: Any] = ["model": model, "messages": messages, "stream": stream]
+        let content: Any
         if let jpeg {
-            var multimodal: [[String: Any]] = []
-            if let system { multimodal.append(["role": "system", "content": system]) }
-            multimodal.append(["role": "user", "content": [
+            content = [
                 ["type": "text", "text": prompt],
                 ["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + jpeg.base64EncodedString()]]
-            ]])
-            body["messages"] = multimodal
-        }
+            ]
+        } else { content = prompt }
+        messages.append(["role": "user", "content": content])
+        var body: [String: Any] = ["model": model, "messages": messages, "stream": stream]
         switch structured {
         case .jsonSchema: body["response_format"] = ["type": "json_schema", "json_schema": ["name": "lifenarrator", "schema": schemaObject]]
         case .jsonObject: body["response_format"] = ["type": "json_object"]

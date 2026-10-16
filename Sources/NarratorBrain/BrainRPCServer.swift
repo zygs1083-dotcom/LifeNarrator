@@ -111,11 +111,6 @@ import NarratorLlama
                         if let id = object["id"] {
                             try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": response]))
                         }
-                    } catch is CancellationError where method == "chat.send" {
-                        if let id = object["id"] {
-                            do { try peer.send(.object(["jsonrpc": .string("2.0"), "id": id, "result": .null])) }
-                            catch { events.continuation.yield(.failure(error)) }
-                        }
                     } catch {
                         if let id = object["id"] {
                             let failure = error as? BrainRPCError ?? BrainRPCError(

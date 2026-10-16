@@ -539,28 +539,44 @@ private let firstMark = #"{"marks":[{"l":0,"q":"first phrase","t":"咖啡还没�
         try f.finish()
     }
 
-    @Test func captureErrorsCancelChatsAndReportOncePerConfigure() async throws {
+    @Test func chatCaptureErrorsPropagateWithoutHostReportOrModelRequest() async throws {
         let f = try BrainFixture(), recorder = VisionRecorder()
         f.settings.vision = true
         f.configure(VisionGenerator(recorder: recorder))
         let snapshot = ContextSnapshot(bundleId: "fixture", appName: "Fixture", pid: 1,
             windowFrame: CGRect(x: 0, y: 0, width: 1000, height: 800), contentFrame: .zero, capturedAt: Date())
         let context = try await f.brain.chatContext(snapshot: snapshot, windowID: 42)
-        f.sensor.imageResult = .failure(WindowImageError.windowUnavailable)
-        await #expect(throws: CancellationError.self) { try await f.brain.sendChat("你好", context: context, includeScreen: true) }
-        #expect(f.host.errors.isEmpty)
-        f.sensor.imageResult = .failure(WindowImageError.encodingFailed)
-        for _ in 0..<2 {
-            await #expect(throws: CancellationError.self) { try await f.brain.sendChat("你好", context: context, includeScreen: true) }
+        let errors: [any Error] = [WindowImageError.windowUnavailable, WindowImageError.encodingFailed,
+            WindowImageError.encodingFailed, CancellationError()]
+        for error in errors {
+            f.sensor.imageResult = .failure(error)
+            do {
+                _ = try await f.brain.sendChat("你好", context: context, includeScreen: true)
+                Issue.record("Chat should expose the capture error")
+            } catch let failure {
+                #expect(String(describing: failure) == String(describing: error))
+            }
         }
-        #expect(f.host.errors.count == 1)
-        f.snapshot()
-        try await eventually(f.sensor.changes.stream) { f.sensor.imageCalls.count == 4 }
-        await f.brain.modelCompletion?.value
-        #expect(f.host.errors.count == 1)
-        f.configure(VisionGenerator(recorder: recorder))
-        await #expect(throws: CancellationError.self) { try await f.brain.sendChat("你好", context: context, includeScreen: true) }
-        #expect(f.host.errors.count == 2)
+        #expect(f.host.errors.isEmpty)
+        #expect(f.brain.chat.turns.isEmpty)
+        #expect(await recorder.calls.isEmpty)
+        try f.finish()
+    }
+
+    @Test func narrationCaptureErrorsReportOncePerConfigure() async throws {
+        let f = try BrainFixture(), recorder = VisionRecorder()
+        f.settings.vision = true
+        f.sensor.imageResult = .failure(WindowImageError.encodingFailed)
+        for index in 0..<4 {
+            if index % 2 == 0 {
+                f.brain.windowChanged()
+                f.configure(VisionGenerator(recorder: recorder))
+            }
+            f.snapshot(["quoted first phrase \(index)"], window: UInt32(index + 1))
+            try await eventually(f.sensor.changes.stream) { f.sensor.imageCalls.count == index + 1 }
+            await f.brain.modelCompletion?.value
+            #expect(f.host.errors.count == index / 2 + 1)
+        }
         #expect(await recorder.calls.isEmpty)
         f.host.errors = []
         try f.finish()

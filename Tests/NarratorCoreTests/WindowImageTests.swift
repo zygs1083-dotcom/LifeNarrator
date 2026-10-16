@@ -66,9 +66,14 @@ private let imageSchema = #"{"type":"object","properties":{"ok":{"type":"boolean
     let rects = WindowImage.redactions(in: snapshot)
     #expect(rects[0] == sensitive.insetBy(dx: -60, dy: -60))
     #expect(rects[1] == field.rect)
-    let ranges = SpritePrompt.privacyRanges(in: text.text)
-    #expect(ranges.count == 4)
-    #expect(Array(rects.dropFirst(2)) == ranges.map { RuleMatcher.estimatedRect(for: text, range: $0).insetBy(dx: -6, dy: -4) })
+    #expect(SpritePrompt.privacyRanges(in: text.text).count == 4)
+    #expect(rects == [sensitive.insetBy(dx: -60, dy: -60), field.rect, text.rect])
+    for privateText in ["email a@example.com", "phone 13812345678", "number 123456789012", "URL https://test.com"] {
+        var singleLine = snapshot
+        singleLine.sensitiveRects = []
+        singleLine.textLines = [TextLine(text: privateText, rect: CGRect(x: 10, y: 200, width: 300, height: 120))]
+        #expect(WindowImage.redactions(in: singleLine) == singleLine.textLines.map(\.rect))
+    }
 }
 
 @Test func imageNarrationPromptOnlyAddsVisionInstruction() {
@@ -82,4 +87,16 @@ private let imageSchema = #"{"type":"object","properties":{"ok":{"type":"boolean
         #expect(on.system == base.system + "\n\n" + WindowImagePrompt.narration(lang: lang))
         #expect(on.user == base.user)
     }
+}
+
+@Test func ocrFieldRowsExcludeDraftsWithoutSuppressingNearbyMessages() {
+    let frame = CGRect(x: -200, y: 100, width: 1000, height: 800)
+    let message = TextLine(text: "latest message", rect: CGRect(x: -100, y: 600, width: 300, height: 20))
+    let draft = TextLine(text: "unsent draft", rect: CGRect(x: -100, y: 630, width: 300, height: 20), role: .field)
+    let snapshot = ContextSnapshot(bundleId: "fixture", appName: "Fixture", pid: 1,
+        windowFrame: frame, contentFrame: frame, textLines: [message, draft], textSource: .ocr, capturedAt: Date())
+    #expect(snapshot.sensitiveRects.isEmpty)
+    #expect(SpritePrompt.screen(in: snapshot).lines.map(\.lineIndex) == [0])
+    #expect(SpritePrompt.screen(in: snapshot).text == "0| latest message")
+    #expect(WindowImage.redactions(in: snapshot) == [draft.rect])
 }

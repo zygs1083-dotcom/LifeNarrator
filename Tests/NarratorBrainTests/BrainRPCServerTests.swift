@@ -512,7 +512,7 @@ private actor CompanionGenerator: TextGenerator {
         try await task.value
     }
 
-    @Test func chatImagesUseLastExternalWindowAndCancelUnavailableCapture() async throws {
+    @Test func chatImagesUseLastExternalWindowAndExposeCaptureErrors() async throws {
         let recorder = VisionRecorder(), shell = ScriptedShell()
         let directory = try memoryTestDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -550,10 +550,14 @@ private actor CompanionGenerator: TextGenerator {
         let capture = try #require(shell.output.first { $0["method"] == .string("sensor.windowImage") })
         #expect(capture["params"]?["windowID"] == .number(42))
         #expect(shell.output.filter { $0["method"] == .string("sensor.windowImage") }.count == 1)
-        shell.remoteError = "sensor.windowImage"; shell.remoteErrorCode = -32005
-        let cancelled = try await call("chat.send", .object(["text": .string("hello"), "includeScreen": .bool(true)]))
-        #expect(cancelled["result"] == .null)
-        #expect(cancelled["error"] == nil)
+        shell.remoteError = "sensor.windowImage"
+        for code in [Decimal(-32005), -32000] {
+            shell.remoteErrorCode = code
+            let failed = try await call("chat.send", .object(["text": .string("hello"), "includeScreen": .bool(true)]))
+            #expect(failed["result"] == nil)
+            #expect(failed["error"]?["code"] == .number(code == -32005 ? -32004 : code))
+            #expect(failed["error"]?["message"] == .string(code == -32005 ? "windowUnavailable" : "shell failed"))
+        }
         #expect(!shell.output.contains { $0["method"] == .string("host.report") })
         #expect(await recorder.calls.count == 2)
         shell.input.continuation.finish()

@@ -211,11 +211,15 @@ internal sealed class ContextSensor : IDisposable
             var recognized = ocr.Read(window, display.Physical(frame), display);
             if (recognized.Length > 0)
             {
-                sensitive.AddRange(lines.Where(x => x.Line.Role == "field").Select(x => x.Line.Rect));
+                var fields = lines.Where(x => x.Line.Role == "field").Select(x => x.Line.Rect).ToArray();
                 lines.Clear();
                 lines.AddRange(recognized.Where(x => content.Rect.Contains(x.TextLine.Rect.Rect)
                     && !sensitive.Any(r => r.Rect.Intersects(x.TextLine.Rect.Rect)))
-                    .Select(x => new Entry(x.TextLine, null, null, x.TextLine.Rect, x)));
+                    .Select(x =>
+                    {
+                        var line = x.TextLine with { Role = fields.Any(r => r.Rect.Intersects(x.TextLine.Rect.Rect)) ? "field" : x.TextLine.Role };
+                        return new Entry(line, null, null, line.Rect, x);
+                    }));
             }
         }
         if (Native.GetForegroundWindow() != window) { RequestRead(); return; }

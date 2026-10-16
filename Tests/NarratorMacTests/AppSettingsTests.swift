@@ -4,6 +4,34 @@ import NarratorCore
 import XCTest
 
 final class AppSettingsTests: XCTestCase {
+    @MainActor
+    func testAPIClientErrorsShareOneAlertExceptRateLimits() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let previousDirectory = ProcessInfo.processInfo.environment["LIFENARRATOR_DATA_DIR"]
+        setenv("LIFENARRATOR_DATA_DIR", root.path, 1)
+        defer {
+            if let previousDirectory { setenv("LIFENARRATOR_DATA_DIR", previousDirectory, 1) }
+            else { unsetenv("LIFENARRATOR_DATA_DIR") }
+            try! FileManager.default.removeItem(at: root)
+        }
+        let store = try AppStore()
+        let host = MacBrainHost(store: store)
+        host.reportNow(HTTPClientError.status(429, "rate limited"))
+        XCTAssertNil(store.error)
+        XCTAssertFalse(host.keyRejectedShown)
+        for code in [400, 401, 403, 422] {
+            host.keyRejectedShown = false
+            host.reportNow(HTTPClientError.status(code, "provider refused"))
+            let message = (code == 401 || code == 403 ? store.text("api.keyRejected") + "\n" : "") + "\(code): provider refused"
+            XCTAssertEqual(store.error, message)
+            XCTAssertTrue(host.keyRejectedShown)
+            for next in [400, 401, 403, 429] {
+                host.reportNow(HTTPClientError.status(next, "later error"))
+                XCTAssertEqual(store.error, message)
+            }
+        }
+    }
+
     func testChatShortcutDefaultMigrationCustomizationAndRemoval() throws {
         var settings = AppSettings()
         let shortcut = settings.chatShortcut

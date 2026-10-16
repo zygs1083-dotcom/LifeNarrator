@@ -113,9 +113,7 @@ internal sealed class ChatWindow : Window
         sending = true; composer.IsEnabled = false; error.Text = text["chat.thinking"];
         try
         {
-            var response = await companion.Call("chat.send", new { text = message, narration, includeScreen = screen.IsChecked == true });
-            if (response.ValueKind == System.Text.Json.JsonValueKind.Null) { error.Text = ""; return; }
-            var turn = response.Read<ChatTurn>();
+            var turn = (await companion.Call("chat.send", new { text = message, narration, includeScreen = screen.IsChecked == true })).Read<ChatTurn>();
             conversation.Add(turn);
             if (conversation.Count > 50) conversation.RemoveAt(0);
             RenderHistory(); input.Text = ""; error.Text = "";

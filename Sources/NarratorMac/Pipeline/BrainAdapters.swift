@@ -100,14 +100,12 @@ final class MacBrainHost: BrainHost {
             store.error = String(describing: error)
         } else if let failure = error as? AXFailure, failure.code == .apiDisabled {
             store.error = String(describing: error)
-        } else if case HTTPClientError.status(let code, let body) = error, code == 401 || code == 403 {
+        } else if case HTTPClientError.status(let code, let body) = error, (400..<500).contains(code), code != 429 {
             FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
             if !keyRejectedShown {
                 keyRejectedShown = true
-                store.error = store.text("api.keyRejected") + "\n\(code): \(body)"
+                store.error = (code == 401 || code == 403 ? store.text("api.keyRejected") + "\n" : "") + "\(code): \(body)"
             }
-        } else if case HTTPClientError.status(let code, let body) = error, (400..<500).contains(code) {
-            store.error = "\(code): \(body)"
         } else {
             FileHandle.standardError.write(Data("[sprite] skipped: \(error)\n".utf8))
         }

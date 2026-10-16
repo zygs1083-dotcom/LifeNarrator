@@ -64,7 +64,7 @@ vision=true 时附带 Core 内置的小型纯色 JPEG，以检测模型是否接
 
 ### chat.send / chat.history
 
-`chat.send` 参数：`{text:string,narration?:string,includeScreen:bool}`。text 不可为空；narration 是点击旁白时附带的文字。result 为 `ChatTurn = {id:UUID字符串,user:string,reply:string,notice?:string}`，notice 为首次记忆隐私提示。`chat.history` 参数 `{}`，result 为最近最多 50 轮的 `ChatTurn[]`。对话存于数据目录的 `chat.json`。截图窗口已失效或截图失败取消本次请求时 result 为 null；外壳保留输入、不展示聊天错误。其他截图错误通过 host.report 每次 configure 最多报告一次。
+`chat.send` 参数：`{text:string,narration?:string,includeScreen:bool}`。text 不可为空；narration 是点击旁白时附带的文字。result 为 `ChatTurn = {id:UUID字符串,user:string,reply:string,notice?:string}`，notice 为首次记忆隐私提示。`chat.history` 参数 `{}`，result 为最近最多 50 轮的 `ChatTurn[]`。对话存于数据目录的 `chat.json`。聊天截图失败返回错误（非 RPC 错误为 -32004，远端 RPC 错误保留 code/message），外壳保留输入并展示错误，不返回 null，也不经 host.report。
 
 大脑从最近的外部窗口 snapshot 生成上下文，复用 `SpriteBrain.chatContext` 的密码焦点、黑名单和隐私过滤；外壳不传原始 screen/title。只在 includeScreen=true 时附上过滤后的屏幕文字；API 的 vision=true 时，同时附上快照对应窗口的打码 JPEG。外壳打开聊天窗口时应默认取消勾选。生成异步执行，期间继续分发 RPC（包括 host 端口及其嵌套 configure/rules.compile）。模型未配置、生成失败、无效意图、宿主操作失败返回 -32004，不伪造回复；外壳保留输入并展示错误。
 
@@ -192,9 +192,9 @@ covered 时 Mac 会改圆角、取消旋转、使用 0.92 填充并重新测量�
 
 Narration 必填：`id:string,quipID:string,ruleID:string,sequence:integer,text:string,emoji:string[],language:"zh"|"en",persona:Persona,framed:bool,obstacles:Rect[],windowID:uint32,window:Window`；可选 `anchor:Rect,line:Rect,trackID:string`。id 标识本次气泡实例，quipID 标识台词，ruleID 标识规则；trackID 是外壳给 markTrack 的不透明句柄，大脑原样转发给浮层。framed 控制文字框装饰；即使 false，仍可有 anchor 供定位。
 
-sensor.windowImage 仅截 windowID 对应窗口，截图前后都校验实际 frame 与 windowFrame 相同。redactions 是屏幕逻辑坐标，外壳换算为截图像素并涂黑；JPEG 长边不超过 1280px，质量约 0.7，全程在内存处理，不落盘、不记录内容。窗口消失、最小化或 frame 改变时返回 -32005（窗口不可用），大脑取消请求并记 reason=image-unavailable，不报告错误。其他错误每次 configure 后最多报告一次，绝不退回文字请求。打码区域由 Core 计算：敏感框外扩 60pt、输入框行，以及邮箱/电话/长数字/网址的估算文字框略外扩。
+sensor.windowImage 仅截 windowID 对应窗口，截图前后都校验实际 frame 与 windowFrame 相同。redactions 是屏幕逻辑坐标，外壳换算为截图像素并涂黑；JPEG 长边不超过 1280px，质量约 0.7，全程在内存处理，不落盘、不记录内容。窗口消失、最小化或 frame 改变时返回 -32005（窗口不可用），旁白取消请求并记 reason=image-unavailable，不报告错误；其他旁白截图错误每次 configure 后最多报告一次。聊天截图错误直接返回给聊天窗口显示，不经 host.report。绝不退回文字请求。打码区域由 Core 计算：敏感框外扩 60pt、输入框行，以及含邮箱/电话/长数字/网址的整行文字框。OCR 与 AX/UIA 输入框相交的行标为 field，不加入 sensitiveRects、不影响邻近文字。
 
-sensor.isTyping、isSecureFocused、boundsProbe、textRect、markTrack、windowImage 的错误会抛回 SpriteBrain，由其现有错误处理通过 host.report 报告。其他端口在 Swift 协议中不能抛错，其 error 或无法解码的 result 会终止整个会话，绝不伪造成功/默认值。host.report 对远端 BrainRPCError 保留 code/message/data；其他引擎错误 code 为 -32000。
+sensor.isTyping、isSecureFocused、boundsProbe、textRect、markTrack 的错误会抛回 SpriteBrain，由其现有错误处理通过 host.report 报告。windowImage 按上面的旁白和聊天路径分别处理。其他端口在 Swift 协议中不能抛错，其 error 或无法解码的 result 会终止整个会话，绝不伪造成功/默认值。host.report 对远端 BrainRPCError 保留 code/message/data；其他引擎错误 code 为 -32000。
 
 ## 错误码与 T19
 

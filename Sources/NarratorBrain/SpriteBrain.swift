@@ -253,17 +253,12 @@ public final class SpriteBrain {
 
     public func sendChat(_ input: String, context: ChatContext, includeScreen: Bool = false) async throws -> ChatTurn {
         guard let generator = try generator.get() else { throw ChatEngine.Failure.modelUnavailable }
-        let configurationRevision = configurationRevision
         let vision = includeScreen && settings.vision && context.snapshot != nil
         let requestGenerator: any TextGenerator
         if vision {
-            guard let windowID = context.windowID else { throw CancellationError() }
-            let jpeg: Data
-            do { jpeg = try await captureImage(snapshot: context.snapshot!, windowID: windowID) }
-            catch is WindowImageError { throw CancellationError() }
-            catch is ImageCaptureFailure { throw CancellationError() }
-            try Task.checkCancellation()
-            guard configurationRevision == self.configurationRevision else { throw CancellationError() }
+            let snapshot = context.snapshot!
+            let jpeg = try await sensor.windowImage(windowID: context.windowID!, windowFrame: snapshot.windowFrame,
+                redactions: WindowImage.redactions(in: snapshot))
             guard let imageGenerator = generator as? any ImageTextGenerator else { throw WindowImageError.unsupportedGenerator }
             requestGenerator = imageGenerator.attachingJPEG(jpeg)
         } else { requestGenerator = generator }

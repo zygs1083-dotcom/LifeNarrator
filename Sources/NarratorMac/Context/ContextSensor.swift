@@ -417,6 +417,11 @@ public final class ContextSensor {
         var source: TextSource = lines.isEmpty ? .none : .ax
         if lines.count < 3 && ContextPermissions.isGranted(.screenCapture) {
             lines = try await screenText.read(pid: application.processIdentifier, title: title, frame: frame)
+            let fields = reading.lines.filter { $0.line.role == .field }.map { $0.line.rect }
+            lines = lines.map { line in
+                TextLine(text: line.text, rect: line.rect,
+                    role: fields.contains { $0.intersects(line.rect) } ? .field : line.role)
+            }
             source = lines.isEmpty ? .none : .ocr
         }
         try Task.checkCancellation()
@@ -428,7 +433,7 @@ public final class ContextSensor {
                 let normalized = CGRect(x: (line.rect.minX - frame.minX) / frame.width,
                                         y: 1 - (line.rect.maxY - frame.minY) / frame.height,
                                         width: line.rect.width / frame.width, height: line.rect.height / frame.height)
-                return TextLine(text: line.text, rect: TextGeometry.screenRect(normalized, in: currentFrame))
+                return TextLine(text: line.text, rect: TextGeometry.screenRect(normalized, in: currentFrame), role: line.role)
             }
             return TextLine(text: line.text, rect: line.rect.offsetBy(dx: dx, dy: dy), role: line.role)
         }
@@ -461,9 +466,7 @@ public final class ContextSensor {
                                        pid: application.processIdentifier, windowTitle: title, windowFrame: currentFrame,
                                        contentFrame: contentFrame, screenIndex: screenIndex, url: reading.url, host: host,
                                        textLines: lines, textSource: source,
-                                       sensitiveRects: (reading.sensitiveRects + (source == .ocr
-                                            ? reading.lines.filter { $0.line.role == .field }.map { $0.line.rect } : []))
-                                            .map { $0.offsetBy(dx: dx, dy: dy) },
+                                       sensitiveRects: reading.sensitiveRects.map { $0.offsetBy(dx: dx, dy: dy) },
                                        secureFocused: reading.secureFocused, fullScreen: reading.fullScreen, capturedAt: Date())
         onSnapshot(snapshot, change)
     }
