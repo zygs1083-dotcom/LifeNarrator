@@ -236,9 +236,10 @@ public sealed partial class ShellApp : Application
     void UpdateTray()
     {
         var status = settings.Paused ? text["paused"] : text["sprite.onDuty"];
+        var failure = error ?? (updater.State == UpdateState.Failed ? updater.Error : null);
         var tip = updateFailure != null ? text["updates.installFailed"] + ": " + updateFailure.LogPath
-            : error == null ? status : text["app.error"] + ": " + error.Split('\n')[0];
-        tray.Update(tip, settings.Paused, error != null || updateFailure != null);
+            : failure == null ? status : text["app.error"] + ": " + failure.Split('\n')[0];
+        tray.Update(tip, settings.Paused, failure != null || updateFailure != null);
         trayMenu?.Refresh(error, ocrUnavailable, updateFailure);
     }
 
