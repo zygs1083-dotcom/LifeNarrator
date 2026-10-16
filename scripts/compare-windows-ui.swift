@@ -17,7 +17,7 @@ let pairs = try files.map { source -> (String, NSImage, NSImage) in
     return (name, left, right)
 }
 let column: CGFloat = 310
-let heights = pairs.map { max($0.1.size.height * min(1, column / $0.1.size.width), $0.2.size.height * min(1, column / $0.2.size.width)) + 30 }
+let heights = pairs.map { max($0.1.size.height * (column / $0.1.size.width), $0.2.size.height * (column / $0.2.size.width)) + 30 }
 let size = NSSize(width: column * 2, height: heights.reduce(0, +))
 let image = NSImage(size: size)
 image.lockFocus()
@@ -28,7 +28,7 @@ for (index, pair) in pairs.enumerated() {
     let label = "\(pair.0) · Mac / Windows"
     label.draw(at: NSPoint(x: 5, y: top + heights[index] - 22), withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.black])
     for (columnIndex, snapshot) in [pair.1, pair.2].enumerated() {
-        let scale = min(1, column / snapshot.size.width)
+        let scale = column / snapshot.size.width
         let target = NSRect(x: CGFloat(columnIndex) * column, y: top + heights[index] - 30 - snapshot.size.height * scale,
                             width: snapshot.size.width * scale, height: snapshot.size.height * scale)
         snapshot.draw(in: target)
