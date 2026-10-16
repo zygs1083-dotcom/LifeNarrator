@@ -37,6 +37,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - uses: actions/cache@v4
+        with:
+          path: .dev-data/llama
+          key: windows-llama-b11429-cpu-vulkan-v1
+      - run: windows/scripts/setup-llama.ps1
       - run: swift build -c release --product narrator-brain
       - run: windows/scripts/package-brain.ps1
       - run: choco install innosetup --no-progress -y
