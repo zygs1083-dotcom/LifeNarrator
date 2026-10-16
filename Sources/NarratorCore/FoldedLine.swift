@@ -4,7 +4,7 @@ import Foundation
 struct FoldedLine {
     var text = ""
     var spans: [Range<String.Index>] = []
-    init(_ original: String) {
+    init(_ original: String, joiningCJK: Bool = false) {
         var space: Range<String.Index>?
         for index in original.indices {
             let end = original.index(after: index)
@@ -13,7 +13,11 @@ struct FoldedLine {
                 space = (space?.lowerBound ?? index)..<end
                 continue
             }
-            if let space, !text.isEmpty { text += " "; spans.append(space) }
+            // Windows OCR separates CJK characters with spaces that the AX text lacks; quote matching drops spaces touching CJK.
+            if let space, !text.isEmpty, !(joiningCJK
+                && (text.unicodeScalars.last.map(isCJK) == true || character.unicodeScalars.contains(where: isCJK))) {
+                text += " "; spans.append(space)
+            }
             space = nil
             let folded = String(character).folding(options: [.caseInsensitive, .widthInsensitive, .diacriticInsensitive], locale: nil)
             text += folded

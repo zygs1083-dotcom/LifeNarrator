@@ -82,6 +82,15 @@ import Testing
     }
 }
 
+@Test func spriteLocatorIgnoresSpacesWindowsOCRPutsBetweenCJK() throws {
+    let ocr = line("小 禾 ： 我 把 海 报 颜 色 改 成 了 浅 蓝 ， 应 该 挺 安 静 的 吧 ？")
+    let hit = try #require(SpriteLocator.locate(quote: "我把海报颜色", lineHint: 0, in: [ocr]))
+    #expect(String(ocr.text[hit.range]) == "我 把 海 报 颜 色")
+    #expect(SpriteLocator.locate(quote: "小禾：我把", lineHint: 0, in: [ocr]) != nil)
+    #expect(SpriteLocator.locate(quote: "带了30架", lineHint: 0, in: [line("我 带 了 30 架 纸 飞 机")]) != nil)
+    #expect(SpriteLocator.locate(quote: "helloworld", lineHint: 0, in: [line("hello world")]) == nil)
+}
+
 @Test func spriteLocatorFoldsAndPrefersHintThenShortestLine() throws {
     let lines = [line("long ＨＥＬＬＯ   World suffix"), line("hello world"), line("Other text")]
     let hint = try #require(SpriteLocator.locate(quote: "hello world", lineHint: 0, in: lines))

@@ -21,10 +21,10 @@ public enum SpriteLocator {
 
     public static func locate(quote: String, lineHint: Int, in lines: [TextLine])
         -> (lineIndex: Int, range: Range<String.Index>)? {
-        let quote = FoldedLine(quote).text
+        let quote = FoldedLine(quote, joiningCJK: true).text
         guard !quote.isEmpty else { return nil }
         func find(_ index: Int) -> (lineIndex: Int, range: Range<String.Index>)? {
-            let line = FoldedLine(lines[index].text)
+            let line = FoldedLine(lines[index].text, joiningCJK: true)
             guard let range = line.text.range(of: quote) else { return nil }
             return (index, line.originalRange(range))
         }

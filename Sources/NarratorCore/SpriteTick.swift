@@ -113,7 +113,8 @@ public enum SpriteTick: String, Sendable {
     }
 
     public static func requestCount(level: Liveliness, maxOnScreen: Int) -> Int {
-        level == .rowdy ? 5 : min(max(3, maxOnScreen), 8)
+        // Below 5 the prompt carries no "fill it" nudge, and small builtin models then often return no marks at all.
+        level == .rowdy ? 5 : min(max(5, maxOnScreen), 8)
     }
 
     public static func screenLimit(level: Liveliness, maxOnScreen: Int) -> Int {

@@ -134,7 +134,7 @@ private func tickAttempts(_ snapshot: ContextSnapshot = semanticsSnapshot(["å”®ä
 }
 
 @Test func spriteRequestCountFollowsOnScreenLimitUpToEight() {
-    for (level, counts) in [(Liveliness.lively, [3, 3, 3, 4, 5, 6, 7, 8, 8, 8]),
+    for (level, counts) in [(Liveliness.lively, [5, 5, 5, 5, 5, 6, 7, 8, 8, 8]),
                             (.rowdy, [5, 5, 5, 5, 5, 5, 5, 5, 5, 5])] {
         for (index, expected) in counts.enumerated() {
             #expect(SpriteTick.requestCount(level: level, maxOnScreen: index + 1) == expected)
