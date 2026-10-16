@@ -17,7 +17,7 @@ internal static class UIChecks
         var settings = new Settings { Language = "zh" };
         var configurations = 0;
         using var updater = new Updater();
-        var window = new SettingsWindow(settings, () => { configurations++; return Task.CompletedTask; }, () => Task.FromResult(15d), updater, () => Task.CompletedTask);
+        var window = new SettingsWindow(settings, () => { configurations++; return Task.CompletedTask; }, () => Task.FromResult(15d), updater, () => Task.CompletedTask, SettingsSnapshots.Companion(settings));
         window.Show();
         var cat = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetAutomationId(b) == "choice-cat");
         cat.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -29,14 +29,14 @@ internal static class UIChecks
         foreach (var variant in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         {
             Application.Current.RequestedThemeVariant = variant;
-            for (var tab = 0; tab < 3; tab++)
+            for (var tab = 0; tab < 6; tab++)
             {
                 window.SelectTab(tab);
                 using var frame = window.CaptureRenderedFrame() ?? throw new Exception("No settings pixels");
                 frame.Save($"artifacts/ui-headless-{variant}-{tab}.png");
             }
         }
-        window.SelectTab(2); window.UpdateLayout();
+        window.SelectTab(SettingsWindow.GeneralTab); window.UpdateLayout();
         var blacklist = window.GetVisualDescendants().OfType<TextBox>().Single(c => AutomationProperties.GetAutomationId(c) == "blacklist");
         blacklist.Focus(); window.KeyTextInput("notepad");
         if (!settings.Blacklist.SequenceEqual(new[] { "notepad" })) throw new Exception("Blacklist text input did not configure");
@@ -53,7 +53,7 @@ internal static class UIChecks
         if (OperatingSystem.IsWindows())
         {
             settings.Provider = new ProviderSettings { Kind = "api", Model = "fixture" };
-            window.SelectTab(1); window.UpdateLayout();
+            window.SelectTab(SettingsWindow.ModelsTab); window.UpdateLayout();
             var vision = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetName(b) == "Vision");
             vision.IsChecked = true;
             vision.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -92,6 +92,6 @@ internal static class UIChecks
         pending.SetResult();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         busyWizard.Close();
-        Console.WriteLine("PASS: seven-persona selection and pace configure immediately; three tabs render in both themes; language refresh; offline onboarding");
+        Console.WriteLine("PASS: seven-persona selection and pace configure immediately; six tabs render in both themes; language refresh; offline onboarding");
     }
 }

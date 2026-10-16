@@ -3,7 +3,7 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="Paper">#FFF9F6</SolidColorBrush><SolidColorBrush x:Key="Card">#FFFFFF</SolidColorBrush>
+          <BoxShadows x:Key="CardShadow">0 3 10 0 #0F000000</BoxShadows><SolidColorBrush x:Key="SwitchOff">#AAAAAA</SolidColorBrush><SolidColorBrush x:Key="Paper">#FFF9F6</SolidColorBrush><SolidColorBrush x:Key="Card">#FFFFFF</SolidColorBrush>
           <SolidColorBrush x:Key="Stroke">#F4E6E1</SolidColorBrush><SolidColorBrush x:Key="Ink">#2B2226</SolidColorBrush>
           <SolidColorBrush x:Key="Muted">#6F5F66</SolidColorBrush><SolidColorBrush x:Key="Soft">#FFC7EC</SolidColorBrush>
           <SolidColorBrush x:Key="AccentInk">#66164B</SolidColorBrush><SolidColorBrush x:Key="SkySoft">#C7ECFF</SolidColorBrush>
@@ -12,7 +12,7 @@
           <SolidColorBrush x:Key="ErrorSoft">#FFC7D0</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="Paper">#1C171B</SolidColorBrush><SolidColorBrush x:Key="Card">#262026</SolidColorBrush>
+          <BoxShadows x:Key="CardShadow">0 0 0 0 Transparent</BoxShadows><SolidColorBrush x:Key="SwitchOff">#606064</SolidColorBrush><SolidColorBrush x:Key="Paper">#1C171B</SolidColorBrush><SolidColorBrush x:Key="Card">#262026</SolidColorBrush>
           <SolidColorBrush x:Key="Stroke">#362D35</SolidColorBrush><SolidColorBrush x:Key="Ink">#F4ECF1</SolidColorBrush>
           <SolidColorBrush x:Key="Muted">#A89AA3</SolidColorBrush><SolidColorBrush x:Key="Soft">#57324B</SolidColorBrush>
           <SolidColorBrush x:Key="AccentInk">#FFB2E6</SolidColorBrush><SolidColorBrush x:Key="SkySoft">#324B57</SolidColorBrush>
@@ -25,7 +25,7 @@
       <ControlTheme x:Key="{x:Type Button}" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource Card}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Stroke}"/><Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="18"/><Setter Property="Padding" Value="14,8"/><Setter Property="MinHeight" Value="36"/>
+        <Setter Property="CornerRadius" Value="18"/><Setter Property="Padding" Value="16,7"/><Setter Property="MinHeight" Value="28"/>
         <Setter Property="Template"><ControlTemplate>
           <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
             Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
@@ -44,8 +44,8 @@
       <ControlTheme x:Key="Switch" TargetType="ToggleButton">
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template"><ControlTemplate>
-          <Border Name="track" Width="40" Height="22" CornerRadius="11" Background="{DynamicResource Stroke}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1">
-            <Border Name="knob" Width="16" Height="16" CornerRadius="8" Margin="2,0" Background="{DynamicResource Card}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+          <Border Name="track" Width="38" Height="22" CornerRadius="11" Background="{DynamicResource SwitchOff}" BorderBrush="{DynamicResource SwitchOff}" BorderThickness="1">
+            <Border Name="knob" Width="16" Height="16" CornerRadius="8" Margin="2,0" Background="White" HorizontalAlignment="Left" VerticalAlignment="Center"/>
           </Border>
         </ControlTemplate></Setter>
         <Style Selector="^:checked /template/ Border#track"><Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>
@@ -57,9 +57,9 @@
         <Setter Property="Background" Value="{DynamicResource Paper}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Stroke}"/><Setter Property="BorderThickness" Value="1"/>
         <Setter Property="CaretBrush" Value="{DynamicResource Ink}"/><Setter Property="SelectionBrush" Value="{DynamicResource Soft}"/>
-        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource AccentInk}"/><Setter Property="Padding" Value="10,8"/>
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource AccentInk}"/><Setter Property="Padding" Value="8,3"/>
         <Setter Property="Template"><ControlTemplate>
-          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}" Opacity="{TemplateBinding Opacity}">
             <ScrollViewer Name="PART_ScrollViewer" HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}" VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
               <TextPresenter Name="PART_TextPresenter" Text="{TemplateBinding Text, Mode=TwoWay}" CaretIndex="{TemplateBinding CaretIndex}"
                 PasswordChar="{TemplateBinding PasswordChar}" SelectionStart="{TemplateBinding SelectionStart}" SelectionEnd="{TemplateBinding SelectionEnd}"
@@ -68,7 +68,7 @@
             </ScrollViewer>
           </Border>
         </ControlTemplate></Setter>
-        <Style Selector="^:focus"><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>
+        <Style Selector="^:focus"><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style><Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5"/></Style>
       </ControlTheme>
       <ControlTheme x:Key="{x:Type ScrollViewer}" TargetType="ScrollViewer">
         <Setter Property="Template"><ControlTemplate>
@@ -91,7 +91,7 @@
       <ControlTheme x:Key="{x:Type ProgressBar}" TargetType="ProgressBar">
         <Setter Property="Foreground" Value="{DynamicResource Accent}"/>
         <Setter Property="Template"><ControlTemplate>
-          <Border Background="{DynamicResource Stroke}" CornerRadius="3" ClipToBounds="True">
+          <Border Background="{DynamicResource SwitchOff}" Opacity="0.5" CornerRadius="3" ClipToBounds="True">
             <Border Name="PART_Indicator" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left" CornerRadius="3"/>
           </Border>
         </ControlTemplate></Setter>
@@ -141,9 +141,9 @@
         <Style Selector="^:selected"><Setter Property="Background" Value="{DynamicResource Soft}"/></Style>
       </ControlTheme>
       <ControlTheme x:Key="{x:Type ComboBox}" TargetType="ComboBox">
-        <Setter Property="MinHeight" Value="36"/><Setter Property="Padding" Value="10,8"/>
+        <Setter Property="MinHeight" Value="28"/><Setter Property="Padding" Value="8,3"/>
         <Setter Property="Template"><ControlTemplate>
-          <Border Background="{DynamicResource Paper}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1" CornerRadius="8">
+          <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1" CornerRadius="5">
             <Grid ColumnDefinitions="*,Auto">
               <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" Margin="{TemplateBinding Padding}"/>
               <Path Grid.Column="1" Data="M0,0 L5,5 L10,0" Stroke="{DynamicResource Muted}" StrokeThickness="1.5" Margin="0,0,14,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
@@ -161,8 +161,9 @@
   </Styles.Resources>
   <Style Selector="Window"><Setter Property="Background" Value="{DynamicResource Paper}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/><Setter Property="FontSize" Value="13"/></Style>
   <Style Selector="TextBlock.caption"><Setter Property="Foreground" Value="{DynamicResource Muted}"/><Setter Property="FontSize" Value="11"/></Style>
+  <Style Selector="ToggleButton:checked TextBlock.caption"><Setter Property="Foreground" Value="{DynamicResource AccentInk}"/></Style>
   <Style Selector="Button.primary"><Setter Property="Background" Value="{DynamicResource Soft}"/><Setter Property="Foreground" Value="{DynamicResource AccentInk}"/><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Style>
-  <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource Card}"/><Setter Property="BorderBrush" Value="{DynamicResource Stroke}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="16"/><Setter Property="Padding" Value="16"/></Style>
+  <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource Card}"/><Setter Property="BorderBrush" Value="{DynamicResource Stroke}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="16"/><Setter Property="Padding" Value="16"/><Setter Property="BoxShadow" Value="{DynamicResource CardShadow}"/></Style>
   <Style Selector="ToggleButton.tab:unchecked"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/></Style>
   <Style Selector="ToggleButton.tab:checked.sky"><Setter Property="Background" Value="{DynamicResource SkySoft}"/><Setter Property="Foreground" Value="{DynamicResource SkyInk}"/><Setter Property="BorderBrush" Value="#5DC2F5"/></Style>
   <Style Selector="ToggleButton.tab:checked.honey"><Setter Property="Background" Value="{DynamicResource HoneySoft}"/><Setter Property="Foreground" Value="{DynamicResource HoneyInk}"/><Setter Property="BorderBrush" Value="#F5C75D"/></Style>

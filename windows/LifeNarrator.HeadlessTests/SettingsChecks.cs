@@ -15,7 +15,7 @@ internal static class SettingsChecks
             Provider = new ProviderSettings { Kind = "api", PresetId = "custom-openai", Model = "fixture", Vision = true, BaseURL = "http://localhost:18765/v1" } };
         var json = JsonSerializer.Serialize(settings, Protocol.Json);
         var roundTrip = JsonSerializer.Deserialize<Settings>(json, Protocol.Json)!;
-        if (JsonSerializer.Serialize(roundTrip, Protocol.Json) != json || json.Contains("key", StringComparison.OrdinalIgnoreCase))
+        if (JsonSerializer.Serialize(roundTrip, Protocol.Json) != json || JsonSerializer.Serialize(roundTrip.Provider, Protocol.Json).Contains("key", StringComparison.OrdinalIgnoreCase))
             throw new Exception("Settings round trip or credential separation failed");
         if (!roundTrip.Provider.Vision || JsonSerializer.Deserialize<ProviderSettings>("{}", Protocol.Json)!.Vision)
             throw new Exception("Vision settings default or persistence failed");

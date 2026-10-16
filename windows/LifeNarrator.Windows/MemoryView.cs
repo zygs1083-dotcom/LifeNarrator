@@ -16,12 +16,12 @@ internal sealed class MemoryView : StackPanel
     readonly Func<Task> configure;
     readonly Action<Func<Task>> run;
 
-    public MemoryView(Settings settings, Companion companion, Window owner, Func<Task> configure, Action<Func<Task>> run)
+    public MemoryView(Settings settings, Companion companion, Window owner, Func<Task> configure, Action<Func<Task>> run, Action? showRules = null)
     {
         this.settings = settings; this.companion = companion; this.owner = owner; this.configure = configure; this.run = run;
-        text = new Texts(settings); Spacing = 12;
+        text = new Texts(settings); Spacing = 14;
         Children.Add(Views.Caption(text["memory.privacy"]));
-        var add = Views.Button(text["memory.add"], () => run(() => Edit(null))); add.IsEnabled = settings.MemoryEnabled; add.HorizontalAlignment = HorizontalAlignment.Left;
+        var add = Views.Primary(text["memory.add"], () => run(() => Edit(null))); add.IsEnabled = settings.MemoryEnabled; add.HorizontalAlignment = HorizontalAlignment.Left;
         AutomationProperties.SetAutomationId(add, "memory-add");
         var clear = Views.Button(text["memory.clear"], () => run(async () =>
         {
@@ -29,7 +29,7 @@ internal sealed class MemoryView : StackPanel
             { await companion.Call("memory.clear", new { }); await companion.Refresh(); }
         })); clear.IsEnabled = companion.Memories.Length > 0;
         AutomationProperties.SetAutomationId(clear, "memory-clear");
-        Children.Add(Views.Card(text["memory.title"],
+        Children.Add(Views.Card(text["memory.title"], "\uE8F1", 175, null,
             Views.Toggle(text["memory.enabled"], settings.MemoryEnabled, enabled => run(async () =>
             { settings.MemoryEnabled = enabled; await configure(); await companion.Refresh(); })), Views.Row(add, clear)));
         foreach (var kind in Kinds)
@@ -40,29 +40,27 @@ internal sealed class MemoryView : StackPanel
             foreach (var entry in entries)
             {
                 var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-                actions.Children.Add(Views.Button(text[entry.Pinned ? "memory.unpin" : "memory.pin"], () => run(async () =>
+                actions.Children.Add(Views.IconButton(text[entry.Pinned ? "memory.unpin" : "memory.pin"], "\uE718", () => run(async () =>
                 { await companion.Call("memory.pin", new { entry.Id, pinned = !entry.Pinned }); await companion.Refresh(); })));
-                actions.Children.Add(Views.Button(text["memory.edit"], () => run(() => Edit(entry))));
-                actions.Children.Add(Views.Button(text["delete"], () => run(async () =>
+                actions.Children.Add(Views.IconButton(text["memory.edit"], "\uE70F", () => run(() => Edit(entry))));
+                actions.Children.Add(Views.IconButton(text["delete"], "\uE74D", () => run(async () =>
                 {
                     if (await Confirm(text["memory.confirm.delete"], entry.Text))
                     { await companion.Call("memory.delete", new { entry.Id }); await companion.Refresh(); }
                 })));
-                rows.Add(Views.Stack(Views.Label((entry.Pinned ? "• " : "") + entry.Text), actions));
+                rows.Add(Views.Row(Views.Label(entry.Text), actions));
             }
             foreach (var rule in rules)
             {
                 var label = rule.TryGetProperty("input", out var input) && input.ValueKind == System.Text.Json.JsonValueKind.String
                     ? input.GetString()! : rule.GetProperty("label").GetProperty(settings.EffectiveLanguage).GetString()!;
-                rows.Add(Views.Row(Views.Label(text["memory.rule"] + " · " + label), Views.Button(text["memory.rule.delete"], () => run(async () =>
-                {
-                    if (!await Confirm(text["memory.rule.delete"], label)) return;
-                    settings.Rules = settings.Rules.Where(r => r.GetProperty("id").GetString() != rule.GetProperty("id").GetString()).ToArray();
-                    await configure(); await companion.Refresh();
-                }))));
+                var link = Views.Button(label, () => showRules?.Invoke());
+                link.Content = Views.Row(Views.Label(label), Views.Caption(text["memory.rule"] + " ↗"));
+                link.HorizontalAlignment = HorizontalAlignment.Stretch;
+                rows.Add(link);
             }
             if (rows.Count == 0) rows.Add(Views.Caption(text["memory.empty"]));
-            Children.Add(Views.Card(text["memory.kind." + kind] + " · " + (entries.Length + rules.Length), rows.ToArray()));
+            Children.Add(Views.Card(Views.Row(Views.Heading(text["memory.kind." + kind], kind switch { "nickname" => "\uE77B", "fact" => "\uE8A4", "preference" => "\uEB51", _ => "\uE823" }), Views.Badge((entries.Length + rules.Length).ToString())), 175, rows.ToArray()));
         }
     }
 

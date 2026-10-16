@@ -10,22 +10,40 @@ internal sealed class ChatHotKey : IDisposable
     [DllImport("user32.dll", SetLastError = true)] static extern bool UnregisterHotKey(nint window, int id);
     readonly Window window = new() { ShowInTaskbar = false, ShowActivated = false };
     readonly nint handle;
+    readonly List<int> registered = [];
+    readonly Settings settings;
+    readonly Action[] actions;
+    HotKey?[]? current;
 
-    public ChatHotKey(Action open)
+    public ChatHotKey(Settings settings, Action pause, Action chat, Action input)
     {
+        this.settings = settings; actions = [pause, chat, input];
         Win32Properties.AddWndProcHookCallback(window, (nint hwnd, uint message, nint wParam, nint lParam, ref bool handled) =>
         {
-            if (message == 0x0312 && wParam == 1) { handled = true; open(); }
+            if (message == 0x0312 && wParam is >= 1 and <= 3) { handled = true; actions[(int)wParam - 1](); }
             return 0;
         });
         handle = window.TryGetPlatformHandle()!.Handle;
-        if (!RegisterHotKey(handle, 1, 0x0001 | 0x0004 | 0x4000, 0x20))
-        { var failure = new Win32Exception(); window.Close(); throw failure; }
+        try { Configure(); } catch { Dispose(); throw; }
     }
-
+    public void Configure(bool suspended = false)
+    {
+        var shortcuts = suspended ? new HotKey?[3] : new[] { settings.PauseShortcut, settings.ChatShortcut, settings.InputShortcut };
+        if (current != null && current.SequenceEqual(shortcuts)) return;
+        current = null;
+        foreach (var id in registered) if (!UnregisterHotKey(handle, id)) throw new Win32Exception();
+        registered.Clear();
+        for (var i = 0; i < shortcuts.Length; i++)
+        {
+            if (shortcuts[i] is not { } shortcut) continue;
+            if (!RegisterHotKey(handle, i + 1, shortcut.Modifiers | 0x4000, shortcut.Key)) throw new Win32Exception();
+            registered.Add(i + 1);
+        }
+        current = shortcuts;
+    }
     public void Dispose()
     {
-        if (!UnregisterHotKey(handle, 1)) throw new Win32Exception();
-        window.Close();
+        foreach (var id in registered) if (!UnregisterHotKey(handle, id)) throw new Win32Exception();
+        registered.Clear(); window.Close();
     }
 }

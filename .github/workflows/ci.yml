@@ -30,6 +30,8 @@ jobs:
           path: |
             artifacts/bubble-*.png
             artifacts/ui-headless-*.png
+            artifacts/settings/
+            artifacts/download-responsiveness/*.log
             artifacts/model-download-test/*.log
           if-no-files-found: error
 
@@ -129,6 +131,8 @@ jobs:
             artifacts/LifeNarrator-Setup.exe
             artifacts/checksums-windows.txt
             artifacts/ui-*.png
+            artifacts/settings/
+            artifacts/download-responsiveness/*.log
             artifacts/ui-*.json
             artifacts/installer-*.json
             artifacts/install*.log

@@ -113,6 +113,21 @@ internal static class BuiltinModelChecks
                 "ax", [], false, false, DateTimeOffset.UtcNow),
             windowID = 7, change = new { appChanged = true, windowChanged = true, hostChanged = true }
         });
+        var companion = new Companion((method, parameters) => brain.Call(method, parameters));
+        using var updater = new Updater();
+        var settingsWindow = new SettingsWindow(settings, Configure, () => Task.FromResult(0d), updater, () => Task.CompletedTask, companion);
+        settingsWindow.Show();
+        var maximumTabTime = TimeSpan.Zero;
+        for (var index = 0; index < 6; index++)
+        {
+            var tabTime = System.Diagnostics.Stopwatch.StartNew();
+            settingsWindow.SelectTab(index); settingsWindow.UpdateLayout();
+            if (tabTime.Elapsed > maximumTabTime) maximumTabTime = tabTime.Elapsed;
+            await Task.Delay(10);
+        }
+        settingsWindow.Close();
+        if (maximumTabTime > TimeSpan.FromMilliseconds(500)) throw new Exception("Settings tab blocked during builtin generation: " + maximumTabTime);
+        log.WriteLine($"PASS six settings tabs during real GGUF generation; slowest tab={maximumTabTime.TotalMilliseconds:0.0} ms");
         var result = await Task.WhenAny(shown.Task, failed.Task).WaitAsync(TimeSpan.FromSeconds(180));
         if (result == failed.Task) throw new Exception(await failed.Task);
         var narrationResult = await shown.Task;

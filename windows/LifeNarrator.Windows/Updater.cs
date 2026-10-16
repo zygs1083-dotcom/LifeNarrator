@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Avalonia.Threading;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -54,7 +55,7 @@ internal sealed class Updater : IDisposable
     void SetState(UpdateState state)
     {
         State = state;
-        Changed?.Invoke();
+        Notify();
     }
 
     public async Task Check()
@@ -71,6 +72,12 @@ internal sealed class Updater : IDisposable
         catch (Exception failure) { Error = failure.Message; SetState(UpdateState.Failed); }
     }
 
+    void Notify()
+    {
+        if (Avalonia.Application.Current == null || Dispatcher.UIThread.CheckAccess()) Changed?.Invoke();
+        else Dispatcher.UIThread.Post(() => Changed?.Invoke());
+    }
+
     public async Task Install(Func<Task> quit)
     {
         if (IsBusy || Release == null) return;
@@ -79,47 +86,49 @@ internal sealed class Updater : IDisposable
         SetState(UpdateState.Downloading);
         try
         {
-            var work = Path.Combine(directory, Guid.NewGuid().ToString());
-            Directory.CreateDirectory(work);
-            var log = Path.Combine(work, "update.log");
-            void Log(string message) => File.AppendAllText(log, message + Environment.NewLine);
-            Log($"Updating {AppRelease.CurrentVersion} to {release.Tag}");
-            var installer = Path.Combine(work, "LifeNarrator-Setup.exe");
-            var checksums = await http.GetStringAsync(release.AssetURL(releases, "checksums-windows.txt"));
-            var expected = ReleaseChecksums.Sha256("LifeNarrator-Setup.exe", checksums);
-            using (var response = await http.GetAsync(release.AssetURL(releases, "LifeNarrator-Setup.exe"), HttpCompletionOption.ResponseHeadersRead))
-            {
-                response.EnsureSuccessStatusCode();
-                await using var source = await response.Content.ReadAsStreamAsync();
-                await using var target = File.Create(installer);
-                var buffer = new byte[1_048_576];
-                long downloaded = 0;
-                int length;
-                while ((length = await source.ReadAsync(buffer)) > 0)
-                {
-                    await target.WriteAsync(buffer.AsMemory(0, length));
-                    downloaded += length;
-                    var progress = response.Content.Headers.ContentLength is > 0 and var total ? (int)(downloaded * 100 / total) : 0;
-                    if (progress != Progress) { Progress = progress; Changed?.Invoke(); }
-                }
-            }
             await Task.Run(async () =>
             {
-                await using var file = File.OpenRead(installer);
-                var actual = Convert.ToHexString(await SHA256.HashDataAsync(file)).ToLowerInvariant();
-                if (actual != expected) throw new InvalidDataException($"SHA-256 mismatch: expected {expected}, received {actual}");
-                Log("SHA-256 verified: " + actual);
-                UpdateSignature.Check(installer, Environment.ProcessPath!, Log);
+                var work = Path.Combine(directory, Guid.NewGuid().ToString());
+                Directory.CreateDirectory(work);
+                var log = Path.Combine(work, "update.log");
+                void Log(string message) => File.AppendAllText(log, message + Environment.NewLine);
+                Log($"Updating {AppRelease.CurrentVersion} to {release.Tag}");
+                var installer = Path.Combine(work, "LifeNarrator-Setup.exe");
+                var checksums = await http.GetStringAsync(release.AssetURL(releases, "checksums-windows.txt"));
+                var expected = ReleaseChecksums.Sha256("LifeNarrator-Setup.exe", checksums);
+                using (var response = await http.GetAsync(release.AssetURL(releases, "LifeNarrator-Setup.exe"), HttpCompletionOption.ResponseHeadersRead))
+                {
+                    response.EnsureSuccessStatusCode();
+                    await using var source = await response.Content.ReadAsStreamAsync();
+                    await using var target = File.Create(installer);
+                    var buffer = new byte[1_048_576];
+                    long downloaded = 0;
+                    int length;
+                    while ((length = await source.ReadAsync(buffer)) > 0)
+                    {
+                        await target.WriteAsync(buffer.AsMemory(0, length));
+                        downloaded += length;
+                        var progress = response.Content.Headers.ContentLength is > 0 and var total ? (int)(downloaded * 100 / total) : 0;
+                        if (progress != Progress) { Progress = progress; Notify(); }
+                    }
+                }
+                {
+                    await using var file = File.OpenRead(installer);
+                    var actual = Convert.ToHexString(await SHA256.HashDataAsync(file)).ToLowerInvariant();
+                    if (actual != expected) throw new InvalidDataException($"SHA-256 mismatch: expected {expected}, received {actual}");
+                    Log("SHA-256 verified: " + actual);
+                    UpdateSignature.Check(installer, Environment.ProcessPath!, Log);
+                }
+                var script = Path.Combine(work, "install.ps1");
+                await File.WriteAllTextAsync(script, HelperScript, new UTF8Encoding(true));
+                File.Delete(FailurePath);
+                var helper = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe"))
+                { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = work };
+                foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
+                    "-ParentID", Environment.ProcessId.ToString(), "-InstallDirectory", Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory),
+                    "-FailurePath", FailurePath }) helper.ArgumentList.Add(argument);
+                using var process = Process.Start(helper)!;
             });
-            var script = Path.Combine(work, "install.ps1");
-            await File.WriteAllTextAsync(script, HelperScript, new UTF8Encoding(true));
-            File.Delete(FailurePath);
-            var helper = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe"))
-            { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = work };
-            foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
-                "-ParentID", Environment.ProcessId.ToString(), "-InstallDirectory", Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory),
-                "-FailurePath", FailurePath }) helper.ArgumentList.Add(argument);
-            using var process = Process.Start(helper)!;
             await quit();
         }
         catch (Exception failure) { Error = failure.Message; SetState(UpdateState.Failed); }

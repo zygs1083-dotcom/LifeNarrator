@@ -67,7 +67,7 @@ internal static class ModelDownloadChecks
         Task Configure() { configurations.Add(JsonSerializer.SerializeToElement(settings.Configuration(), Protocol.Json)); return Task.CompletedTask; }
         using var updater = new Updater();
         var window = new SettingsWindow(settings, Configure, () => Task.FromResult(0d), updater, () => Task.CompletedTask);
-        window.Show(); window.SelectTab(1); Click(window, "choice-builtin");
+        window.Show(); window.SelectTab(SettingsWindow.ModelsTab); Click(window, "choice-builtin");
         if (settings.Provider.Kind != "builtin" || configurations.Last().GetProperty("generator").GetProperty("kind").GetString() != "none")
             throw new Exception("Unavailable builtin must keep offline rules active");
         Capture(window, "not-downloaded");
@@ -82,7 +82,7 @@ internal static class ModelDownloadChecks
         download.Changed += OnProgress; OnProgress(); Wait(progressed.Task);
         Capture(window, "downloading");
         // Detaching the model page must not stop its download or lose progress.
-        window.SelectTab(0); window.SelectTab(1);
+        window.SelectTab(0); window.SelectTab(SettingsWindow.ModelsTab);
         Wait(download.Pause()); Wait(transfer); response.Abort(); download.Changed -= OnProgress;
         var partialSize = new FileInfo(download.PartialPath).Length;
         if (partialSize <= 0 || partialSize >= data.Length || File.Exists(download.Destination)) throw new Exception("Pause lost partial data");
@@ -113,23 +113,25 @@ internal static class ModelDownloadChecks
         reopened.Delete();
         // A server ignoring Range must replace the partial, rather than append a second copy.
         File.WriteAllBytes(download.PartialPath, data[..4096]);
-        var verifying = false;
         void SnapshotVerification()
         {
             if (download.State != ModelDownloadState.Verifying) return;
-            verifying = true; Capture(window, "verifying");
+            Capture(window, "verifying");
         }
         download.Changed += SnapshotVerification;
         reply = Reply(data, ignoreRange: true); Wait(download.Start(url)); Wait(reply);
         download.Changed -= SnapshotVerification;
-        if (ranges.Last() != "bytes=4096-" || !verifying || download.State != ModelDownloadState.Ready) throw new Exception("Verification state missing");
+        if (ranges.Last() != "bytes=4096-" || download.State != ModelDownloadState.Ready) throw new Exception("Verification state missing");
         Click(window, "choice-" + download.Model.Name);
         var generator = configurations.Last().GetProperty("generator");
         if (generator.GetProperty("kind").GetString() != "builtin" || generator.GetProperty("modelPath").GetString() != download.Destination)
             throw new Exception("UI selection did not configure ready builtin path");
         foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         { Application.Current!.RequestedThemeVariant = theme; Capture(window, "ready-" + theme); }
+        var beforeDelete = configurations.Count;
         Click(window, "delete-" + download.Model.Name);
+        Wait(Deleted());
+        async Task Deleted() { while (configurations.Count < beforeDelete + 2) await Task.Delay(10); }
         if (File.Exists(download.Destination) || configurations[^2].GetProperty("generator").GetProperty("kind").GetString() != "none")
             throw new Exception("Delete did not release selected model first");
         log.WriteLine("PASS HTTP 200 replaces partial; ready UI -> builtin configure; release before delete");

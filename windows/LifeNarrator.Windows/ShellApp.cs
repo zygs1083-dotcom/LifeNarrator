@@ -51,7 +51,7 @@ public sealed partial class ShellApp : Application
         identity = new NativeMenuItem { IsEnabled = false };
         chatItem = Item(text["chat.open"], () => ShowChat());
         updater = new Updater(Program.VerifyUpdate ? new Uri(Environment.GetEnvironmentVariable("LIFENARRATOR_UPDATE_RELEASES")!) : null);
-        updateFailure = updater.PreviousFailure();
+
         updater.Changed += UpdateTray;
         status = new NativeMenuItem { Header = "人生旁白", IsEnabled = false };
         details = new NativeMenuItem { Header = "错误详情", IsVisible = false };
@@ -80,7 +80,7 @@ public sealed partial class ShellApp : Application
         personaHeader = new NativeMenuItem("人格") { Menu = personaMenu }; menu.Items.Add(personaHeader);
         menu.Items.Add(restart); menu.Items.Add(new NativeMenuItemSeparator());
         settingsItem = Item("设置…", () => { ShowSettings(); return Task.CompletedTask; }); menu.Items.Add(settingsItem);
-        updateItem = Item("", () => { ShowSettings(); settingsWindow?.SelectTab(2); return Task.CompletedTask; });
+        updateItem = Item("", () => { ShowSettings(); settingsWindow?.SelectTab(SettingsWindow.GeneralTab); return Task.CompletedTask; });
         menu.Items.Add(updateItem);
         updateFailureItem = Item("", () => { Views.OpenURL(updateFailure!.LogPath); return Task.CompletedTask; });
         menu.Items.Add(updateFailureItem);
@@ -94,7 +94,7 @@ public sealed partial class ShellApp : Application
         {
             try
             {
-                Startup.SetEnabled(settings.LaunchAtLogin);
+                await Task.Run(() => { Startup.SetEnabled(settings.LaunchAtLogin); _ = settings.Downloaders; updateFailure = updater.PreviousFailure(); });
                 await Start();
                 updater.Configure(settings.AutomaticUpdates && !Program.VerifyUI && !Program.VerifyUpdate && !Program.VerifyUpdateResult);
                 if (!settings.OnboardingCompleted)
@@ -131,7 +131,9 @@ public sealed partial class ShellApp : Application
         error = null;
         UpdateTray();
         overlay = new OverlayController(settings, Report, companion, (narration, point) => OpenChat(narration, point));
-        chatHotKey = new ChatHotKey(() => OpenChat());
+        chatHotKey = new ChatHotKey(settings, async () =>
+        { try { settings.Paused = !settings.Paused; await Configure(); settingsWindow?.Refresh(); } catch (Exception failure) { Report(failure.Message); } },
+            () => OpenChat(), () => { ShowSettings(); settingsWindow?.ShowRuleInput(); });
         var channel = Channel.CreateUnbounded<(string, object)>(new UnboundedChannelOptions { SingleReader = true });
         changes = channel;
         var input = new WindowEvents(() => sensor?.RequestRead(),
@@ -146,7 +148,7 @@ public sealed partial class ShellApp : Application
         brain = new BrainClient(Path.Combine(AppContext.BaseDirectory, "brain", "narrator-brain.exe"),
             Path.Combine(Settings.DataDirectory, "brain.log"), Port,
             message => Dispatcher.UIThread.Post(() => { overlay?.DismissAll(); Report(message); }));
-        await brain.Call("configure", settings.Configuration());
+        await brain.Call("configure", await Task.Run(settings.Configuration));
         await companion.Refresh();
         eventPump = Pump(changes.Reader, brain);
     }
@@ -203,14 +205,19 @@ public sealed partial class ShellApp : Application
 
     async Task Configure()
     {
-        settings.Save();
+        var snapshot = System.Text.Json.JsonSerializer.Serialize(settings, Protocol.Json);
+        chatHotKey?.Configure();
         updater.Configure(settings.AutomaticUpdates && !Program.VerifyUI && !Program.VerifyUpdate && !Program.VerifyUpdateResult);
         UpdateTray();
         if (settings.Paused) overlay?.DismissAll();
-        var configuration = settings.Configuration();
         await configurationGate.WaitAsync();
         try
         {
+            var configuration = await Task.Run(() =>
+            {
+                File.WriteAllText(Settings.FilePath, snapshot);
+                return System.Text.Json.JsonSerializer.Deserialize<Settings>(snapshot, Protocol.Json)!.Configuration();
+            });
             if (brain != null)
             {
                 await brain.Call("configure", configuration);
@@ -224,7 +231,7 @@ public sealed partial class ShellApp : Application
 
     async Task<double> TestConnection()
     {
-        var reply = await brain!.Call("testConnection", new { generator = settings.GeneratorConfiguration() });
+        var reply = await brain!.Call("testConnection", new { generator = await Task.Run(settings.GeneratorConfiguration) });
         return reply.GetProperty("elapsedMilliseconds").GetDouble();
     }
 
@@ -233,7 +240,9 @@ public sealed partial class ShellApp : Application
         if (onboarding != null && !settings.OnboardingCompleted) { onboarding.Activate(); return; }
         if (settingsWindow == null)
         {
-            settingsWindow = new SettingsWindow(settings, Configure, TestConnection, updater, () => updater.Install(Quit), companion);
+            settingsWindow = new SettingsWindow(settings, Configure, TestConnection, updater, () => updater.Install(Quit), companion, suspended =>
+            { try { chatHotKey?.Configure(suspended); } catch (Exception failure) { Report(failure.Message); } },
+                () => Task.Run(() => global::Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages.Select(l => l.DisplayName).ToArray()));
             settingsWindow.Closed += (_, _) => settingsWindow = null;
         }
         settingsWindow.Refresh(); settingsWindow.Show(); settingsWindow.Activate();

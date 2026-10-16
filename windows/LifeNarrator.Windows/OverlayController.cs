@@ -288,7 +288,7 @@ internal sealed class OverlayController : IDisposable
         var dwell = settings.MaxOnScreen > 3 ? Math.Max(settings.Dwell, 2.5 * settings.MaxOnScreen) : settings.Dwell;
         foreach (var bubble in bubbles.ToArray())
         {
-            if (bubble.Dismissed == null && (now - bubble.Born).TotalSeconds >= dwell) bubble.Dismissed = now;
+            if (!settings.Persistent && bubble.Dismissed == null && (now - bubble.Born).TotalSeconds >= dwell) bubble.Dismissed = now;
             var opacity = bubble.Dismissed is { } dismissed
                 ? 1 - (now - dismissed).TotalMilliseconds / 180
                 : Math.Min(1, (now - bubble.Born).TotalMilliseconds / 180);

@@ -208,6 +208,31 @@ private actor ConnectionGenerator: TextGenerator {
         shell.input.continuation.finish(); try await task.value
     }
 
+    @Test func customPersonaGenerationDoesNotBlockRPCAndConfigures() async throws {
+        let shell = ScriptedShell(), gate = AsyncStream<Void>.makeStream()
+        let generator = ConnectionGenerator(reply: #"{"name":{"zh":"伙伴","en":"Buddy"},"emoji":"😺","description":{"zh":"友好的伙伴","en":"A friendly buddy"},"pack":"gentle"}"#, gate: gate.stream)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let server = BrainRPCServer(writeLine: shell.write, generatorFactory: { _ in generator })
+        let task = Task { try await server.run(lines: shell.input.stream) }
+        try shell.send("configure", params: configuration(directory: directory, kind: "api"), id: .number(1))
+        await shell.waitForReply(.number(1))
+        try shell.send("personas.generate", params: .object(["input": .string("A friendly buddy")]), id: .number(2))
+        try shell.send("ping", id: .number(3)); await shell.waitForReply(.number(3))
+        #expect(!shell.output.contains { $0["id"] == .number(2) })
+        gate.continuation.yield(())
+        await shell.waitForReply(.number(2))
+        let profile = try #require(shell.output.first { $0["id"] == .number(2) }?["result"])
+        #expect(try profile.decode(PersonaProfile.self).id.rawValue.hasPrefix("custom."))
+        var updated = try configuration(directory: directory, kind: "api").decode([String: RPCValue].self)
+        updated["customPersonas"] = .array([profile])
+        var settings = try #require(updated["settings"]).decode([String: RPCValue].self)
+        settings["persona"] = profile["id"]; updated["settings"] = .object(settings)
+        try shell.send("configure", params: .object(updated), id: .number(4)); await shell.waitForReply(.number(4))
+        #expect(shell.output.first { $0["id"] == .number(4) }?["error"] == nil)
+        shell.input.continuation.finish(); try await task.value
+    }
+
     @Test(arguments: [#"{"ok":true}"#, #"{"ok":false}"#, "invalid JSON"])
     func connectionTestValidatesReplyAndDoesNotBlockRPC(_ response: String) async throws {
         let shell = ScriptedShell()

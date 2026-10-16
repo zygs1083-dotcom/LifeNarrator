@@ -22,12 +22,18 @@
     <Compile Include="../LifeNarrator.Windows/ChatWindow.cs" Link="ChatWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/GrowthCard.cs" Link="GrowthCard.cs" />
     <Compile Include="../LifeNarrator.Windows/MemoryView.cs" Link="MemoryView.cs" />
+    <Compile Include="../LifeNarrator.Windows/Views.cs" Link="Views.cs" />
+    <Compile Include="../LifeNarrator.Windows/RulesView.cs" Link="RulesView.cs" />
+    <Compile Include="../LifeNarrator.Windows/PersonaView.cs" Link="PersonaView.cs" />
+    <Compile Include="../LifeNarrator.Windows/HotKey.cs" Link="HotKey.cs" />
+    <Compile Include="../LifeNarrator.Windows/ShortcutRecorder.cs" Link="ShortcutRecorder.cs" />
     <Compile Include="../LifeNarrator.Windows/SettingsWindow.cs" Link="SettingsWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/ModelDownloader.cs" Link="ModelDownloader.cs" />
     <Compile Include="../LifeNarrator.Windows/ModelView.cs" Link="ModelView.cs" />
     <Compile Include="../LifeNarrator.Windows/OnboardingWindow.cs" Link="OnboardingWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/Startup.cs" Link="Startup.cs" />
     <AvaloniaResource Include="../LifeNarrator.Windows/AppTheme.axaml" Link="AppTheme.axaml" />
+    <EmbeddedResource Include="../../Sources/NarratorCore/Resources/quips.json" LogicalName="LifeNarrator.quips.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/models.json" LogicalName="LifeNarrator.models.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/providers.json" LogicalName="LifeNarrator.providers.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/personas.json" LogicalName="LifeNarrator.personas.json" />

@@ -101,7 +101,7 @@ import NarratorLlama
         let params = object["params"] ?? .object([:])
         let result: RPCValue
         do {
-            if ["testConnection", "chat.send", "rules.compile"].contains(method) {
+            if ["testConnection", "chat.send", "rules.compile", "personas.generate"].contains(method) {
                 let operation = try asyncOperation(method, params: params)
                 let token = UUID()
                 connectionTests[token] = Task {
@@ -304,6 +304,12 @@ import NarratorLlama
                 let context = try await brain.chatContext(snapshot: snapshot, windowID: windowID, narration: p.narration)
                 return try .encode(await brain.sendChat(p.text, context: context, includeScreen: p.includeScreen))
             }
+        }
+        if method == "personas.generate" {
+            struct Params: Decodable { let input: String }
+            let input = try params.decode(Params.self).input
+            guard let generator else { throw BrainRPCError(code: -32004, message: "A model is required to create a persona") }
+            return { try .encode(await PersonaGenerator.generate(input: input, generator: generator)) }
         }
         struct Params: Decodable { let input: String }
         let p = try params.decode(Params.self), configuration = configuration!, generator = generator

@@ -23,6 +23,13 @@ internal sealed class Settings
     public bool Paused { get; set; }
     public double MarkGap { get; set; } = 2;
     public double Dwell { get; set; } = 3;
+    public bool Persistent { get; set; }
+    public HotKey? PauseShortcut { get; set; } = new(0x0001 | 0x0004, 0x50);
+    public HotKey? ChatShortcut { get; set; } = new(0x0001 | 0x0004, 0x20);
+    public HotKey? InputShortcut { get; set; } = new(0x0001 | 0x0004, 0x4E);
+    public string[] DisabledBuiltinIds { get; set; } = [];
+    public JsonElement[] CustomPersonas { get; set; } = [];
+    [JsonIgnore] public PersonaPreset[] Personas => [..Catalog.Personas, ..CustomPersonas.Select(p => p.Read<PersonaPreset>())];
     public int MaxOnScreen { get; set; } = 3;
     public string[] Blacklist { get; set; } = [];
     public bool MemoryEnabled { get; set; } = true;
@@ -39,6 +46,7 @@ internal sealed class Settings
     ModelDownloader[]? downloaders;
     [JsonIgnore] public ModelDownloader SelectedDownload => Downloaders.Single(d => d.Model.Name == BuiltinModel);
     public ProviderSettings Provider { get; set; } = new();
+    public SystemOneSettings? SystemOne { get; set; }
 
     public static string DataDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "LifeNarrator");
@@ -51,7 +59,7 @@ internal sealed class Settings
         var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath), Protocol.Json)
             ?? throw new InvalidDataException("settings.json must contain an object");
         if (settings.Liveliness is not ("quiet" or "lively" or "rowdy")
-            || settings.Persona is not ("sharp" or "gentle" or "chuuni" or "teacher" or "mom" or "hype" or "cat")
+            || !settings.Personas.Any(p => p.Id == settings.Persona)
             || settings.Lang is not ("zh" or "en") || settings.Language is not ("system" or "zh" or "en") || !double.IsFinite(settings.MarkGap) || settings.MarkGap < 0
             || !double.IsFinite(settings.Dwell) || settings.Dwell <= 0 || settings.MaxOnScreen <= 0
             || settings.BubbleShape is not ("automatic" or "star") || settings.BubbleTheme is not ("random" or "starry")
@@ -81,11 +89,18 @@ internal sealed class Settings
     public object Configuration() => new
     {
         settings = new { Liveliness, MarkGap, Paused, Blacklist, Persona, lang = EffectiveLanguage,
-            disabledBuiltinIds = Array.Empty<string>(), MaxOnScreen, ownProcessID = Environment.ProcessId, MemoryEnabled },
-        rules = Rules, customPersonas = Array.Empty<object>(),
+            disabledBuiltinIds = DisabledBuiltinIds, MaxOnScreen, ownProcessID = Environment.ProcessId, MemoryEnabled,
+            systemOne = SystemOne == null ? null : new { SystemOne.BaseURL, SystemOne.Model, key = CredentialStore.Read("systemOne") } },
+        rules = Rules, customPersonas = CustomPersonas,
         generator = GeneratorConfiguration(),
         dataDirectory = DataDirectory
     };
+}
+
+internal sealed class SystemOneSettings
+{
+    public string BaseURL { get; set; } = "";
+    public string Model { get; set; } = "";
 }
 
 internal sealed class ProviderSettings

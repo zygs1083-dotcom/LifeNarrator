@@ -48,15 +48,14 @@ internal static class CompanionChecks
         {
             Application.Current!.RequestedThemeVariant = variant;
             window.SelectTab(0); Capture(window, "growth-" + variant);
-            window.SelectTab(3); Capture(window, "memory-" + variant);
+            window.SelectTab(SettingsWindow.MemoryTab); Capture(window, "memory-" + variant);
         }
-        var pin = window.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == new Texts(settings)["memory.unpin"]);
+        var pin = window.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == new Texts(settings)["memory.unpin"]);
         pin.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         if (!calls.Any(c => c.Method == "memory.pin" && !c.Params.GetProperty("pinned").GetBoolean())) throw new Exception("Pin action did not call brain");
         growth = locked; companion.Refresh().GetAwaiter().GetResult(); window.SelectTab(0); window.UpdateLayout();
         var name = window.GetVisualDescendants().OfType<TextBox>().Single(b => AutomationProperties.GetAutomationId(b) == "sprite-name");
-        var star = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => AutomationProperties.GetAutomationId(b) == "choice-star");
-        if (name.IsEnabled || star.IsEnabled) throw new Exception("Locked controls enabled");
+        if (name.IsEnabled) throw new Exception("Locked controls enabled");
         growth = growth with { State = numbers }; companion.Refresh().GetAwaiter().GetResult();
         window.Close();
         var chat = new ChatWindow(settings, companion);

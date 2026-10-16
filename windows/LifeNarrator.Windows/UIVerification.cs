@@ -58,7 +58,7 @@ public sealed partial class ShellApp
             foreach (var (language, theme) in new[] { ("zh", ThemeVariant.Light), ("en", ThemeVariant.Dark) })
             {
                 settings.Language = language; RequestedThemeVariant = theme; await Configure();
-                for (var index = 0; index < 3; index++)
+                for (var index = 0; index < 6; index++)
                 {
                     settingsWindow.SelectTab(index);
                     await Capture($"ui-settings-{index}-{language}-{theme}");
@@ -112,7 +112,7 @@ public sealed partial class ShellApp
             await chatWindow.Send("讨厌开会");
             if (settings.Rules.Length != 1 || companion.Growth!.State.RulesLearned != 1) throw new Exception("Chat rule intent did not persist/record growth");
             chatWindow.Hide(); ShowSettings();
-            settingsWindow!.SelectTab(3); await Capture("e2e-memory");
+            settingsWindow!.SelectTab(SettingsWindow.MemoryTab); await Capture("e2e-memory");
             settingsWindow.SelectTab(0); await Capture("e2e-growth");
             Artifact.Write("e2e-companion.json", new { chat = true, memory = true, growth = true, starBubble = true,
                 name = companion.Growth.Name, level = companion.Growth.State.Level, rules = settings.Rules.Length, setting = settings.Liveliness });

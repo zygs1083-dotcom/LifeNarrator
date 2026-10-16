@@ -1,4 +1,6 @@
 using System.Net;
+using System.Diagnostics;
+using Avalonia.Threading;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 
@@ -22,7 +24,7 @@ internal sealed class ModelDownloader
     public double Progress { get; private set; }
     public string? Error { get; private set; }
     public string Source { get; set; } = "huggingface.co";
-    public bool HasPartial => File.Exists(PartialPath);
+    public bool HasPartial { get; private set; }
     public event Action? Changed;
     CancellationTokenSource? cancellation;
     Task? running;
@@ -31,13 +33,15 @@ internal sealed class ModelDownloader
     {
         Model = model;
         Destination = Path.Combine(directory, model.Filename);
+        HasPartial = File.Exists(PartialPath);
         State = File.Exists(Destination) ? ModelDownloadState.Ready : ModelDownloadState.NotDownloaded;
     }
 
     public Task Start(Uri url)
     {
         cancellation = new CancellationTokenSource();
-        running = Download(url, cancellation.Token);
+        var token = cancellation.Token;
+        running = Task.Run(() => Download(url, token));
         return running;
     }
 
@@ -51,7 +55,7 @@ internal sealed class ModelDownloader
     {
         File.Delete(Destination);
         File.Delete(PartialPath);
-        Error = null; Progress = 0;
+        HasPartial = false; Error = null; Progress = 0;
         SetState(ModelDownloadState.NotDownloaded);
     }
 
@@ -82,13 +86,16 @@ internal sealed class ModelDownloader
                 await using var output = new FileStream(PartialPath, offset == 0 ? FileMode.Create : FileMode.Append,
                     FileAccess.Write, FileShare.Read, 131072, useAsync: true);
                 var buffer = new byte[131072];
+                var notification = Stopwatch.StartNew();
+                var firstProgress = true;
                 int count;
                 while ((count = await input.ReadAsync(buffer, token)) > 0)
                 {
                     await output.WriteAsync(buffer.AsMemory(0, count), token);
                     offset += count;
                     Progress = (double)offset / Model.Size;
-                    Changed?.Invoke();
+                    if (firstProgress || notification.ElapsedMilliseconds >= 250)
+                    { Notify(); notification.Restart(); firstProgress = false; }
                     if (offset > Model.Size)
                     {
                         await output.DisposeAsync(); File.Delete(PartialPath);
@@ -98,14 +105,13 @@ internal sealed class ModelDownloader
             }
             token.ThrowIfCancellationRequested();
             SetState(ModelDownloadState.Verifying);
-            await Task.Run(async () =>
             {
                 await using var file = File.OpenRead(PartialPath);
                 var size = file.Length;
                 var hash = Convert.ToHexString(await SHA256.HashDataAsync(file)).ToLowerInvariant();
                 if (size != Model.Size || hash != Model.Sha256)
                     throw new InvalidDataException($"SHA-256 mismatch: {hash} ({size} bytes); expected {Model.Sha256} ({Model.Size} bytes)");
-            });
+            }
             File.Move(PartialPath, Destination);
             SetState(ModelDownloadState.Ready);
         }
@@ -120,8 +126,9 @@ internal sealed class ModelDownloader
             SetState(ModelDownloadState.NotDownloaded);
             throw;
         }
-        finally { cancellation!.Dispose(); cancellation = null; }
+        finally { HasPartial = File.Exists(PartialPath); cancellation!.Dispose(); cancellation = null; Notify(); }
     }
 
-    void SetState(ModelDownloadState state) { State = state; Changed?.Invoke(); }
+    void Notify() => Dispatcher.UIThread.Post(() => Changed?.Invoke());
+    void SetState(ModelDownloadState state) { State = state; Notify(); }
 }

@@ -17,205 +17,179 @@ internal sealed class SettingsWindow : Window
     readonly Func<Task<double>> testConnection;
     readonly Updater updater;
     readonly Func<Task> installUpdate;
+    readonly Action<bool>? recording;
+    readonly Func<Task<string[]>>? ocrLanguages;
     StackPanel updateContent = new() { Spacing = 10 };
-    readonly DockPanel root = new() { Margin = new Thickness(20) };
+    readonly DockPanel root = new();
     readonly TextBlock error = new() { TextWrapping = TextWrapping.Wrap, IsVisible = false };
     int tab;
+    public const int SpriteTab = 0, AppearanceTab = 1, MemoryTab = 2, RulesTab = 3, ModelsTab = 4, GeneralTab = 5;
 
-    public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Updater updater, Func<Task> installUpdate, Companion? companion = null)
+    public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Updater updater, Func<Task> installUpdate,
+        Companion? companion = null, Action<bool>? recording = null, Func<Task<string[]>>? ocrLanguages = null)
     {
-        this.companion = companion;
+        this.companion = companion; this.recording = recording; this.ocrLanguages = ocrLanguages;
         if (companion != null) { companion.Changed += Refresh; Closed += (_, _) => companion.Changed -= Refresh; }
         this.settings = settings; this.configure = configure; this.testConnection = testConnection;
         this.updater = updater; this.installUpdate = installUpdate;
-        updater.Changed += RefreshUpdates;
-        Closed += (_, _) => updater.Changed -= RefreshUpdates;
+        updater.Changed += RefreshUpdates; Closed += (_, _) => updater.Changed -= RefreshUpdates;
         text = new Texts(settings);
-        Width = 780; Height = 660; MinWidth = 640; MinHeight = 500;
+        Width = 780; Height = 580; MinWidth = 780; MinHeight = 500;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         AutomationProperties.SetAutomationId(this, "settings");
         error.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
         var dock = new DockPanel { LastChildFill = true };
         var status = new Border { Child = error, Padding = new Thickness(20, 4) };
+        status.Bind(IsVisibleProperty, error.GetObservable(IsVisibleProperty));
         DockPanel.SetDock(status, Dock.Bottom); dock.Children.Add(status);
-        dock.Children.Add(root); Content = dock;
-        Render();
+        dock.Children.Add(root); Content = dock; Render();
     }
-
     public void SelectTab(int index) { tab = index; Render(); }
     public void Refresh() => Render();
+    public void ShowRuleInput() { SelectTab(RulesTab); Run(() => new RulesView(settings, companion!, this, configure, Run).Edit(null)); }
 
     void Render()
     {
         Title = text["app.name"] + " · " + text["settings.title"];
+        FontFamily = new FontFamily(settings.EffectiveLanguage == "zh" ? "Microsoft YaHei UI, Noto Sans CJK SC" : "Segoe UI, DejaVu Sans");
         root.Children.Clear();
-        var tabs = Views.Choices([
-            ("0", text["tab.sprite"], ""), ("1", text["models"], ""), ("2", text["general"], ""), ("3", text["tab.memory"], "")],
-            tab.ToString(), id => { tab = int.Parse(id); Render(); }, tabs: true);
+        var tabs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center, Height = 52 };
+        var names = new[] { "tab.sprite", "appearance", "tab.memory", "rules", "models", "general" };
+        var glyphs = new[] { "\uE734", "\uE790", "\uE8F1", "\uE8A5", "\uE99A", "\uE713" };
+        var hues = new double[] { 320, 255, 175, 150, 200, 42 };
+        for (var i = 0; i < names.Length; i++)
+        {
+            var index = i;
+            var button = new ToggleButton { Content = Views.Horizontal(Views.Icon(glyphs[i]), Views.Label(text[names[i]])),
+                IsChecked = tab == i, Padding = new Thickness(10, 6), CornerRadius = new CornerRadius(18), VerticalAlignment = VerticalAlignment.Center };
+            button.Classes.Add("tab"); Views.Hue(button, hues[i]);
+            AutomationProperties.SetAutomationId(button, "tab-" + i); AutomationProperties.SetName(button, text[names[i]]);
+            button.Click += (_, _) => SelectTab(index); tabs.Children.Add(button);
+        }
         DockPanel.SetDock(tabs, Dock.Top); root.Children.Add(tabs);
-        Control content = tab switch { 0 => Sprite(), 1 => new ModelView(settings, configure, testConnection), 2 => General(),
-            _ => new MemoryView(settings, companion!, this, configure, Run) };
+        Control content = tab switch
+        {
+            SpriteTab => Sprite(), AppearanceTab => Views.Card(text["appearance"], "\uE790", 255, null, Views.Caption(text["appearance.pending"])),
+            MemoryTab => new MemoryView(settings, companion!, this, configure, Run, () => SelectTab(RulesTab)),
+            RulesTab => new RulesView(settings, companion!, this, configure, Run), ModelsTab => new ModelView(settings, configure, testConnection),
+            _ => General()
+        };
+        if (content is StackPanel stack) stack.Spacing = 14;
+        content.Margin = new Thickness(20);
         root.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Name = "settings-scroll" });
     }
-
     Control Sprite()
     {
-        var duty = Views.Toggle(text["sprite.onDuty"], !settings.Paused, value => Run(async () =>
-        { settings.Paused = !value; await configure(); }));
-        var levels = Views.Choices(new[] { "quiet", "lively", "rowdy" }.Select(id =>
-            (id, text["liveliness." + id], text["liveliness." + id + ".hint"])), settings.Liveliness,
+        var dutyHeading = Views.Row(Views.Heading(text["sprite.onDuty"], "\uE734"), Views.Horizontal(
+            Views.Badge(settings.PauseShortcut?.ToString() ?? ""), Views.Switch(text["sprite.onDuty"], !settings.Paused, value => Run(async () =>
+            { settings.Paused = !value; await configure(); }))));
+        var levels = Views.Choices(new[] { ("quiet", "🤫"), ("lively", "🎉"), ("rowdy", "🔊") }.Select(p =>
+            (p.Item1, p.Item2 + "  " + text["liveliness." + p.Item1], text["liveliness." + p.Item1 + ".hint"])), settings.Liveliness,
             id => Run(async () => { settings.Liveliness = id; await configure(); }));
-        var personas = Views.Choices(Catalog.Personas.Select(p => (p.Id, p.Emoji + "  " + p.Name.Text(settings.EffectiveLanguage),
-            p.Caption.Text(settings.EffectiveLanguage))), settings.Persona,
-            id => Run(async () => { settings.Persona = id; await configure(); }));
-        return Views.Stack(
-            companion == null ? new StackPanel() : new GrowthCard(settings, companion, configure, Run),
-            Views.Card(text["sprite.onDuty"], duty, Views.Caption(text["sprite.onDuty.hint"])),
-            Views.Card(text["liveliness"], levels, Views.Caption(text["liveliness.hint"])),
-            Views.Card(text["persona"], personas),
-            Views.Card(text["pace"], Views.Caption(text["pace.hint"]),
-                Pace("pace.gap", settings.MarkGap, 30, value => settings.MarkGap = value),
-                Pace("pace.dwell", settings.Dwell, 30, value => settings.Dwell = value),
-                Views.Caption(text["pace.dwell.hint"]),
-                Pace("pace.maxOnScreen", settings.MaxOnScreen, 10, value => settings.MaxOnScreen = (int)value),
-                Views.Caption(text["pace.maxOnScreen.hint"])));
+        var pace = Views.Stack();
+        void UpdatePace()
+        {
+            pace.Children.Clear();
+            pace.Children.Add(Pace("pace.gap", settings.MarkGap, 30, value => settings.MarkGap = value, text["pace.gap.hint"]));
+            pace.Children.Add(Views.Toggle(text["dwell.persistent"], settings.Persistent, value => Run(async () =>
+            { settings.Persistent = value; UpdatePace(); await configure(); })));
+            if (!settings.Persistent) pace.Children.Add(Pace("pace.dwell", settings.Dwell, 30, value => settings.Dwell = value));
+            var dwellHint = Views.Caption("");
+            void UpdateHint()
+            {
+                dwellHint.Text = text["pace.dwell.hint"].Replace("%.1f", (2.5 * settings.MaxOnScreen).ToString("0.0"));
+                dwellHint.IsVisible = !settings.Persistent && settings.MaxOnScreen > 3;
+            }
+            UpdateHint(); pace.Children.Add(dwellHint);
+            pace.Children.Add(Pace("pace.maxOnScreen", settings.MaxOnScreen, 10, value => { settings.MaxOnScreen = (int)value; UpdateHint(); }));
+            pace.Children.Add(Views.Caption(text["pace.maxOnScreen.hint"]));
+        }
+        UpdatePace();
+        var page = Views.Stack();
+        if (companion != null) page.Children.Add(new GrowthCard(settings, companion, configure, Run));
+        var ocr = Views.Caption(text["ocr.checking"]);
+        page.Children.Add(Views.Card(text["ocr.title"], "\uE8D2", 42, null, ocr));
+        Run(async () =>
+        {
+            var languages = ocrLanguages == null ? [] : await ocrLanguages();
+            ocr.Text = languages.Length == 0 ? text["ocr.unavailable"] : text["ocr.ready"].Replace("%@", string.Join(", ", languages));
+        });
+        page.Children.Add(Views.Card(dutyHeading, 320, Views.Caption(text["sprite.onDuty.hint"])));
+        page.Children.Add(Views.Card(text["liveliness"], "\uE767", 320, null, levels, Views.Caption(text["liveliness.hint"])));
+        page.Children.Add(Views.Card(text["pace"], "\uE916", 320, text["pace.hint"], pace));
+        page.Children.Add(Views.Card(text["persona"], "\uE77B", 320, text["persona.hint"], new PersonaView(settings, companion, this, configure, Run)));
+        return page;
     }
-
-    Control Pace(string key, double value, int max, Action<double> change)
+    Control Pace(string key, double value, int max, Action<double> change, string? hint = null)
     {
-        var badge = Views.Caption(Format(value));
         string Format(double v) => text[max == 10 ? "format.count" : "format.seconds"].Replace("%d", ((int)v).ToString());
-        var slider = new Slider { Minimum = 1, Maximum = max, TickFrequency = 1,
-            IsSnapToTickEnabled = true, SmallChange = 1, LargeChange = 1, Value = value };
+        var badge = Views.Badge(Format(value));
+        var slider = new Slider { Minimum = 1, Maximum = max, TickFrequency = 1, IsSnapToTickEnabled = true, SmallChange = 1, LargeChange = 1, Value = value };
         AutomationProperties.SetName(slider, text[key]); AutomationProperties.SetAutomationId(slider, key);
         slider.PropertyChanged += (_, e) =>
         {
             if (e.Property != Slider.ValueProperty) return;
-            badge.Text = Format(slider.Value);
+            ((TextBlock)badge.Child!).Text = Format(slider.Value);
             Run(async () => { change(slider.Value); await configure(); });
         };
-        return Views.Stack(Views.Row(Views.Label(text[key]), badge), slider);
+        var body = Views.Stack(Views.Row(Views.Label(text[key]), badge), slider); body.Spacing = 6;
+        if (hint != null) body.Children.Add(Views.Caption(hint)); return body;
     }
-
     Control General()
     {
         var languages = new[] { "system", "zh", "en" };
         var language = new ComboBox { ItemsSource = new[] { text["language.system"], text["language.zhHans"], text["language.en"] },
             SelectedIndex = Array.IndexOf(languages, settings.Language), HorizontalAlignment = HorizontalAlignment.Stretch };
-        AutomationProperties.SetName(language, text["language"]); AutomationProperties.SetAutomationId(language, "language");
-        language.SelectionChanged += (_, _) => Run(async () =>
-        { settings.Language = languages[language.SelectedIndex]; Render(); await configure(); });
+        AutomationProperties.SetAutomationId(language, "language");
+        language.SelectionChanged += (_, _) => Run(async () => { settings.Language = languages[language.SelectedIndex]; Render(); await configure(); });
         var startup = Views.Toggle(text["launchAtLogin"], settings.LaunchAtLogin, enabled => Run(async () =>
-        { Startup.SetEnabled(enabled); settings.LaunchAtLogin = enabled; await configure(); }));
-        var blacklist = new TextBox { Text = string.Join('\n', settings.Blacklist), AcceptsReturn = true,
-            TextWrapping = TextWrapping.Wrap, Height = 90 };
+        { await Task.Run(() => Startup.SetEnabled(enabled)); settings.LaunchAtLogin = enabled; await configure(); }));
+        var blacklist = new TextBox { Text = string.Join('\n', settings.Blacklist), AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Height = 90 };
         AutomationProperties.SetName(blacklist, text["blacklist"]); AutomationProperties.SetAutomationId(blacklist, "blacklist");
         blacklist.TextChanged += (_, _) => Run(async () =>
         { settings.Blacklist = (blacklist.Text ?? "").Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries); await configure(); });
-        updateContent = Views.Stack();
-        RefreshUpdates();
-        return Views.Stack(Views.Card(text["language"], language, startup),
-            Views.Card(text["blacklist"], Views.Caption(text["blacklist.hint"]), blacklist),
-            Views.Card(text["updates.title"], updateContent),
-            Views.Card(text["about"], Views.Label("LifeNarrator"),
+        updateContent = Views.Stack(); RefreshUpdates();
+        Control Recorder(string key, HotKey? value, Action<HotKey?> change) => Views.Row(Views.Label(text[key]),
+            new ShortcutRecorder(text[key], value, text, shortcut => Run(async () => { change(shortcut); await configure(); }), recording));
+        return Views.Stack(
+            Views.Card(text["language"], "\uE774", 42, null, Views.Field(text["language"], language)),
+            Views.Card(text["updates.title"], "\uE896", 42, null, updateContent),
+            Views.Card(text["shortcuts"], "\uE765", 42, null,
+                Recorder("shortcut.pause", settings.PauseShortcut, value => settings.PauseShortcut = value),
+                Recorder("shortcut.chat", settings.ChatShortcut, value => settings.ChatShortcut = value),
+                Recorder("shortcut.input", settings.InputShortcut, value => settings.InputShortcut = value)),
+            Views.Card(text["blacklist"], "\uE8D8", 42, text["blacklist.hint"], blacklist),
+            Views.Card(text["launchAtLogin"], "\uE7E8", 42, null, startup),
+            Views.Card(text["about"], "\uE946", 42, null,
+                Views.Horizontal(Views.Chip("\uE8F2"), Views.Label("LifeNarrator"), Views.Badge(text["version"] + " " + AppRelease.CurrentVersion)),
                 Views.Button(text["github"], () => Views.OpenURL("https://github.com/zygs1083-dotcom/LifeNarrator"))));
     }
-
     void RefreshUpdates()
     {
         updateContent.Children.Clear();
-        updateContent.Children.Add(Views.Caption(text["version"] + " " + AppRelease.CurrentVersion));
+        updateContent.Children.Add(Views.Horizontal(Views.Label(text["version"]), Views.Label(AppRelease.CurrentVersion)));
         updateContent.Children.Add(Views.Toggle(text["updates.automatic"], settings.AutomaticUpdates, enabled => Run(async () =>
         { settings.AutomaticUpdates = enabled; updater.Configure(enabled); await configure(); })));
-        var check = Views.Button(text["updates.check"], () => Run(updater.Check));
-        check.IsEnabled = !updater.IsBusy;
-        AutomationProperties.SetAutomationId(check, "updates-check");
-        updateContent.Children.Add(check);
         var message = updater.State switch
         {
-            UpdateState.Checking => text["updates.checking"],
-            UpdateState.UpToDate => text["updates.latest"],
+            UpdateState.Checking => text["updates.checking"], UpdateState.UpToDate => text["updates.latest"],
             UpdateState.Available => text["updates.available"].Replace("%@", updater.Release!.Tag),
             UpdateState.Downloading => text["updates.downloading"].Replace("%d", updater.Progress.ToString()).Replace("%%", "%"),
-            UpdateState.Failed => updater.Error!,
-            _ => ""
+            UpdateState.Failed => updater.Error!, _ => ""
         };
         if (message.Length > 0) updateContent.Children.Add(Views.Label(message));
         if (updater.State == UpdateState.Available)
         {
-            var install = Views.Button(text["updates.install"], () => Run(installUpdate));
-            AutomationProperties.SetAutomationId(install, "updates-install");
-            updateContent.Children.Add(install);
+            var install = Views.Primary(text["updates.install"], () => Run(installUpdate));
+            AutomationProperties.SetAutomationId(install, "updates-install"); updateContent.Children.Add(install);
         }
+        var check = Views.Button(text["updates.check"], () => Run(updater.Check)); check.IsEnabled = !updater.IsBusy;
+        AutomationProperties.SetAutomationId(check, "updates-check"); updateContent.Children.Add(check);
     }
-
     async void Run(Func<Task> action)
     {
         try { await action(); error.IsVisible = false; }
-        catch (Exception failure) { ShowError(failure); }
+        catch (Exception failure) { error.Text = failure.Message; error.IsVisible = true; }
     }
-    void ShowError(Exception failure) { error.Text = failure.Message; error.IsVisible = true; }
-}
-
-internal static class Views
-{
-    public static StackPanel Stack(params Control[] controls)
-    {
-        var stack = new StackPanel { Spacing = 10 };
-        foreach (var control in controls) stack.Children.Add(control);
-        return stack;
-    }
-    public static TextBlock Label(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap };
-    public static TextBlock Caption(string text) { var label = Label(text); label.Classes.Add("caption"); return label; }
-    public static Border Card(string title, params Control[] controls)
-    {
-        var heading = Label(title); heading.FontSize = 15; heading.FontWeight = FontWeight.SemiBold;
-        var body = Stack(heading);
-        foreach (var control in controls) body.Children.Add(control);
-        var card = new Border { Child = body, Margin = new Thickness(0, 0, 0, 4) }; card.Classes.Add("card"); return card;
-    }
-    public static Grid Row(Control left, Control right)
-    {
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-        left.VerticalAlignment = right.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(right, 1); grid.Children.Add(left); grid.Children.Add(right); return grid;
-    }
-    public static Control Field(string title, Control control) => Stack(Label(title), control);
-    public static Button Button(string title, Action action)
-    {
-        var button = new Button { Content = title, HorizontalAlignment = HorizontalAlignment.Left };
-        button.Click += (_, _) => action(); return button;
-    }
-    public static Control Toggle(string title, bool selected, Action<bool> change)
-    {
-        var toggle = new ToggleButton { IsChecked = selected, Theme = (ControlTheme)Application.Current!.FindResource("Switch")! };
-        AutomationProperties.SetName(toggle, title);
-        toggle.Click += (_, _) => change(toggle.IsChecked == true);
-        return Row(Label(title), toggle);
-    }
-    public static Control Choices(IEnumerable<(string Id, string Title, string Caption)> options, string selection,
-        Action<string> change, string? disabled = null, bool tabs = false, Action? selectionChanged = null)
-    {
-        var panel = new WrapPanel { Orientation = Orientation.Horizontal };
-        var buttons = new List<(string Id, ToggleButton Button)>();
-        foreach (var option in options)
-        {
-            var button = new ToggleButton { Content = option.Caption.Length == 0 ? Label(option.Title) : Stack(Label(option.Title), Caption(option.Caption)),
-                CornerRadius = new CornerRadius(tabs ? 18 : 14),
-                IsChecked = selection == option.Id, IsEnabled = option.Id != disabled, Width = tabs ? 155 : 210,
-                Margin = new Thickness(0, 0, 8, 8), HorizontalContentAlignment = HorizontalAlignment.Stretch };
-            AutomationProperties.SetName(button, option.Title); AutomationProperties.SetAutomationId(button, (tabs ? "tab-" : "choice-") + option.Id);
-            if (tabs) { button.Classes.Add("tab"); if (option.Id == "1") button.Classes.Add("sky"); if (option.Id == "2") button.Classes.Add("honey"); }
-            buttons.Add((option.Id, button));
-            button.Click += (_, _) =>
-            {
-                foreach (var item in buttons) item.Button.IsChecked = item.Id == option.Id;
-                change(option.Id); selectionChanged?.Invoke();
-            };
-            panel.Children.Add(button);
-        }
-        return panel;
-    }
-    public static void OpenURL(string url) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
 }

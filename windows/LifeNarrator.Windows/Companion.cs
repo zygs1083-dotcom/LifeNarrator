@@ -28,5 +28,5 @@ internal sealed class Companion(Func<string, object, Task<JsonElement>> call)
         Changed?.Invoke();
     }
     public string Name(Settings settings) => Growth is { } g && g.Has("spriteName") && g.Name.Length > 0
-        ? g.Name : Catalog.Personas.Single(p => p.Id == settings.Persona).Name.Text(settings.EffectiveLanguage);
+        ? g.Name : settings.Personas.Single(p => p.Id == settings.Persona).Name.Text(settings.EffectiveLanguage);
 }

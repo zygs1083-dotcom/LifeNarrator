@@ -54,6 +54,9 @@ foreach (var rounded in new[] { false, true })
 Console.WriteLine("PASS: text and rounded production bubbles rendered; negative-origin 150% DPI conversion; wire rectangles/dates");
 
 UIChecks.Run();
+SettingsSnapshots.Run();
+SettingsInteractionChecks.Run();
 
 CompanionChecks.Run();
+DownloadResponsivenessChecks.Run();
 ModelDownloadChecks.Run(args.Length > 0 ? args[0] : null);

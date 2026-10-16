@@ -16,7 +16,7 @@ internal sealed class ModelView : StackPanel
     public ModelView(Settings settings, Func<Task> configure, Func<Task<double>> testConnection)
     {
         this.settings = settings; this.configure = configure; this.testConnection = testConnection;
-        text = new Texts(settings); Spacing = 10;
+        text = new Texts(settings); Spacing = 14;
         error.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("ErrorInk"));
         Render();
         AttachedToVisualTree += (_, _) => { foreach (var download in settings.Downloaders) download.Changed += RefreshDownloads; RefreshDownloads(); };
@@ -28,13 +28,28 @@ internal sealed class ModelView : StackPanel
         var body = Views.Stack(ModelChoices());
         if (settings.Provider.Kind == "api") body.Children.Add(ProviderEditor());
         if (settings.Provider.Kind == "builtin") body.Children.Add(BuiltinEditor());
-        Children.Clear(); Children.Add(Views.Card(text["provider"], body));
+        Children.Clear(); Children.Add(Views.Card(text["provider"], "\uE99A", 200, null, body));
+        var systemOne = Views.Stack(Views.Toggle(text["systemOne.enable"], settings.SystemOne != null, enabled => Run(async () =>
+        { settings.SystemOne = enabled ? new SystemOneSettings() : null; Render(); await configure(); })));
+        if (settings.SystemOne is { } connection)
+        {
+            systemOne.Children.Add(Field("api.baseURL", connection.BaseURL, value => connection.BaseURL = value, "system-one-url"));
+            systemOne.Children.Add(Field("api.model", connection.Model, value => connection.Model = value, "system-one-model"));
+            var key = new TextBox { PasswordChar = '●' };
+            key.AttachedToVisualTree += (_, _) => Run(async () => key.Text = await Task.Run(() => CredentialStore.Read("systemOne")));
+            systemOne.Children.Add(Views.Field(text["api.key"], key));
+            var saved = Views.Badge(text["api.keySaved"], 150); saved.IsVisible = false;
+            key.TextChanged += (_, _) => saved.IsVisible = false;
+            systemOne.Children.Add(Views.Row(Views.Primary(text["api.saveKey"], () => Run(async () =>
+            { var value = key.Text ?? ""; await Task.Run(() => CredentialStore.Write("systemOne", value)); saved.IsVisible = true; await configure(); })), saved));
+        }
+        Children.Add(Views.Card(text["systemOne"], "\uE968", 200, null, systemOne));
     }
 
     internal Control ModelChoices() => Views.Choices([
-        ("api", text["provider.api"], text["provider.api.hint"]),
-        ("none", text["provider.none"], text["provider.none.hint"]),
-        ("builtin", text["provider.builtin"], text["provider.builtin.hint"])], settings.Provider.Kind,
+        ("builtin", "📦  " + text["provider.builtin"], text["provider.builtin.hint"]),
+        ("api", "☁️  " + text["provider.api"], text["provider.api.hint"]),
+        ("none", "🚫  " + text["provider.none"], text["provider.none.hint"])], settings.Provider.Kind,
         id => Run(async () => { settings.Provider.Kind = id; await configure(); }),
         selectionChanged: Render);
 
@@ -43,20 +58,19 @@ internal sealed class ModelView : StackPanel
 
     Control BuiltinEditor()
     {
-        var body = Views.Stack(Views.Caption(text["model.windows.hint"]));
-        body.Children.Add(Views.Choices(settings.Downloaders.Select((d, i) =>
-            (d.Model.Name, text[i == 0 ? "model.standard" : "model.fast"], (d.Model.Size >= 1e9 ? $"{d.Model.Size / 1e9:0.00} GB · " : $"{d.Model.Size / 1e6:0.00} MB · ") + text[i == 0 ? "model.standard.hint" : "model.fast.hint"])),
-            settings.BuiltinModel, name => Run(async () => { settings.BuiltinModel = name; await configure(); }), selectionChanged: Render));
+        var body = Views.Stack();
         foreach (var download in settings.Downloaders)
         {
             var source = new ComboBox { ItemsSource = new[] { "huggingface.co", "hf-mirror.com" },
                 SelectedItem = download.Source, HorizontalAlignment = HorizontalAlignment.Stretch };
             AutomationProperties.SetName(source, text["model.source"]);
             source.SelectionChanged += (_, _) => download.Source = (string)source.SelectedItem!;
-            var status = Views.Label("");
+            var sourceField = Views.Field(text["model.source"], source);
+            var status = Views.Badge("", 42);
+            var statusText = (TextBlock)status.Child!;
             var progress = new ProgressBar { Minimum = 0, Maximum = 100, Height = 6 };
             AutomationProperties.SetName(progress, download.Model.Name);
-            var start = Views.Button(text["model.download"], () => Run(async () =>
+            var start = Views.Primary(text["model.download"], () => Run(async () =>
             {
                 await download.Start(download.Model.FromSource(download.Source));
                 if (download.State == ModelDownloadState.Ready && settings.Provider.Kind == "builtin" && settings.BuiltinModel == download.Model.Name)
@@ -72,7 +86,7 @@ internal sealed class ModelView : StackPanel
                     try { await configure(); }
                     finally { settings.Provider.Kind = configuration; }
                 }
-                download.Delete(); await configure();
+                await Task.Run(download.Delete); await configure();
             }));
             AutomationProperties.SetAutomationId(start, "download-" + download.Model.Name);
             AutomationProperties.SetAutomationId(pause, "pause-" + download.Model.Name);
@@ -82,7 +96,7 @@ internal sealed class ModelView : StackPanel
             void Refresh()
             {
                 var state = download.State;
-                status.Text = text[state switch
+                statusText.Text = text[state switch
                 {
                     ModelDownloadState.Downloading => "model.downloading",
                     ModelDownloadState.Verifying => "model.verifying",
@@ -92,14 +106,26 @@ internal sealed class ModelView : StackPanel
                 progress.Value = download.Progress * 100;
                 progress.IsIndeterminate = state == ModelDownloadState.Verifying;
                 progress.IsVisible = state is ModelDownloadState.Downloading or ModelDownloadState.Verifying;
-                source.IsVisible = start.IsVisible = state == ModelDownloadState.NotDownloaded;
+                sourceField.IsVisible = start.IsVisible = state == ModelDownloadState.NotDownloaded;
                 start.Content = text[download.HasPartial ? "model.resume" : "model.download"];
                 pause.IsVisible = state == ModelDownloadState.Downloading;
                 delete.IsVisible = state == ModelDownloadState.Ready || (state == ModelDownloadState.NotDownloaded && download.HasPartial);
                 failure.Text = download.Error; failure.IsVisible = download.Error != null;
             }
             downloadRefresh.Add(Refresh); Refresh();
-            body.Children.Add(Views.Card(download.Model.Name, status, progress, source, Views.Row(start, Views.Row(pause, delete)), failure));
+            var index = Array.IndexOf(settings.Downloaders, download);
+            var select = Views.Button(text[index == 0 ? "model.standard" : "model.fast"], () => Run(async () =>
+            { settings.BuiltinModel = download.Model.Name; Render(); await configure(); }));
+            select.Content = Views.Row(Views.Label((settings.BuiltinModel == download.Model.Name ? "● " : "○ ") + text[index == 0 ? "model.standard" : "model.fast"]),
+                Views.Caption(download.Model.Size >= 1e9 ? $"{download.Model.Size / 1e9:0.00} GB" : $"{download.Model.Size / 1e6:0.00} MB"));
+            select.HorizontalAlignment = HorizontalAlignment.Stretch; select.BorderThickness = new Thickness(0); select.Padding = new Thickness(0); select.Background = Brushes.Transparent;
+            AutomationProperties.SetAutomationId(select, "choice-" + download.Model.Name);
+            var card = new Border { Padding = new Thickness(10), CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1),
+                Child = Views.Stack(select, Views.Caption(text[index == 0 ? "model.standard.hint" : "model.fast.hint"]),
+                    Views.Row(Views.Label(download.Model.Name), status), progress, sourceField, Views.Row(start, Views.Horizontal(pause, delete)), failure) };
+            card.Bind(Border.BorderBrushProperty, this.GetResourceObservable(settings.BuiltinModel == download.Model.Name ? "Accent" : "Stroke"));
+            ((StackPanel)card.Child!).Spacing = 8;
+            body.Children.Add(card);
         }
         return body;
     }
@@ -130,14 +156,17 @@ internal sealed class ModelView : StackPanel
         var model = Field("api.model", settings.Provider.Model, value => settings.Provider.Model = value, "model");
         var body = Views.Stack(Views.Field(text["api.provider"], selector), model);
         if (preset.SuggestedModels.Length > 0) body.Children.Add(Views.Caption(text["api.suggestions"] + ": " + string.Join(", ", preset.SuggestedModels)));
-        var key = new TextBox { PasswordChar = '●', Text = CredentialStore.Read(preset.Id) };
+        var key = new TextBox { PasswordChar = '●' };
+        key.AttachedToVisualTree += (_, _) => Run(async () => { key.Text = await Task.Run(() => CredentialStore.Read(preset.Id)); });
         AutomationProperties.SetName(key, text["api.key"]); AutomationProperties.SetAutomationId(key, "api-key");
-        var saved = Views.Caption("");
+        var saved = Views.Badge(text["api.keySaved"], 150); saved.IsVisible = false;
+        key.TextChanged += (_, _) => saved.IsVisible = false;
         body.Children.Add(Views.Field(text["api.key"], key));
-        body.Children.Add(Views.Row(Views.Button(text["api.saveKey"], () => Run(async () =>
+        body.Children.Add(Views.Row(Views.Primary(text["api.saveKey"], () => Run(async () =>
         {
-            CredentialStore.Write(preset.Id, key.Text ?? "");
-            saved.Text = text["api.keySaved"]; await configure();
+            var value = key.Text ?? "";
+            await Task.Run(() => CredentialStore.Write(preset.Id, value));
+            saved.IsVisible = true; await configure();
         })), saved));
         if (preset.KeyURL != null) body.Children.Add(Views.Button(text["api.getKey"], () => Views.OpenURL(preset.KeyURL)));
         var advanced = Views.Stack(Field("api.baseURL", settings.Provider.BaseURL ?? preset.BaseURL,
@@ -159,7 +188,7 @@ internal sealed class ModelView : StackPanel
         { settings.Provider.Vision = enabled; await configure(); })));
         body.Children.Add(Views.Caption(text["api.vision.hint"]));
         var result = Views.Caption("");
-        var test = Views.Button(text["api.test"], () => { });
+        var test = Views.Primary(text["api.test"], () => { });
         AutomationProperties.SetAutomationId(test, "test-connection");
         test.Click += async (_, _) =>
         {
