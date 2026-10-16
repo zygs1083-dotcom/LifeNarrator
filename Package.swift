@@ -21,6 +21,7 @@ let llamaDependency: Target.Dependency = "LlamaFramework"
 let llamaDependency: Target.Dependency = "llama"
 #endif
 targets.append(.target(name: "NarratorLlama", dependencies: ["NarratorCore", llamaDependency]))
+targets.append(.testTarget(name: "NarratorLlamaTests", dependencies: ["NarratorLlama"]))
 targets[1].dependencies.append(.byName(name: "NarratorLlama", condition: .when(platforms: [.macOS, .windows])))
 #endif
 
@@ -44,6 +45,7 @@ targets += [
     .executableTarget(name: "narrator-bench", dependencies: ["NarratorMac"]),
     .executableTarget(name: "context-probe", dependencies: ["NarratorMac", "NarratorCore"], exclude: ["README.md"]),
     .testTarget(name: "NarratorMacTests", dependencies: ["NarratorMac"]),
+    .testTarget(name: "NarratorBenchTests", dependencies: ["narrator-bench"]),
     .executableTarget(name: "LifeNarrator", dependencies: ["NarratorMac"]),
     .executableTarget(name: "NarratorFixtures"),
     // Development-only: cycles every bubble shape and theme on the main screen for eyeballing.
