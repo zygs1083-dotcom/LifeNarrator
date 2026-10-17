@@ -15,7 +15,7 @@ internal static class BubbleChecks
     const string Output = "artifacts/bubbles";
     public static void Run()
     {
-        CheckSettings(); CheckFonts(); CheckMotion(); CheckClicks();
+        CheckSettings(); CheckFonts(); CheckMotion(); CheckClicks(); OverlayAnimationChecks.Run();
         foreach (var background in new[] { "transparent", "light", "dark" })
         {
             Directory.CreateDirectory($"{Output}/{background}");

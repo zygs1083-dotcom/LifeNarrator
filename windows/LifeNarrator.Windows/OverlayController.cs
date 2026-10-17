@@ -358,14 +358,22 @@ internal sealed class OverlayController : IDisposable
                 "right" => new Point(0, size.Height / 2), "left" => new Point(size.Width, size.Height / 2),
                 _ => new Point(bubble.Placement.Corner == "topRight" ? size.Width : 0, 0)
             });
-            bubble.Visual.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute);
-            bubble.Visual.RenderTransform = new MatrixTransform(Matrix.CreateTranslation(-origin.X, -origin.Y)
-                * Matrix.CreateScale(motion.Scale, motion.Scale) * Matrix.CreateTranslation(origin.X + motion.Offset.X, origin.Y + motion.Offset.Y));
+            var transformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute);
+            if (bubble.Visual.RenderTransformOrigin != transformOrigin)
+                bubble.Visual.RenderTransformOrigin = transformOrigin;
+            var matrix = Matrix.CreateTranslation(-origin.X, -origin.Y)
+                * Matrix.CreateScale(motion.Scale, motion.Scale) * Matrix.CreateTranslation(origin.X + motion.Offset.X, origin.Y + motion.Offset.Y);
+            if (bubble.Visual.RenderTransform is not MatrixTransform transform || transform.Matrix != matrix)
+                bubble.Visual.RenderTransform = new MatrixTransform(matrix);
             if (bubble.Highlight != null && !bubble.Leaving)
             {
-                bubble.Highlight.Progress = reduceMotion ? 1 : BubbleTransitions.DecorProgress(age);
+                var progress = reduceMotion ? 1 : BubbleTransitions.DecorProgress(age);
+                if (bubble.Highlight.Progress != progress)
+                {
+                    bubble.Highlight.Progress = progress;
+                    bubble.Highlight.InvalidateVisual();
+                }
                 bubble.Highlight.Opacity = bubble.Dismissed is { } end ? BubbleTransitions.Sample("fade", (now - end).TotalSeconds, true, default).Opacity : 1;
-                bubble.Highlight.InvalidateVisual();
             }
         }
     }

@@ -12,6 +12,7 @@
     <Compile Include="../LifeNarrator.Windows/BubbleVisual.cs" Link="BubbleVisual.cs" />
     <Compile Include="../LifeNarrator.Windows/BubbleStyle.cs" Link="BubbleStyle.cs" />
     <Compile Include="../LifeNarrator.Windows/BubblePreview.cs" Link="BubblePreview.cs" />
+    <Compile Include="../LifeNarrator.Windows/OverlayController.cs" Link="OverlayController.cs" />
     <Compile Include="../LifeNarrator.Windows/AnchorDecor.cs" Link="AnchorDecor.cs" />
     <Compile Include="../LifeNarrator.Windows/BubbleTransitions.cs" Link="BubbleTransitions.cs" />
     <Compile Include="../LifeNarrator.Windows/Protocol.cs" Link="Protocol.cs" />
