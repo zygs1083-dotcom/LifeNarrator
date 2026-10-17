@@ -5,7 +5,7 @@ import llama
 @testable import NarratorLlama
 
 final class LlamaRuleCompilationTests: XCTestCase {
-    func testAliasGrammarRejectsEmptyAndSingleCharacterAliases() throws {
+    func testAliasAndNoteGrammarBoundaries() throws {
         guard let path = ProcessInfo.processInfo.environment["NARRATOR_TEST_RULE_MODEL"] else {
             throw XCTSkip("Set NARRATOR_TEST_RULE_MODEL to test the grammar with a real vocabulary.")
         }
@@ -14,8 +14,8 @@ final class LlamaRuleCompilationTests: XCTestCase {
         let model = try XCTUnwrap(llama_model_load_from_file(path, parameters))
         defer { llama_model_free(model) }
         let vocabulary = try XCTUnwrap(llama_model_get_vocab(model))
-        func accepts(_ aliases: String) throws -> Bool {
-            let json = #"{"kind":"topic","label":{"zh":"开会","en":"Meeting"},"sentiment":"dislike","note":"","aliases":\#(aliases),"domains":[],"appNames":[],"highlight":false,"variables":{}}"#
+        func accepts(_ aliases: String, note: String = "") throws -> Bool {
+            let json = #"{"label":{"zh":"开会","en":"Meeting"},"note":"\#(note)","kind":"topic","sentiment":"dislike","aliases":\#(aliases),"domains":[],"appNames":[],"highlight":false,"variables":{}}"#
             let sampler = try XCTUnwrap(llama_sampler_init_grammar(vocabulary, LlamaGrammar.compiledRule, "root"))
             defer { llama_sampler_free(sampler) }
             var tokens = [llama_token](repeating: 0, count: json.utf8.count)
@@ -37,6 +37,9 @@ final class LlamaRuleCompilationTests: XCTestCase {
         XCTAssertFalse(try accepts(#"["会"]"#))
         XCTAssertTrue(try accepts(#"["开会"]"#))
         XCTAssertTrue(try accepts(#"["O'Connor","AC/DC"]"#))
+        XCTAssertTrue(try accepts(#"["开会"]"#, note: String(repeating: "a", count: 81)))
+        XCTAssertTrue(try accepts(#"["开会"]"#, note: String(repeating: "a", count: 240)))
+        XCTAssertFalse(try accepts(#"["开会"]"#, note: String(repeating: "a", count: 241)))
     }
 
     func testRuleFixturesCompileWithRealModel() async throws {
@@ -59,8 +62,16 @@ final class LlamaRuleCompilationTests: XCTestCase {
             ("I like Photoshop", .en, .app, .like, nil),
             ("David is my colleague", .en, .person, .neutral, nil),
         ]
+        let classificationControls: [Fixture] = [
+            ("我喜欢 LibreOffice", .zh, .app, .like, nil),
+            ("I like LibreOffice", .en, .app, .like, nil),
+            ("我喜欢 Audacity", .zh, .app, .like, nil),
+            ("I like Audacity", .en, .app, .like, nil),
+            ("我喜欢数字绘画", .zh, .topic, .like, "数字绘画"),
+            ("I like digital painting", .en, .topic, .like, "digital painting"),
+        ]
         var previous: [String: String] = [:]
-        for (index, fixture) in (topics + topics + controls).enumerated() {
+        for (index, fixture) in (topics + topics + controls + classificationControls + classificationControls).enumerated() {
             let raw = try await generator.generateJSON(system: nil,
                 prompt: GenerationPrompts.compile(input: fixture.input, lang: fixture.lang),
                 schema: GenerationPrompts.compiledRuleSchema, maxTokens: nil)
@@ -73,8 +84,11 @@ final class LlamaRuleCompilationTests: XCTestCase {
                     now: Date(timeIntervalSince1970: 0), resolveBundleIds: { _ in [] })
                 XCTAssertEqual(rule.kind, fixture.kind, context)
                 XCTAssertEqual(rule.sentiment, fixture.sentiment, context)
+                if fixture.kind == .app {
+                    XCTAssertFalse(rule.match.appNames?.isEmpty ?? true, context)
+                }
                 if let alias = fixture.alias {
-                    XCTAssertTrue(rule.match.aliases?.contains(alias) == true, context)
+                    XCTAssertTrue(rule.match.aliases?.contains { normalized($0) == normalized(alias) } == true, context)
                 }
             } catch {
                 XCTFail("\(context)\n\(error)")
