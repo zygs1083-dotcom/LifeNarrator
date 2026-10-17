@@ -59,8 +59,16 @@ final class LlamaRuleCompilationTests: XCTestCase {
             ("I like Photoshop", .en, .app, .like, nil),
             ("David is my colleague", .en, .person, .neutral, nil),
         ]
+        let classificationControls: [Fixture] = [
+            ("我喜欢 LibreOffice", .zh, .app, .like, nil),
+            ("I like LibreOffice", .en, .app, .like, nil),
+            ("我喜欢 Audacity", .zh, .app, .like, nil),
+            ("I like Audacity", .en, .app, .like, nil),
+            ("我喜欢数字绘画", .zh, .topic, .like, "数字绘画"),
+            ("I like digital painting", .en, .topic, .like, "digital painting"),
+        ]
         var previous: [String: String] = [:]
-        for (index, fixture) in (topics + topics + controls).enumerated() {
+        for (index, fixture) in (topics + topics + controls + classificationControls + classificationControls).enumerated() {
             let raw = try await generator.generateJSON(system: nil,
                 prompt: GenerationPrompts.compile(input: fixture.input, lang: fixture.lang),
                 schema: GenerationPrompts.compiledRuleSchema, maxTokens: nil)
@@ -73,6 +81,9 @@ final class LlamaRuleCompilationTests: XCTestCase {
                     now: Date(timeIntervalSince1970: 0), resolveBundleIds: { _ in [] })
                 XCTAssertEqual(rule.kind, fixture.kind, context)
                 XCTAssertEqual(rule.sentiment, fixture.sentiment, context)
+                if fixture.kind == .app {
+                    XCTAssertFalse(rule.match.appNames?.isEmpty ?? true, context)
+                }
                 if let alias = fixture.alias {
                     XCTAssertTrue(rule.match.aliases?.contains(alias) == true, context)
                 }

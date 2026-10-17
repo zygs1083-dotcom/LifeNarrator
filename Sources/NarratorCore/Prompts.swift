@@ -161,6 +161,7 @@ Screen:
 
 规则：
 - kind：明确的网站是 site；应用软件是 app；人名是 person；其他事物、物品、活动都是 topic。同一个名字既像网站又像应用（如"谷歌"）时选 site，不要把普通物品当成网站。
+- 按对象本身的类型分类，不按用户的态度或用途分类。已知的具名软件产品应选 app，即使用户只说喜欢它；topic 仅用于不是网站、应用或人的对象或活动。
 - label：对象的简短名字，中英文各一个。
 - sentiment：用户讨厌/烦/怕它是 dislike，喜欢是 like，只是陈述关系（"张三是我领导"）是 neutral。
 - note：一句话说明对象是什么、和用户什么关系、用户希望旁白怎么对待它。
@@ -190,6 +191,7 @@ You are LifeNarrator's rule compiler. The user describes, in one sentence, a thi
 
 Rules:
 - kind: an explicit website is site; a software application is app; a person's name is person; all other things, physical objects and activities are topic. If a name could be both a site and an app (e.g. "Google"), choose site. Do not classify ordinary objects as websites.
+- Classify the object itself, not the user's feeling or intended use. A named software product is app even when the user only says they like it; use topic only for objects or activities that are not sites, apps or people.
 - label: a short name for the thing, in both zh and en.
 - sentiment: dislike if the user hates / is annoyed by / fears it, like if they like it, neutral if they only state a relationship ("Alice is my boss").
 - note: one sentence on what the thing is, how it relates to the user, and how the narrator should treat it.
