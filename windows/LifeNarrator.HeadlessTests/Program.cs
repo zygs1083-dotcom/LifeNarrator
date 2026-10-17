@@ -7,6 +7,8 @@ using Avalonia.Media;
 using LifeNarrator.Windows;
 
 if (args.SequenceEqual(new[] { "--updates-only" })) { UpdateChecks.Run().GetAwaiter().GetResult(); return; }
+if (args.SequenceEqual(new[] { "--builtin-batch-only" })) { BuiltinModelBatchChecks.Run().GetAwaiter().GetResult(); return; }
+BuiltinModelBatchChecks.Run().GetAwaiter().GetResult();
 if (args.SequenceEqual(new[] { "--download-responsiveness-only" }))
 {
     AppBuilder.Configure<Application>().UseSkia()

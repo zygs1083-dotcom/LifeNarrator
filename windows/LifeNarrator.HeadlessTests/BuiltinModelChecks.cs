@@ -11,6 +11,43 @@ using LifeNarrator.Windows;
 
 internal static class BuiltinModelChecks
 {
+    internal static async Task<JsonElement> WaitForOverlay(Task<JsonElement> shown, Task<string> failed, Func<string> readStderr)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(180));
+        string? lastBatch = null;
+        try
+        {
+            while (true)
+            {
+                // A completed positive batch can still have an overlay RPC in flight.
+                if (shown.IsCompleted) return await shown;
+                if (failed.IsCompleted) throw new Exception(await failed);
+                var stderr = readStderr();
+                // Ignore a partially flushed final line until its newline arrives.
+                var lines = stderr.Split('\n');
+                foreach (var line in lines.Take(lines.Length - 1))
+                {
+                    if (!line.StartsWith("[sprite] model request ", StringComparison.Ordinal)) continue;
+                    lastBatch = line.TrimEnd('\r');
+                    var fields = lastBatch.Split(' ').Select(field => field.Split('=', 2))
+                        .Where(field => field.Length == 2).ToDictionary(field => field[0], field => field[1]);
+                    if (!fields.TryGetValue("reason", out var reason) || reason == "cancelled") continue;
+                    if (reason != "ok" || fields.TryGetValue("located", out var located) && located == "0")
+                    {
+                        if (shown.IsCompleted) return await shown;
+                        throw new Exception("Builtin model batch completed without an overlay: " + lastBatch);
+                    }
+                }
+                timeout.Token.ThrowIfCancellationRequested();
+                await Task.WhenAny(shown, failed, Task.Delay(100, timeout.Token));
+            }
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            throw new TimeoutException("Timed out waiting for builtin model overlay; last batch: " + (lastBatch ?? "none"));
+        }
+    }
+
     public static void Run(string executable, TextWriter log)
     {
         var task = Generate(executable, log);
@@ -128,9 +165,14 @@ internal static class BuiltinModelChecks
         settingsWindow.Close();
         if (maximumTabTime > TimeSpan.FromMilliseconds(500)) throw new Exception("Settings tab blocked during builtin generation: " + maximumTabTime);
         log.WriteLine($"PASS six settings tabs during real GGUF generation; slowest tab={maximumTabTime.TotalMilliseconds:0.0} ms");
-        var result = await Task.WhenAny(shown.Task, failed.Task).WaitAsync(TimeSpan.FromSeconds(180));
-        if (result == failed.Task) throw new Exception(await failed.Task);
-        var narrationResult = await shown.Task;
+        var narrationResult = await WaitForOverlay(shown.Task, failed.Task, () =>
+        {
+            var path = Path.Combine(directory, "stderr.log");
+            if (!File.Exists(path)) return "";
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        });
         File.WriteAllText(Path.Combine(directory, "mark.json"), narrationResult.ToString());
         log.WriteLine("PASS real GGUF: UI builtin selection -> configure -> anchored sprite-model mark: " + narrationResult);
         // Reconfiguration must release the loaded model before deleting its file on Windows.
