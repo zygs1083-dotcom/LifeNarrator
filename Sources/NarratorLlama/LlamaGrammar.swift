@@ -91,7 +91,7 @@ public enum LlamaGrammar {
     """#
 
     public static let compiledRule = #"""
-    root ::= "{" ws "\"kind\"" ws ":" ws kind ws "," ws "\"label\"" ws ":" ws label ws "," ws "\"sentiment\"" ws ":" ws sentiment ws "," ws "\"note\"" ws ":" ws string ws "," ws "\"aliases\"" ws ":" ws aliases ws "," ws "\"domains\"" ws ":" ws domains ws "," ws "\"appNames\"" ws ":" ws appNames ws "," ws "\"highlight\"" ws ":" ws ("true" | "false") ws "," ws "\"variables\"" ws ":" ws variables ws "}" ws
+    root ::= "{" ws "\"label\"" ws ":" ws label ws "," ws "\"note\"" ws ":" ws note ws "," ws "\"kind\"" ws ":" ws kind ws "," ws "\"sentiment\"" ws ":" ws sentiment ws "," ws "\"aliases\"" ws ":" ws aliases ws "," ws "\"domains\"" ws ":" ws domains ws "," ws "\"appNames\"" ws ":" ws appNames ws "," ws "\"highlight\"" ws ":" ws ("true" | "false") ws "," ws "\"variables\"" ws ":" ws variables ws "}" ws
     kind ::= "\"app\"" | "\"site\"" | "\"person\"" | "\"topic\""
     sentiment ::= "\"dislike\"" | "\"like\"" | "\"neutral\""
     label ::= "{" ws "\"zh\"" ws ":" ws string ws "," ws "\"en\"" ws ":" ws string ws "}"
@@ -100,6 +100,7 @@ public enum LlamaGrammar {
     domains ::= "[" ws (string (ws "," ws string){0,5})? ws "]"
     appNames ::= "[" ws (string (ws "," ws string){0,3})? ws "]"
     variables ::= "{" ws (string ws ":" ws string (ws "," ws string ws ":" ws string){0,3})? ws "}"
+    note ::= "\"" char{0,240} "\""
     string ::= "\"" char{0,80} "\""
     char ::= [^"\\\x7f\x00-\x1f] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
     ws ::= [ \t\n\r]{0,4}

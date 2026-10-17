@@ -72,6 +72,17 @@ func date(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
     let mixed = rule(match: Match(aliases: ["Zhang San", "张三"]))
     #expect(matches([mixed], snapshot(lines: [line("张三 Zhang San 在线")])).count == 1)
 }
+@Test func digitalPaintingRequiresCanonicalAliasWithNormalizedCase() {
+    let canonical = "digital painting"
+    let topic = rule(match: Match(aliases: ["数字绘画", "Digital Painting"]))
+    #expect(topic.match.aliases?.contains { normalized($0) == normalized(canonical) } == true)
+    #expect(matches([topic], snapshot(lines: [line(canonical)])).first?.matchedText == canonical)
+    var chineseOnly = topic
+    chineseOnly.label = Label(zh: "数字绘画", en: "Digital Painting")
+    chineseOnly.match.aliases = ["数字绘画"]
+    #expect(chineseOnly.match.aliases?.contains { normalized($0) == normalized(canonical) } == false)
+    #expect(matches([chineseOnly], snapshot(lines: [line(canonical)])).isEmpty)
+}
 @Test func headerExcludesSidebarBodyAndSmallText() {
     let person = rule(kind: .person, match: Match(aliases: ["张三"], region: .header), highlight: true)
     #expect(matches([person], snapshot(lines: [line("张三", x: 299)])).isEmpty)
