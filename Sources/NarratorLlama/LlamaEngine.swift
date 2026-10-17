@@ -185,15 +185,16 @@ public final class LlamaEngine {
             try draft.evaluate(tokens, position: 0)
         }
         lastPrefillSeconds = seconds(since: start)
+        let extractingRule = grammar == LlamaGrammar.compiledRule
         if let draft {
-            let sampler = try makeSampler(grammar: grammar, seed: seed, distribution: false)
+            let sampler = try makeSampler(grammar: grammar, seed: seed, distribution: false, extractingRule: extractingRule)
             defer { llama_sampler_free(sampler) }
             return try generateSpeculative(tokens: tokens, sampler: sampler, draft: draft,
                                            maxTokens: maxTokens, seed: seed, onToken: onToken)
         }
         guard let grammarSampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else { throw Failure.invalidGrammar }
         defer { llama_sampler_free(grammarSampler) }
-        let sampler = try makeSampler(grammar: nil, seed: seed, distribution: true)
+        let sampler = try makeSampler(grammar: nil, seed: seed, distribution: true, extractingRule: extractingRule)
         defer { llama_sampler_free(sampler) }
         var text = ""
         var bytes: [UInt8] = []
@@ -240,17 +241,22 @@ public final class LlamaEngine {
         }
     }
 
-    private func makeSampler(grammar: String?, seed: UInt32, distribution: Bool) throws -> UnsafeMutablePointer<llama_sampler> {
+    private func makeSampler(grammar: String?, seed: UInt32, distribution: Bool, extractingRule: Bool) throws -> UnsafeMutablePointer<llama_sampler> {
         let grammarSampler = try grammar.map { grammar in
             guard let sampler = llama_sampler_init_grammar(vocabulary, grammar, "root") else { throw Failure.invalidGrammar }
             return sampler
         }
         let sampler = llama_sampler_chain_init(llama_sampler_chain_default_params())!
         if let grammarSampler { llama_sampler_chain_add(sampler, grammarSampler) }
-        llama_sampler_chain_add(sampler, llama_sampler_init_penalties(llama_vocab_n_tokens(vocabulary), 256, 1.15, 0, 0))
-        llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9, 1))
-        llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05, 1))
-        llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
+        if extractingRule {
+            // Extraction must preserve names repeated in labels and aliases.
+            llama_sampler_chain_add(sampler, llama_sampler_init_temp(0))
+        } else {
+            llama_sampler_chain_add(sampler, llama_sampler_init_penalties(llama_vocab_n_tokens(vocabulary), 256, 1.15, 0, 0))
+            llama_sampler_chain_add(sampler, llama_sampler_init_top_p(0.9, 1))
+            llama_sampler_chain_add(sampler, llama_sampler_init_min_p(0.05, 1))
+            llama_sampler_chain_add(sampler, llama_sampler_init_temp(0.9))
+        }
         if distribution { llama_sampler_chain_add(sampler, llama_sampler_init_dist(seed)) }
         return sampler
     }

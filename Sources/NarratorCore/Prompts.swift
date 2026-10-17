@@ -147,7 +147,7 @@ Screen:
     "label":     { "type": "object", "required": ["zh", "en"], "properties": { "zh": { "type": "string" }, "en": { "type": "string" } } },
     "sentiment": { "enum": ["dislike", "like", "neutral"] },
     "note":      { "type": "string" },
-    "aliases":   { "type": "array", "items": { "type": "string" }, "maxItems": 8 },
+    "aliases":   { "type": "array", "items": { "type": "string", "minLength": 2 }, "minItems": 1, "maxItems": 8 },
     "domains":   { "type": "array", "items": { "type": "string" }, "maxItems": 6 },
     "appNames":  { "type": "array", "items": { "type": "string" }, "maxItems": 4 },
     "highlight": { "type": "boolean" },
@@ -160,15 +160,25 @@ Screen:
 你是 LifeNarrator 的规则编译器。用户会用一句话描述一个对象和自己对它的态度，你把它整理成 JSON。
 
 规则：
-- kind：谷歌、知乎这类网站是 site；钉钉、微信、Xcode 这类应用是 app；人名是 person；"开会""加班"这类事情是 topic。同一个名字既像网站又像应用（如"谷歌"）时选 site。
+- kind：明确的网站是 site；应用软件是 app；人名是 person；其他事物、物品、活动都是 topic。同一个名字既像网站又像应用（如"谷歌"）时选 site，不要把普通物品当成网站。
 - label：对象的简短名字，中英文各一个。
 - sentiment：用户讨厌/烦/怕它是 dislike，喜欢是 like，只是陈述关系（"张三是我领导"）是 neutral。
 - note：一句话说明对象是什么、和用户什么关系、用户希望旁白怎么对待它。
-- aliases：在屏幕文字里找这个对象时用的别名，中英文都给，包括常见简称；人名给全名和可能的称呼（如"张三""张总"）。每个别名中文至少 2 个字、英文至少 3 个字母。site 和 app 也要给 aliases。
-- domains：site 才填，给主域名，不带 www. 和路径；其他 kind 留空数组。
-- appNames：app 才填，给应用在 macOS 上的显示名（中英文）；其他 kind 留空数组。
+- aliases：必须是非空数组，包含对象本身的名字和中英文别名，包括常见简称；人名给全名和可能的称呼（如"张三""张总"）。每项只能是一个名字的纯文本，多个名字分成多个数组项，不能把 JSON 数组编码成字符串。每个别名中文至少 2 个字、英文至少 3 个字母。site 和 app 也要给 aliases。
+- domains：site 必须填非空数组，给主域名，不带 www. 和路径；其他 kind 留空数组。
+- appNames：app 必须填非空数组，给应用的显示名（中英文）；其他 kind 留空数组。
 - highlight：person 为 true，其他为 false。
 - variables：person 填 {"name": 全名, "nick": 一个可爱的外号}；外号要符合用户的态度（领导可以叫"猪领导"），不能涉及外貌、智商、家庭、政治、色情；其他 kind 留空对象。
+
+示例（根据对象选择类别，不要照抄示例对象）：
+用户：我喜欢知乎
+{"kind":"site","label":{"zh":"知乎","en":"Zhihu"},"sentiment":"like","note":"用户喜欢知乎，旁白可以鼓励探索。","aliases":["知乎","Zhihu"],"domains":["zhihu.com"],"appNames":[],"highlight":false,"variables":{}}
+用户：我喜欢钉钉
+{"kind":"app","label":{"zh":"钉钉","en":"DingTalk"},"sentiment":"like","note":"用户喜欢钉钉，旁白可以轻松鼓励。","aliases":["钉钉","DingTalk"],"domains":[],"appNames":["钉钉","DingTalk"],"highlight":false,"variables":{}}
+用户：张三是我领导
+{"kind":"person","label":{"zh":"张三","en":"Zhang San"},"sentiment":"neutral","note":"张三是用户的领导。","aliases":["张三","张总","Zhang San"],"domains":[],"appNames":[],"highlight":true,"variables":{"name":"张三","nick":"猪领导"}}
+用户：我讨厌加班
+{"kind":"topic","label":{"zh":"加班","en":"Overtime"},"sentiment":"dislike","note":"用户讨厌加班，旁白可以温柔调侃。","aliases":["加班","overtime"],"domains":[],"appNames":[],"highlight":false,"variables":{}}
 
 只输出 JSON，不要解释。
 
@@ -179,15 +189,25 @@ Screen:
 You are LifeNarrator's rule compiler. The user describes, in one sentence, a thing and how they feel about it. Turn it into JSON.
 
 Rules:
-- kind: websites like Google or Reddit are site; apps like Slack, Xcode or DingTalk are app; a person's name is person; activities like "meetings" or "overtime" are topic. If a name could be both a site and an app (e.g. "Google"), choose site.
+- kind: an explicit website is site; a software application is app; a person's name is person; all other things, physical objects and activities are topic. If a name could be both a site and an app (e.g. "Google"), choose site. Do not classify ordinary objects as websites.
 - label: a short name for the thing, in both zh and en.
 - sentiment: dislike if the user hates / is annoyed by / fears it, like if they like it, neutral if they only state a relationship ("Alice is my boss").
 - note: one sentence on what the thing is, how it relates to the user, and how the narrator should treat it.
-- aliases: strings to look for in on-screen text, in both languages, including common short forms; for a person give the full name and likely forms of address. Each alias must be at least 2 CJK characters or 3 Latin letters. Give aliases for site and app too.
-- domains: site only; main domains without www. or paths; empty array otherwise.
-- appNames: app only; the app's display name on macOS in both languages; empty array otherwise.
+- aliases: a required nonempty array including the thing's own name and aliases in both languages, including common short forms; for a person give the full name and likely forms of address. Each item is plain text for one name; put separate names in separate array items, never encode a JSON array as a string. Each alias must be at least 2 CJK characters or 3 Latin letters. Give aliases for site and app too.
+- domains: required nonempty array for site; main domains without www. or paths; empty array otherwise.
+- appNames: required nonempty array for app; the app's display name in both languages; empty array otherwise.
 - highlight: true for person, false otherwise.
 - variables: for person, {"name": full name, "nick": a cute nickname} that fits the user's attitude (a boss can be "Piggy Boss"); nothing about looks, intelligence, family, politics or sex. Empty object for other kinds.
+
+Examples (choose the kind for the user's object; do not copy the example object):
+User: I like Reddit
+{"kind":"site","label":{"zh":"红迪","en":"Reddit"},"sentiment":"like","note":"The user likes Reddit; encourage exploring.","aliases":["红迪","Reddit"],"domains":["reddit.com"],"appNames":[],"highlight":false,"variables":{}}
+User: I like Xcode
+{"kind":"app","label":{"zh":"Xcode","en":"Xcode"},"sentiment":"like","note":"The user likes Xcode; encourage creating.","aliases":["Xcode"],"domains":[],"appNames":["Xcode"],"highlight":false,"variables":{}}
+User: Alice is my boss
+{"kind":"person","label":{"zh":"爱丽丝","en":"Alice"},"sentiment":"neutral","note":"Alice is the user's boss.","aliases":["爱丽丝","Alice"],"domains":[],"appNames":[],"highlight":true,"variables":{"name":"Alice","nick":"Piggy Boss"}}
+User: I hate overtime
+{"kind":"topic","label":{"zh":"加班","en":"Overtime"},"sentiment":"dislike","note":"The user dislikes overtime; gently tease about it.","aliases":["加班","overtime"],"domains":[],"appNames":[],"highlight":false,"variables":{}}
 
 Output JSON only, no explanation.
 
