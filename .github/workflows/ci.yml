@@ -49,6 +49,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Windows sensor subscription lifecycle checks
+        run: dotnet run --project windows/LifeNarrator.SensorLifecycleTests -c Release
       - uses: actions/cache@v4
         with:
           path: .dev-data/llama
