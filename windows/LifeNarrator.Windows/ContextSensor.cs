@@ -81,9 +81,24 @@ internal sealed class ContextSensor : IDisposable
                 failed("UIA: " + error.Message);
             }
         }
-        if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);
+        UnsubscribeScroll();
         lines.Clear(); tracks.Clear();
         Marshal.ReleaseComObject(automation);
+    }
+
+    void UnsubscribeScroll()
+    {
+        var root = scrollRoot;
+        var handler = scrollEvents;
+        // A vanished provider may reject removal; do not retain it for the next tick or shutdown.
+        scrollRoot = null;
+        scrollEvents = null;
+        if (root == null) return;
+        try { automation.RemovePropertyChangedEventHandler(root, handler!); }
+        catch (Exception error) when (error is COMException or UnauthorizedAccessException)
+        {
+            failed("UIA: " + error.Message);
+        }
     }
 
     void Tick()
@@ -96,8 +111,7 @@ internal sealed class ContextSensor : IDisposable
         {
             window = foreground;
             lines.Clear(); tracks.Clear();
-            if (scrollRoot != null) automation.RemovePropertyChangedEventHandler(scrollRoot, scrollEvents!);
-            scrollRoot = null;
+            UnsubscribeScroll();
             hasTextPattern = false; visualLinesRequested = false;
             emit("windowChanged", new { });
         }
