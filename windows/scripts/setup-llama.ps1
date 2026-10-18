@@ -13,6 +13,8 @@ Expand-Archive "$destination/cpu.zip" "$destination/cpu" -Force
 Expand-Archive "$destination/vulkan.zip" "$destination/vulkan" -Force
 # CPU variants and Vulkan are loaded at runtime, so they are absent from the PE import table.
 Copy-Item "$destination/cpu/llama.dll", "$destination/cpu/ggml.dll", "$destination/cpu/ggml-base.dll", "$destination/cpu/ggml-cpu-*.dll", "$destination/cpu/libomp.dll", "$destination/vulkan/ggml-vulkan.dll" "$destination/bin"
+# The AMX variant killed the process on the first generation on Sapphire Rapids runners; ggml falls back to icelake.
+Remove-Item "$destination/bin/ggml-cpu-sapphirerapids.dll"
 Copy-Item "$destination/cpu/LICENSE-LLVM-OpenMP" "$destination/bin"
 $commit = 'd81235049384534c167caea52b85a694f6103d14'
 Download-Verified "https://raw.githubusercontent.com/ggml-org/llama.cpp/$commit/LICENSE" "$destination/bin/LICENSE-llama" '94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d'
