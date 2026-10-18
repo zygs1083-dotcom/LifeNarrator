@@ -25,6 +25,15 @@ public sealed partial class ShellApp
     }
 
     PixelRect verificationScreen;
+    Task verificationSettingsConfiguration = Task.CompletedTask;
+
+    Task ConfigureForVerification()
+    {
+        var configuration = Configure();
+        // Keep every UI edit's completion and failure, including overlapping edits.
+        verificationSettingsConfiguration = Task.WhenAll(verificationSettingsConfiguration, configuration);
+        return configuration;
+    }
 
     async Task VerifyUI()
     {
@@ -36,8 +45,8 @@ public sealed partial class ShellApp
             await Capture("ui-onboarding");
             var welcome = onboarding;
             for (var index = 0; index < 3; index++) await welcome.Advance();
-            await Task.Delay(300);
             if (!settings.OnboardingCompleted || settingsWindow == null) throw new Exception("Offline onboarding did not finish");
+            VerifyAnnouncement();
             await Stop();
             settings.Provider = new ProviderSettings { Kind = "api" };
             try { await Start(); throw new Exception("Incomplete API draft unexpectedly configured"); }
@@ -50,8 +59,9 @@ public sealed partial class ShellApp
             cat.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             var slider = settingsWindow.GetVisualDescendants().OfType<Slider>().Single(s => AutomationProperties.GetAutomationId(s) == "pace.gap");
             slider.Value = 7;
-            await Task.Delay(250);
-            if (settings.Persona != "cat" || Settings.Load().MarkGap != 7) throw new Exception("Settings edits not persisted");
+            await verificationSettingsConfiguration.WaitAsync(TimeSpan.FromSeconds(30));
+            var persisted = Settings.Load();
+            if (settings.Persona != "cat" || persisted.Persona != "cat" || persisted.MarkGap != 7) throw new Exception("Settings edits not persisted");
             if ((await brain!.Call("ping", new { })).GetProperty("version").GetString() == null) throw new Exception("Brain not alive");
             settings.Provider = new ProviderSettings { Kind = "api", PresetId = "custom-openai", Model = "ci-stub", BaseURL = "http://127.0.0.1:18765/v1" };
             CredentialStore.Write(settings.Provider.PresetId, "ci-fixture-key");
@@ -104,7 +114,7 @@ public sealed partial class ShellApp
             UpdateTray();
             ShowTray(new PixelPoint(screen.X + screen.Width / 2, screen.Y + 100));
             await Capture("ui-tray-menu");
-            Artifact.Write("ui-verification.json", new { installedExecutable = Environment.ProcessPath, onboarding = true, invalidDraftRecovery = true,
+            Artifact.Write("ui-verification.json", new { installedExecutable = Environment.ProcessPath, onboarding = true, announcementDismissed = true, invalidDraftRecovery = true,
                 trayLeftClick = true, trayRightClick = true, trayOutsideDismiss = true,
                 trayOpenedWindows = new[] { "chat", "settings", "rule-input" }, appIcons = true,
                 persistedPersona = settings.Persona, markGap = settings.MarkGap, connectionMilliseconds = elapsed,

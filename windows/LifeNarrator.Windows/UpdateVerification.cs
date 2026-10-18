@@ -11,7 +11,7 @@ public sealed partial class ShellApp
     {
         try
         {
-            VerifyUpdateAnnouncement();
+            VerifyAnnouncement();
             ShowSettings(); settingsWindow!.SelectTab(SettingsWindow.GeneralTab);
             verificationScreen = settingsWindow.Screens.Primary!.Bounds;
             settingsWindow.UpdateLayout();
@@ -46,7 +46,7 @@ public sealed partial class ShellApp
     {
         try
         {
-            VerifyUpdateAnnouncement();
+            VerifyAnnouncement();
             ShowSettings(); settingsWindow!.SelectTab(SettingsWindow.GeneralTab);
             verificationScreen = settingsWindow.Screens.Primary!.Bounds;
             settingsWindow.UpdateLayout();
@@ -66,7 +66,7 @@ public sealed partial class ShellApp
         }
     }
 
-    void VerifyUpdateAnnouncement()
+    void VerifyAnnouncement()
     {
         var announcement = announcements.Window;
         if (announcement == null || !announcement.IsVisible || settings.SeenAnnouncementVersion == AppRelease.CurrentVersion)

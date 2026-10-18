@@ -205,7 +205,7 @@ public sealed partial class ShellApp : Application
         if (onboarding != null && !settings.OnboardingCompleted) { onboarding.Activate(); return; }
         if (settingsWindow == null)
         {
-            settingsWindow = new SettingsWindow(settings, Configure, TestConnection, updater, () => updater.Install(Quit), companion, suspended =>
+            settingsWindow = new SettingsWindow(settings, Program.VerifyUI ? ConfigureForVerification : Configure, TestConnection, updater, () => updater.Install(Quit), companion, suspended =>
             { try { chatHotKey?.Configure(suspended); } catch (Exception failure) { Report(failure.Message); } },
                 OcrLanguages, Quit, announcements.Show);
             settingsWindow.Closed += (_, _) => settingsWindow = null;
