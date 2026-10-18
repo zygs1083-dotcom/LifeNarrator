@@ -1,4 +1,6 @@
 $ErrorActionPreference = 'Stop'
+$version = [regex]::Match((Get-Content Sources/NarratorCore/NarratorCore.swift -Raw), 'version = "([^"]+)"').Groups[1].Value
+if (!$version) { throw 'Core version not found' }
 $data = Join-Path $env:APPDATA 'LifeNarrator'
 New-Item -ItemType Directory -Force $data | Out-Null
 Copy-Item artifacts/brain artifacts/shell/brain -Recurse
@@ -9,6 +11,7 @@ Copy-Item artifacts/brain artifacts/shell/brain -Recurse
     provider = @{ kind = 'api'; presetId = 'custom-openai'; model = 'ci-stub'; baseURL = 'http://127.0.0.1:18765/v1'; structured = 'json_object' }
 } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $data 'settings.json') -Encoding utf8
 Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -73,6 +76,12 @@ function Overlay-Records($path) {
             ForEach-Object { $_.Substring(10) | ConvertFrom-Json }
     }
 }
+function Find-Announcement($processId) {
+    $condition = [System.Windows.Automation.AndCondition]::new(
+        [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ProcessIdProperty, [int]$processId),
+        [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'announcement'))
+    return [System.Windows.Automation.AutomationElement]::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $condition)
+}
 function Probe($name) {
     $probe = Start-Process ./artifacts/shell/LifeNarrator.exe -ArgumentList '--spike', 'follow-probe' -Wait -PassThru -NoNewWindow -RedirectStandardOutput artifacts/e2e-probe.stdout.log -RedirectStandardError artifacts/e2e-probe.stderr.log
     if ($probe.ExitCode -ne 0) { throw "Independent UIA probe failed: $($probe.ExitCode)" }
@@ -131,6 +140,29 @@ try {
     $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'Swift' }) -join ';'
     Remove-Item (Join-Path $data 'said.json'), (Join-Path $data 'brain.log') -ErrorAction SilentlyContinue
     $shell = Start-Process ./artifacts/shell/LifeNarrator.exe -PassThru -RedirectStandardOutput artifacts/shell.stdout.log -RedirectStandardError artifacts/shell.stderr.log
+    # Exercise the real first-launch announcement before collecting the browser marks.
+    Wait-For 'this shell announcement' { $null -ne (Find-Announcement $shell.Id) }
+    $announcement = Find-Announcement $shell.Id
+    $dismissCondition = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'announcement-dismiss')
+    Wait-For 'announcement dismiss button' {
+        $null -ne $announcement.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $dismissCondition)
+    }
+    $dismiss = $announcement.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $dismissCondition)
+    Screenshot 'e2e-announcement.png'
+    ([System.Windows.Automation.InvokePattern]$dismiss.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)).Invoke()
+    Wait-For 'announcement closed and read version persisted' {
+        if ($null -ne (Find-Announcement $shell.Id)) { return $false }
+        # Settings.Save writes in place, so retry if the read overlaps that write.
+        try { $saved = Get-Content (Join-Path $data 'settings.json') -Raw | ConvertFrom-Json }
+        catch { return $false }
+        $saved.seenAnnouncementVersion -eq $version
+    }
+    @{ shellPID = $shell.Id; version = $version; dismissedVia = 'announcement-dismiss'; persisted = $true } |
+        ConvertTo-Json | Set-Content artifacts/e2e-announcement.json
+    if (![E2EWindow]::SetForegroundWindow($window.MainWindowHandle)) { throw 'Cannot foreground Edge fixture after announcement' }
+    [E2EWindow]::SetCursorPos(700, 500) | Out-Null
+    [E2EWindow]::Click()
     Wait-For 'tracked model mark' {
         [E2EWindow]::ActiveMouse()
         @(Overlay-Records artifacts/shell.stderr.log | Where-Object { $_.action -eq 'show' -and $_.trackID -and $_.anchor }).Count -gt 0 -and
