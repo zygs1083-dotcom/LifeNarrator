@@ -1,4 +1,25 @@
 $ErrorActionPreference = 'Stop'
+function Assert-JsonEqual($expected, $actual, [string]$path = '$') {
+    if ($null -eq $expected -or $null -eq $actual) {
+        if ($null -ne $expected -or $null -ne $actual) { throw "Update changed user settings at $path" }
+        return
+    }
+    if ($expected.GetType() -ne $actual.GetType()) { throw "Update changed user settings type at $path" }
+    if ($expected -is [System.Management.Automation.PSCustomObject]) {
+        $names = @($expected.PSObject.Properties | ForEach-Object { $_.Name })
+        $actualNames = @($actual.PSObject.Properties | ForEach-Object { $_.Name })
+        if ($names.Count -ne $actualNames.Count) { throw "Update changed user settings fields at $path" }
+        foreach ($name in $names) {
+            if ($actualNames -cnotcontains $name) { throw "Update removed user setting $path.$name" }
+            Assert-JsonEqual $expected.$name $actual.$name "$path.$name"
+        }
+    } elseif ($expected -is [array]) {
+        if ($expected.Count -ne $actual.Count) { throw "Update changed user settings array at $path" }
+        for ($i = 0; $i -lt $expected.Count; $i++) {
+            Assert-JsonEqual $expected[$i] $actual[$i] "$path[$i]"
+        }
+    } elseif ($expected -cne $actual) { throw "Update changed user settings at $path" }
+}
 $workspace = (Get-Location).Path
 $artifacts = Join-Path $workspace 'artifacts'
 $installed = Join-Path $env:LOCALAPPDATA 'Programs/LifeNarrator'
@@ -12,7 +33,7 @@ $version | Set-Content "$service/releases/latest/download/version.txt" -Encoding
 $server = $null; $app = $null
 $oldPath = $env:PATH
 try {
-    # W1b has no released updater yet; build the installed baseline with an older shell version.
+    # Both fixtures use current source; only the baseline shell version is older.
     & windows/scripts/build-installer.ps1 -Version '0.0.1'
     $setup = Start-Process ./artifacts/LifeNarrator-Setup.exe -ArgumentList "/VERYSILENT /CURRENTUSER /SUPPRESSMSGBOXES /NORESTART /LOG=`"$artifacts/update-baseline-install.log`"" -PassThru -Wait
     if ($setup.ExitCode -ne 0) { throw "Baseline install failed: $($setup.ExitCode)" }
@@ -48,17 +69,28 @@ try {
     }
     $before = Get-Content artifacts/update-before.json -Raw | ConvertFrom-Json
     $after = Get-Content artifacts/update-after.json -Raw | ConvertFrom-Json
-    $settingsHash = (Get-FileHash artifacts/update-settings-before.json).Hash
+    $beforeSettings = Get-Content artifacts/update-settings-before.json -Raw | ConvertFrom-Json -Depth 100
+    $afterSettings = Get-Content artifacts/update-settings-after.json -Raw | ConvertFrom-Json -Depth 100
+    $settingsHash = (Get-FileHash artifacts/update-settings-after.json).Hash
     if ($before.version -ne '0.0.1' -or $after.version -ne $version -or $after.brain.version -ne $version) { throw 'Running version did not advance' }
     if ($after.executable -ne "$installed\LifeNarrator.exe" -or $after.installFailure) { throw 'Updated installed app is unhealthy' }
     if ((Get-FileHash "$installed/LifeNarrator.exe").Hash -eq (Get-FileHash artifacts/shell/LifeNarrator.exe).Hash) { throw 'Installed executable is still the old build' }
     if (Get-Process -Id $before.shellPID, $before.brainPID -ErrorAction SilentlyContinue) { throw 'Old shell or brain survived update' }
-    if ((Get-FileHash artifacts/update-settings-after.json).Hash -ne $settingsHash -or (Get-FileHash "$data/settings.json").Hash -ne $settingsHash) { throw 'Update changed user settings' }
+    if ($beforeSettings.seenAnnouncementVersion -cne '0.0.1' -or $afterSettings.seenAnnouncementVersion -cne $version) { throw 'Announcement read version did not advance with the installed version' }
+    # Only this top-level field may change after dismissing each version's automatic announcement.
+    $beforeSettings.PSObject.Properties.Remove('seenAnnouncementVersion')
+    $afterSettings.PSObject.Properties.Remove('seenAnnouncementVersion')
+    Assert-JsonEqual $beforeSettings $afterSettings
+    $running = Get-Process -Id $after.shellPID -ErrorAction SilentlyContinue
+    if ($running) {
+        if (!$running.WaitForExit(30000)) { throw 'Updated verification app did not exit' }
+        if ($running.ExitCode -ne 0) { throw "Updated verification app failed: $($running.ExitCode)" }
+    }
+    if (Test-Path artifacts/update-failure.json) { throw (Get-Content artifacts/update-failure.json -Raw) }
+    if ((Get-FileHash "$data/settings.json").Hash -ne $settingsHash) { throw 'Settings changed after the updated snapshot' }
     if ((Get-FileHash "$data/memory/update-fixture.json").Hash -ne $memoryHash) { throw 'Update changed memory fixture' }
     $settings = Get-Content "$data/settings.json" -Raw | ConvertFrom-Json
     if ($settings.persona -ne 'cat' -or !$settings.paused -or $settings.markGap -ne 7 -or $settings.launchAtLogin -or !$settings.automaticUpdates) { throw 'User preferences were not preserved' }
-    $running = Get-Process -Id $after.shellPID -ErrorAction SilentlyContinue
-    if ($running -and !$running.WaitForExit(30000)) { throw 'Updated verification app did not exit' }
     $watch.Restart()
     while (!(Get-ChildItem "$data/updates" -Filter update.log -Recurse | Select-String 'Installer exit code: 0')) {
         if ($watch.Elapsed.TotalSeconds -gt 30) { throw 'Installer did not report success' }
@@ -68,6 +100,7 @@ try {
     if (!(Select-String $log.FullName -Pattern 'Installer is unsigned; skipping signer comparison.' -SimpleMatch)) { throw 'Unsigned-installer decision was not logged' }
     @{ from = $before.version; to = $after.version; runningNewBrain = $true; previousProcessesExited = $true
         settingsPreserved = $true; memoryPreserved = $true; installedExecutable = $after.executable
+        announcementReadBefore = $before.version; announcementReadAfter = $after.version
         settingsSHA256 = $settingsHash; memorySHA256 = $memoryHash } | ConvertTo-Json | Set-Content artifacts/update-verification.json
 } finally {
     $env:PATH = $oldPath

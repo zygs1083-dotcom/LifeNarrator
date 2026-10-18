@@ -11,6 +11,7 @@ public sealed partial class ShellApp
     {
         try
         {
+            VerifyUpdateAnnouncement();
             ShowSettings(); settingsWindow!.SelectTab(SettingsWindow.GeneralTab);
             verificationScreen = settingsWindow.Screens.Primary!.Bounds;
             settingsWindow.UpdateLayout();
@@ -45,6 +46,7 @@ public sealed partial class ShellApp
     {
         try
         {
+            VerifyUpdateAnnouncement();
             ShowSettings(); settingsWindow!.SelectTab(SettingsWindow.GeneralTab);
             verificationScreen = settingsWindow.Screens.Primary!.Bounds;
             settingsWindow.UpdateLayout();
@@ -62,6 +64,22 @@ public sealed partial class ShellApp
             Artifact.Write("update-failure.json", new { error = failure.ToString() });
             await QuitWithFailure();
         }
+    }
+
+    void VerifyUpdateAnnouncement()
+    {
+        var announcement = announcements.Window;
+        if (announcement == null || !announcement.IsVisible || settings.SeenAnnouncementVersion == AppRelease.CurrentVersion)
+            throw new Exception("Current version announcement did not automatically appear unread");
+        announcement.UpdateLayout();
+        var dismiss = announcement.GetVisualDescendants().OfType<Button>()
+            .Single(b => AutomationProperties.GetAutomationId(b) == "announcement-dismiss");
+        if (!dismiss.IsVisible || !dismiss.IsEnabled)
+            throw new Exception("Announcement dismiss button is unavailable");
+        dismiss.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if (announcement.IsVisible || announcements.Window != null || settings.SeenAnnouncementVersion != AppRelease.CurrentVersion
+            || Settings.Load().SeenAnnouncementVersion != AppRelease.CurrentVersion)
+            throw new Exception("Announcement dismiss did not close and persist the current version");
     }
 
     async Task QuitWithFailure()
