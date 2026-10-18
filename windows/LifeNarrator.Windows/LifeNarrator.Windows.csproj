@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
     <PackageReference Include="Interop.UIAutomationClient" Version="10.19041.0" />
+    <EmbeddedResource Include="../../Sources/NarratorCore/Resources/announcement.json" LogicalName="LifeNarrator.announcement.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/quips.json" LogicalName="LifeNarrator.quips.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/models.json" LogicalName="LifeNarrator.models.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/providers.json" LogicalName="LifeNarrator.providers.json" />

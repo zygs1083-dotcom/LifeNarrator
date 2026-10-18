@@ -44,6 +44,7 @@ public final class AppStore: ObservableObject {
     private var shortcutTasks: [Task<Void, Never>] = []
     private var onboardingWindow: NSWindow?
     private var settingsWindow: NSWindow?
+    private var announcementWindow: AnnouncementWindow?
     private var chatPanel: ChatPanelController?
     private var inputPanel: InputPanelController?
     private var engine: NarratorEngine?
@@ -100,13 +101,42 @@ public final class AppStore: ObservableObject {
             NSApplication.shared.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
         } else {
+            showAnnouncementIfNeeded()
             startEngine()
         }
     }
 
     public func closeOnboarding() {
         onboardingWindow!.close()
+        showAnnouncementIfNeeded()
         startEngine()
+    }
+
+    private func showAnnouncementIfNeeded() {
+        if UpdateAnnouncement.shouldShow(onboardingCompleted: settings.onboardingCompleted,
+                                         seenVersion: settings.seenAnnouncementVersion) { showAnnouncement() }
+    }
+
+    func showAnnouncement() {
+        guard settings.onboardingCompleted else { return }
+        perform {
+            let announcement = try UpdateAnnouncement.load()
+            if announcementWindow == nil {
+                let window = AnnouncementWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 460),
+                    styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.minSize = NSSize(width: 320, height: 260)
+                window.onClose = { [weak self] in self?.settings.seenAnnouncementVersion = NarratorCore.version }
+                window.contentView = NSHostingView(rootView: AnnouncementView(store: self, announcement: announcement,
+                    dismiss: { [weak window] in window?.close() }))
+                window.center()
+                announcementWindow = window
+            }
+            let window = announcementWindow!
+            window.title = announcement.title.value(settings.language.lang)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+        }
     }
 
     private func startEngine() {

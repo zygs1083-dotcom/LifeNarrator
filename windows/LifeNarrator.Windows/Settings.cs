@@ -15,6 +15,7 @@ internal sealed class Settings
     public string Persona { get; set; } = "gentle";
     public string Lang { get; set; } = "zh";
     public string Language { get; set; } = "system";
+    public string? SeenAnnouncementVersion { get; set; }
     public bool OnboardingCompleted { get; set; }
     public bool LaunchAtLogin { get; set; } = true;
     public bool AutomaticUpdates { get; set; } = true;

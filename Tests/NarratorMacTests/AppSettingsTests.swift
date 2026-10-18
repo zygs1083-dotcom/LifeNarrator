@@ -4,6 +4,20 @@ import NarratorCore
 import XCTest
 
 final class AppSettingsTests: XCTestCase {
+    func testAnnouncementLegacySettingsAndPersistence() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try! FileManager.default.removeItem(at: root) }
+        let directory = try AppDataDirectory(environment: ["LIFENARRATOR_DATA_DIR": root.path])
+        var settings = AppSettings()
+        var legacy = try JSONSerialization.jsonObject(with: JSONEncoder().encode(settings)) as! [String: Any]
+        legacy.removeValue(forKey: "seenAnnouncementVersion")
+        try JSONSerialization.data(withJSONObject: legacy).write(to: directory.settings)
+        XCTAssertNil(try directory.loadSettings().seenAnnouncementVersion)
+        settings.seenAnnouncementVersion = NarratorCore.version
+        try directory.saveSettings(settings)
+        XCTAssertEqual(try directory.loadSettings().seenAnnouncementVersion, NarratorCore.version)
+    }
+
     @MainActor
     func testAPIClientErrorsShareOneAlertExceptRateLimits() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

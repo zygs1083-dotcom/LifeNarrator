@@ -19,6 +19,7 @@ internal sealed class SettingsWindow : Window
     readonly Func<Task> installUpdate;
     readonly Action<bool>? recording;
     readonly Func<Task>? quit;
+    readonly Action? showAnnouncement;
     readonly Func<Task<string[]>>? ocrLanguages;
     StackPanel updateContent = new() { Spacing = 10 };
     readonly DockPanel root = new();
@@ -28,8 +29,9 @@ internal sealed class SettingsWindow : Window
     public const int SpriteTab = 0, AppearanceTab = 1, MemoryTab = 2, RulesTab = 3, ModelsTab = 4, GeneralTab = 5;
 
     public SettingsWindow(Settings settings, Func<Task> configure, Func<Task<double>> testConnection, Updater updater, Func<Task> installUpdate,
-        Companion? companion = null, Action<bool>? recording = null, Func<Task<string[]>>? ocrLanguages = null, Func<Task>? quit = null)
+        Companion? companion = null, Action<bool>? recording = null, Func<Task<string[]>>? ocrLanguages = null, Func<Task>? quit = null, Action? showAnnouncement = null)
     {
+        this.showAnnouncement = showAnnouncement;
         this.companion = companion; this.recording = recording; this.ocrLanguages = ocrLanguages; this.quit = quit;
         if (companion != null) { companion.Changed += Refresh; Closed += (_, _) => companion.Changed -= Refresh; }
         this.settings = settings; this.configure = configure; this.testConnection = testConnection;
@@ -175,6 +177,8 @@ internal sealed class SettingsWindow : Window
     {
         updateContent.Children.Clear();
         updateContent.Children.Add(Views.Horizontal(Views.Label(text["version"]), Views.Label(AppRelease.CurrentVersion)));
+        var notes = Views.Button(UpdateAnnouncement.Load().Title.Text(settings.EffectiveLanguage), () => showAnnouncement?.Invoke());
+        AutomationProperties.SetAutomationId(notes, "updates-announcement"); updateContent.Children.Add(notes);
         updateContent.Children.Add(Views.Toggle(text["updates.automatic"], settings.AutomaticUpdates, enabled => Run(async () =>
         { settings.AutomaticUpdates = enabled; updater.Configure(enabled); await configure(); })));
         var message = updater.State switch

@@ -9,6 +9,8 @@ struct UpdateSettingsView: View {
     var body: some View {
         GroupBox {
             LabeledContent(store.text("version"), value: NarratorCore.version)
+            Button(store.settings.language.lang == .zh ? "更新公告" : "What is new") { store.showAnnouncement() }
+                .buttonStyle(AppTheme.CapsuleButton(hue: hue, filled: false))
             Toggle(store.text("updates.automatic"), isOn: $store.settings.automaticUpdates)
             switch updater.state {
             case .idle: EmptyView()

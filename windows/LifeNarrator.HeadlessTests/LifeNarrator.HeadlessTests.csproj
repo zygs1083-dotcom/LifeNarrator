@@ -20,6 +20,7 @@
     <Compile Include="../LifeNarrator.Windows/Updates.cs" Link="Updates.cs" />
     <Compile Include="../LifeNarrator.Windows/Updater.cs" Link="Updater.cs" />
     <Compile Include="../LifeNarrator.Windows/UpdateSignature.cs" Link="UpdateSignature.cs" />
+    <Compile Include="../LifeNarrator.Windows/AnnouncementWindow.cs" Link="AnnouncementWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/Settings.cs" Link="Settings.cs" />
     <Compile Include="../LifeNarrator.Windows/AppIcons.cs" Link="AppIcons.cs" />
     <Compile Include="../LifeNarrator.Windows/AppTheme.cs" Link="AppTheme.cs" />
@@ -42,6 +43,7 @@
     <Compile Include="../LifeNarrator.Windows/OnboardingWindow.cs" Link="OnboardingWindow.cs" />
     <Compile Include="../LifeNarrator.Windows/Startup.cs" Link="Startup.cs" />
     <AvaloniaResource Include="../LifeNarrator.Windows/AppTheme.axaml" Link="AppTheme.axaml" />
+    <EmbeddedResource Include="../../Sources/NarratorCore/Resources/announcement.json" LogicalName="LifeNarrator.announcement.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/quips.json" LogicalName="LifeNarrator.quips.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/models.json" LogicalName="LifeNarrator.models.json" />
     <EmbeddedResource Include="../../Sources/NarratorCore/Resources/providers.json" LogicalName="LifeNarrator.providers.json" />

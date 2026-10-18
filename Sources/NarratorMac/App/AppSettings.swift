@@ -58,15 +58,17 @@ public struct AppSettings: Codable {
     public var chatShortcut: KeyboardShortcuts.Shortcut? = .init(.space, modifiers: [.option, .shift])
     public var pauseShortcut: KeyboardShortcuts.Shortcut? = .init(.p, modifiers: [.option, .shift])
     public var automaticUpdates = true
+    public var seenAnnouncementVersion: String?
     public var onboardingCompleted = false
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case spriteName, chatShortcut, memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
+        case seenAnnouncementVersion, spriteName, chatShortcut, memoryEnabled, builtinModel, language, persona, bubbleStyle, paused, blacklist, disabledBuiltinIds, provider, generationAPI, systemOne, inputShortcut, pauseShortcut, onboardingCompleted, liveliness, markGap, automaticUpdates
     }
 
     public func encode(to encoder: any Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(seenAnnouncementVersion, forKey: .seenAnnouncementVersion)
         try c.encode(language, forKey: .language)
         try c.encode(persona, forKey: .persona)
         try c.encode(bubbleStyle, forKey: .bubbleStyle)
@@ -91,6 +93,7 @@ public struct AppSettings: Codable {
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         if c.contains(.chatShortcut) { chatShortcut = try c.decodeIfPresent(KeyboardShortcuts.Shortcut.self, forKey: .chatShortcut) }
+        seenAnnouncementVersion = try c.decodeIfPresent(String.self, forKey: .seenAnnouncementVersion)
         memoryEnabled = try c.decodeIfPresent(Bool.self, forKey: .memoryEnabled) ?? true
         spriteName = try c.decodeIfPresent(String.self, forKey: .spriteName) ?? ""
         automaticUpdates = try c.decodeIfPresent(Bool.self, forKey: .automaticUpdates) ?? true

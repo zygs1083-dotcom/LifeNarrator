@@ -1,0 +1,32 @@
+{
+  "title": {
+    "zh": "更新公告",
+    "en": "What is new"
+  },
+  "intro": {
+    "zh": "本次版本更新带来更稳定、流畅的陪伴。公告也可以随时在设置的更新区域查看。",
+    "en": "This update makes your companion more stable and responsive. You can revisit these notes anytime in Settings under Updates."
+  },
+  "items": [
+    {
+      "zh": "修复 Windows 切换或关闭窗口时可能出现的闪退。",
+      "en": "Fixed Windows crashes when switching or closing windows."
+    },
+    {
+      "zh": "静止气泡减少重复重绘，让陪伴更轻盈。",
+      "en": "Stationary bubbles redraw less often for a lighter experience."
+    },
+    {
+      "zh": "内置规则先识别对象再分类，改善英文软件识别。",
+      "en": "Built-in rules identify the subject before classifying it, with better recognition of English app names."
+    },
+    {
+      "zh": "规则说明不再被过短上限截断，英文匹配词也更准确。",
+      "en": "Rule descriptions are no longer cut short, and English matching terms are more accurate."
+    }
+  ],
+  "dismiss": {
+    "zh": "知道了",
+    "en": "Got it"
+  }
+}

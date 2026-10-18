@@ -25,6 +25,7 @@ public sealed partial class ShellApp : Application
     ChatHotKey? chatHotKey;
     Companion companion = null!;
     OnboardingWindow? onboarding;
+    AnnouncementPresenter announcements = null!;
     readonly SemaphoreSlim configurationGate = new(1);
     Texts text = null!;
     Updater updater = null!;
@@ -40,6 +41,7 @@ public sealed partial class ShellApp : Application
         desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         settings = await Task.Run(Settings.Load);
         text = new Texts(settings);
+        announcements = new AnnouncementPresenter(settings, settings.Save, Report);
         companion = new Companion((method, parameters) => brain!.Call(method, parameters));
         companion.Changed += UpdateTray;
         updater = new Updater(Program.VerifyUpdate ? new Uri(Environment.GetEnvironmentVariable("LIFENARRATOR_UPDATE_RELEASES")!) : null);
@@ -57,9 +59,10 @@ public sealed partial class ShellApp : Application
                 if (!settings.OnboardingCompleted)
                 {
                     onboarding = new OnboardingWindow(settings, Configure, TestConnection, ShowSettings, OcrLanguages);
-                    onboarding.Closed += (_, _) => onboarding = null;
+                    onboarding.Closed += (_, _) => { onboarding = null; announcements.ShowIfNeeded(); };
                     onboarding.Show();
                 }
+                else announcements.ShowIfNeeded();
                 if (Program.VerifyUI) await VerifyUI();
                 if (Program.VerifyCompanion) await VerifyCompanion();
                 if (Program.VerifyUpdate) await VerifyUpdate();
@@ -204,7 +207,7 @@ public sealed partial class ShellApp : Application
         {
             settingsWindow = new SettingsWindow(settings, Configure, TestConnection, updater, () => updater.Install(Quit), companion, suspended =>
             { try { chatHotKey?.Configure(suspended); } catch (Exception failure) { Report(failure.Message); } },
-                OcrLanguages, Quit);
+                OcrLanguages, Quit, announcements.Show);
             settingsWindow.Closed += (_, _) => settingsWindow = null;
         }
         settingsWindow.Refresh(); settingsWindow.Show(); settingsWindow.Activate();

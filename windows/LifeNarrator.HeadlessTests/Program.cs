@@ -6,6 +6,12 @@ using Avalonia.Headless;
 using Avalonia.Media;
 using LifeNarrator.Windows;
 
+if (args.SequenceEqual(new[] { "--announcements-only" }))
+{
+    AppBuilder.Configure<Application>().UseSkia()
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).SetupWithoutStarting();
+    Application.Current!.Styles.Add(new AppTheme()); AnnouncementChecks.Run(); return;
+}
 if (args.SequenceEqual(new[] { "--updates-only" })) { UpdateChecks.Run().GetAwaiter().GetResult(); return; }
 if (args.SequenceEqual(new[] { "--builtin-batch-only" })) { BuiltinModelBatchChecks.Run().GetAwaiter().GetResult(); return; }
 BuiltinModelBatchChecks.Run().GetAwaiter().GetResult();
@@ -67,6 +73,7 @@ Console.WriteLine("PASS: text and rounded production bubbles rendered; negative-
 
 BubbleChecks.Run();
 
+AnnouncementChecks.Run();
 UIChecks.Run();
 SettingsSnapshots.Run();
 SettingsInteractionChecks.Run();
