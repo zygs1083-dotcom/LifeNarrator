@@ -4,25 +4,25 @@
     "en": "What is new"
   },
   "intro": {
-    "zh": "本次版本更新带来更稳定、流畅的陪伴。公告也可以随时在设置的更新区域查看。",
-    "en": "This update makes your companion more stable and responsive. You can revisit these notes anytime in Settings under Updates."
+    "zh": "本次新增应用内更新公告，并包含最近的稳定性与规则改进。",
+    "en": "This release adds in-app update notes and includes recent stability and rule improvements."
   },
   "items": [
     {
-      "zh": "修复 Windows 切换或关闭窗口时可能出现的闪退。",
-      "en": "Fixed Windows crashes when switching or closing windows."
+      "zh": "新增应用内更新公告：升级后首次展示，也可随时在设置的更新区域重看。",
+      "en": "New in-app update notes appear the first time after an upgrade and can be revisited anytime in Settings under Updates."
     },
     {
-      "zh": "静止气泡减少重复重绘，让陪伴更轻盈。",
-      "en": "Stationary bubbles redraw less often for a lighter experience."
+      "zh": "修复一种已确认的 Windows 切换或关闭窗口时闪退的问题。",
+      "en": "Fixed one confirmed Windows crash that could occur when switching or closing windows."
     },
     {
-      "zh": "内置规则先识别对象再分类，改善英文软件识别。",
-      "en": "Built-in rules identify the subject before classifying it, with better recognition of English app names."
+      "zh": "减少 Windows 静止气泡的重复绘制，让陪伴更轻盈。",
+      "en": "Reduced repeated drawing of stationary bubbles on Windows for a lighter experience."
     },
     {
-      "zh": "规则说明不再被过短上限截断，英文匹配词也更准确。",
-      "en": "Rule descriptions are no longer cut short, and English matching terms are more accurate."
+      "zh": "改善内置规则的分类与英文匹配词，并保留完整的规则说明。",
+      "en": "Improved built-in rule categories and English matching terms while preserving complete rule descriptions."
     }
   ],
   "dismiss": {

@@ -13,6 +13,9 @@ public final class AppStore: ObservableObject {
             if oldValue.language != settings.language {
                 onboardingWindow?.title = text("app.name")
                 settingsWindow?.title = text("app.name")
+                if let window = announcementWindow {
+                    perform { window.title = try UpdateAnnouncement.load().title.value(settings.language.lang) }
+                }
             }
             if oldValue.inputShortcut != settings.inputShortcut || oldValue.pauseShortcut != settings.pauseShortcut || oldValue.chatShortcut != settings.chatShortcut {
                 registerShortcuts()

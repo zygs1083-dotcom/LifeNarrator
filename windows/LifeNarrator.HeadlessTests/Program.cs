@@ -73,8 +73,8 @@ Console.WriteLine("PASS: text and rounded production bubbles rendered; negative-
 
 BubbleChecks.Run();
 
-AnnouncementChecks.Run();
 UIChecks.Run();
+AnnouncementChecks.Run();
 SettingsSnapshots.Run();
 SettingsInteractionChecks.Run();
 ModelApiChecks.Run();

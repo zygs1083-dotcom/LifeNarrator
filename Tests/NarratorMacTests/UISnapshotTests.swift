@@ -46,6 +46,17 @@ final class UISnapshotTests: XCTestCase {
                 }
             }
         }
+        let announcement = try UpdateAnnouncement.load()
+        for language in [InterfaceLanguage.zhHans, .en] {
+            store.settings.language = language
+            for dark in [false, true] {
+                let view = AnnouncementView(store: store, announcement: announcement, dismiss: {})
+                    .frame(width: 520, height: 460)
+                try render(view, dark: dark, size: NSSize(width: 520, height: 460))
+                    .write(to: directory.appendingPathComponent("ui-announcement-\(language == .zhHans ? "zh" : "en")-\(dark ? "dark" : "light").png"))
+            }
+        }
+        store.settings.language = .zhHans
         var custom = PersonaCatalog.builtin[.teacher]
         custom.id = Persona(rawValue: "custom.snapshot")
         custom.name = .init(zh: "东北大哥", en: "Big Brother")

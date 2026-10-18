@@ -32,6 +32,7 @@ jobs:
             artifacts/bubble-*.png
             artifacts/ui-headless-*.png
             artifacts/settings/
+            artifacts/announcements/
             artifacts/rest/
             artifacts/download-responsiveness/*.log
             artifacts/model-download-test/*.log
