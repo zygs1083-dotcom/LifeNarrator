@@ -204,3 +204,35 @@ private let validMarksJSON = #"{"marks":[{"l":0,"q":"first phrase","t":"第一�
     #expect(marks.first?.quip.text.count == 26)
     #expect(marks.first?.quip.persona == profile.id)
 }
+
+private final class RejectionRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [String] = []
+    func append(_ reason: String, _ line: Int) { lock.withLock { values.append("\(reason):\(line)") } }
+    var reasons: [String] { lock.withLock { values } }
+}
+
+@Test func spriteGenerationReportsFirstRejectionOncePerRawMark() async throws {
+    let snapshot = generationSnapshot(["first phrase", "second phrase"])
+    let json = #"{"marks":[{"l":99,"q":"x","t":"","e":""},{"l":0,"q":"x","t":"valid","e":"🌷"},{"l":0,"q":"first phrase","t":"valid🌷","e":"🌷🌷"},{"l":0,"q":"first phrase","t":"valid","e":"🌷🌷"},{"l":0,"q":"missing phrase","t":"valid","e":"🌷"},{"l":0,"q":"first phrase","t":"valid","e":"🌷"}]}"#
+    for streaming in [false, true] {
+        let recorder = RejectionRecorder()
+        let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
+            app: "Fixture", title: "", exclude: [], persona: .sharp, lang: .en, k: 3,
+            generator: SpriteStub(response: json, stream: streaming), isRepeat: { _ in false },
+            onReject: { recorder.append($0, $1) }, onMark: { _ in })
+        #expect(marks.count == 1)
+        #expect(recorder.reasons == ["line:99", "quote-length:0", "text:0", "emoji:0", "locate:0"])
+    }
+}
+
+@Test func spriteGenerationReportsRepeatWithoutRejectingFollowingMark() async throws {
+    let snapshot = generationSnapshot(["first phrase", "second phrase"])
+    let recorder = RejectionRecorder()
+    let marks = try await SpriteGenerator.generate(screen: SpritePrompt.screen(in: snapshot), snapshot: snapshot,
+        app: "Fixture", title: "", exclude: [], persona: .sharp, lang: .en, k: 1,
+        generator: SpriteStub(response: #"{"marks":[{"l":0,"q":"first phrase","t":"old","e":"🌷"},{"l":1,"q":"second phrase","t":"new","e":"🌷"}]}"#),
+        isRepeat: { $0 == "old" }, onReject: { recorder.append($0, $1) }, onMark: { _ in })
+    #expect(marks.map(\.quip.text) == ["new"])
+    #expect(recorder.reasons == ["repeat:0"])
+}

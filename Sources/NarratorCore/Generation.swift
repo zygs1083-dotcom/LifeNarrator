@@ -160,6 +160,7 @@ public enum SpriteGenerator {
                                 exclude: [String], persona: Persona, lang: Lang, k: Int, recent: [String] = [],
                                 generator: any TextGenerator, catalog: PersonaCatalog = .builtin, memoryContext: String = "", vision: Bool = false,
                                 isRepeat: @escaping @Sendable (String) -> Bool,
+                                onReject: @escaping @Sendable (String, Int) -> Void = { _, _ in },
                                 onMark: @escaping @Sendable (SpriteMark) -> Void) async throws -> [SpriteMark] {
         final class State: @unchecked Sendable {
             let lock = NSLock()
@@ -178,25 +179,26 @@ public enum SpriteGenerator {
                 do {
                     var accepted: [SpriteMark] = []
                     for raw in try state.stream.feed(partial) {
-                        guard screen.lines.indices.contains(raw.l), (2...32).contains(raw.q.count) else { continue }
+                        guard screen.lines.indices.contains(raw.l) else { onReject("line", raw.l); continue }
+                        guard (2...32).contains(raw.q.count) else { onReject("quote-length", raw.l); continue }
                         var text = raw.t.trimmingCharacters(in: .whitespacesAndNewlines)
                         while let last = text.last, "，,、；;：:".contains(last) { text.removeLast() }
                         guard !text.isEmpty, text.count <= (lang == .zh ? limit.zh : limit.en),
-                              !text.contains(where: QuipValidator.isEmoji), raw.e.count == 1,
-                              QuipValidator.isEmoji(raw.e.first!),
-                              text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil,
-                              let hit = SpriteLocator.locate(quote: raw.q, lineHint: raw.l, in: lines) else { continue }
+                              !text.contains(where: QuipValidator.isEmoji) else { onReject("text", raw.l); continue }
+                        guard raw.e.count == 1, QuipValidator.isEmoji(raw.e.first!) else { onReject("emoji", raw.l); continue }
+                        guard text.range(of: "\\{[^{}]*\\}", options: .regularExpression) == nil else { onReject("text", raw.l); continue }
+                        guard let hit = SpriteLocator.locate(quote: raw.q, lineHint: raw.l, in: lines) else { onReject("locate", raw.l); continue }
                         let lineIndex = screen.lines[hit.lineIndex].lineIndex
                         let line = snapshot.textLines[lineIndex]
                         let rect = RuleMatcher.estimatedRect(for: line, range: hit.range)
-                        guard !snapshot.sensitiveRects.contains(where: { $0.insetBy(dx: -60, dy: -60).intersects(rect) }),
-                              !SpritePrompt.privacyRanges(in: line.text).contains(where: { $0.overlaps(hit.range) }),
-                              !SpriteLocator.conflicts(.init(lineIndex: lineIndex, rect: rect), with: state.marks.map {
+                        guard !snapshot.sensitiveRects.contains(where: { $0.insetBy(dx: -60, dy: -60).intersects(rect) }) else { onReject("sensitive", raw.l); continue }
+                        guard !SpritePrompt.privacyRanges(in: line.text).contains(where: { $0.overlaps(hit.range) }) else { onReject("privacy", raw.l); continue }
+                        guard !SpriteLocator.conflicts(.init(lineIndex: lineIndex, rect: rect), with: state.marks.map {
                                   .init(lineIndex: $0.lineIndex, rect: RuleMatcher.estimatedRect(for: snapshot.textLines[$0.lineIndex], range: $0.range))
-                              }),
-                              state.marks.count < k else { continue }
+                              }) else { onReject("conflict", raw.l); continue }
+                        guard state.marks.count < k else { onReject("limit", raw.l); continue }
                         let now = Date()
-                        guard !isRepeat(text), !state.said.isRepeat(text, now: now) else { continue }
+                        guard !isRepeat(text), !state.said.isRepeat(text, now: now) else { onReject("repeat", raw.l); continue }
                         state.said.record(text, now: now)
                         let mark = SpriteMark(lineIndex: lineIndex, range: hit.range, quote: String(line.text[hit.range]),
                                               quip: Quip(lang: lang, persona: persona, text: text, emoji: [raw.e]))

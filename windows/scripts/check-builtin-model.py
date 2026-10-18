@@ -1,4 +1,4 @@
-"""Run one real builtin batch over RPC using only the packaged runtime."""
+"""Check real builtin generation over RPC using at most three screen batches."""
 import json
 import os
 from pathlib import Path
@@ -60,18 +60,49 @@ settings = dict(liveliness='lively', markGap=0, paused=False, blacklist=[], pers
                 lang='en', disabledBuiltinIds=[rule['id'] for rule in builtin['rules']], maxOnScreen=8, ownProcessID=999, memoryEnabled=False)
 call(1, 'configure', dict(settings=settings, rules=[], customPersonas=[persona],
                          generator=dict(kind='builtin', modelPath=str(model.resolve())), dataDirectory=str(directory)))
+
+
+# Screen keys include normalized body lines, so retries change the last line.
+def snapshot(batch):
+    call(batch + 1, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Shop', pid=1,
+         windowTitle='Noise Cancelling Headphones Pro 2', windowFrame=frame, contentFrame=frame, screenIndex=0,
+         textLines=[dict(text=f'{text} [batch {batch}]' if batch > 1 and index == len(texts) - 1 else text,
+                         rect={**line, 'y': 100 + index * 24}, role='text') for index, text in enumerate(texts)],
+         textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
+         capturedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())), windowID=7,
+         change=dict(appChanged=batch == 1, windowChanged=batch == 1, hostChanged=batch == 1)))
+
+
+def diagnostics():
+    return ''.join(line for line in logs if line.startswith(('[sprite] model request ', '[sprite] model mark rejected ')))
+
+
 started = time.monotonic()
 shown = []
 transcript = []
+batches = []
+attempt = 1
+batch = None
 try:
     while True:
-        kind, value = events.get(timeout=max(0.01, 180 - (time.monotonic() - started)))
+        try:
+            kind, value = events.get(timeout=max(0.01, 180 - (time.monotonic() - started)))
+        except queue.Empty:
+            raise RuntimeError('Timed out waiting for builtin model overlay:\n' + diagnostics()) from None
         if kind == 'eof':
             raise RuntimeError('Brain exited before completing model generation')
         if kind == 'batch':
-            match = re.search(r'first=(\d+) total=(\d+) marks=(\d+) located=(\d+) reason=(\S+)', value)
-            if not match or match[5] != 'ok' or int(match[4]) < 1:
-                raise RuntimeError('No located model marks: ' + value)
+            batches.append(value.rstrip())
+            match = re.search(r'first=(-?\d+) total=(\d+) marks=(\d+) located=(\d+) reason=(\S+)', value)
+            if not match or match[5] != 'ok':
+                raise RuntimeError('Builtin model batch failed:\n' + diagnostics())
+            if int(match[4]) == 0:
+                if attempt == 3:
+                    raise RuntimeError('Builtin model completed 3 batches without an overlay:\n' + diagnostics())
+                attempt += 1
+                print(f'RETRY builtin batch {attempt}/3: {value.rstrip()}', flush=True)
+                snapshot(attempt)
+                continue
             if not shown:
                 # Model completion can precede the final overlay RPCs.
                 batch = match
@@ -83,13 +114,7 @@ try:
             if 'error' in value:
                 raise RuntimeError(str(value))
             if value['id'] == 1:
-                call(2, 'snapshot', dict(snapshot=dict(bundleId='builtin.fixture', appName='Shop', pid=1,
-                     windowTitle='Noise Cancelling Headphones Pro 2', windowFrame=frame, contentFrame=frame, screenIndex=0,
-                     textLines=[dict(text=text, rect={**line, 'y': 100 + index * 24}, role='text')
-                                for index, text in enumerate(texts)],
-                     textSource='ax', sensitiveRects=[], secureFocused=False, fullScreen=False,
-                     capturedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())), windowID=7,
-                     change=dict(appChanged=True, windowChanged=True, hostChanged=True)))
+                snapshot(1)
             continue
         method, params = value['method'], value['params']
         if method == 'host.stateChanged':
@@ -127,13 +152,13 @@ try:
         else:
             raise RuntimeError('Unexpected port: ' + method)
         send({'id': value['id'], 'result': result})
-        if shown and 'batch' in locals():
+        if shown and batch is not None:
             break
     process.stdin.close()
     if process.wait(timeout=30) != 0:
         raise RuntimeError('Nonzero exit after EOF')
     metrics = dict(firstMs=int(batch[1]), totalMs=int(batch[2]), marks=int(batch[3]),
-                   located=int(batch[4]), shown=shown, exitCode=process.returncode)
+                   located=int(batch[4]), batches=batches, shown=shown, exitCode=process.returncode)
     (directory / 'result.json').write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding='utf-8')
     print('PASS builtin RPC: ' + json.dumps(metrics))
 finally:

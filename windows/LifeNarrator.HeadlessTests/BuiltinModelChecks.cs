@@ -11,10 +11,13 @@ using LifeNarrator.Windows;
 
 internal static class BuiltinModelChecks
 {
-    internal static async Task<JsonElement> WaitForOverlay(Task<JsonElement> shown, Task<string> failed, Func<string> readStderr)
+    internal static async Task<JsonElement> WaitForOverlay(Task<JsonElement> shown, Task<string> failed, Func<string> readStderr,
+        Func<int, Task> snapshot, TextWriter log)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(180));
-        string? lastBatch = null;
+        var diagnostics = new List<string>();
+        var consumedLines = 0;
+        var batch = 1;
         try
         {
             while (true)
@@ -25,17 +28,24 @@ internal static class BuiltinModelChecks
                 var stderr = readStderr();
                 // Ignore a partially flushed final line until its newline arrives.
                 var lines = stderr.Split('\n');
-                foreach (var line in lines.Take(lines.Length - 1))
+                while (consumedLines < lines.Length - 1)
                 {
+                    var line = lines[consumedLines++].TrimEnd('\r');
+                    if (line.StartsWith("[sprite] model mark rejected ", StringComparison.Ordinal)) diagnostics.Add(line);
                     if (!line.StartsWith("[sprite] model request ", StringComparison.Ordinal)) continue;
-                    lastBatch = line.TrimEnd('\r');
-                    var fields = lastBatch.Split(' ').Select(field => field.Split('=', 2))
+                    diagnostics.Add(line);
+                    var fields = line.Split(' ').Select(field => field.Split('=', 2))
                         .Where(field => field.Length == 2).ToDictionary(field => field[0], field => field[1]);
                     if (!fields.TryGetValue("reason", out var reason) || reason == "cancelled") continue;
-                    if (reason != "ok" || fields.TryGetValue("located", out var located) && located == "0")
+                    if (shown.IsCompleted) return await shown;
+                    if (reason != "ok")
+                        throw new Exception("Builtin model batch failed:\n" + string.Join("\n", diagnostics));
+                    if (fields.TryGetValue("located", out var located) && located == "0")
                     {
-                        if (shown.IsCompleted) return await shown;
-                        throw new Exception("Builtin model batch completed without an overlay: " + lastBatch);
+                        if (batch == 3)
+                            throw new Exception("Builtin model completed 3 batches without an overlay:\n" + string.Join("\n", diagnostics));
+                        log.WriteLine($"RETRY builtin batch {++batch}/3: {line}");
+                        await snapshot(batch);
                     }
                 }
                 timeout.Token.ThrowIfCancellationRequested();
@@ -44,7 +54,7 @@ internal static class BuiltinModelChecks
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
-            throw new TimeoutException("Timed out waiting for builtin model overlay; last batch: " + (lastBatch ?? "none"));
+            throw new TimeoutException("Timed out waiting for builtin model overlay; batches and rejections:\n" + string.Join("\n", diagnostics));
         }
     }
 
@@ -143,13 +153,16 @@ internal static class BuiltinModelChecks
         using (var screenshot = window.CaptureRenderedFrame() ?? throw new Exception("No builtin UI pixels"))
             screenshot.Save("artifacts/ui-headless-model-real-builtin.png");
         var frame = new Box(0, 0, 1000, 800);
-        await brain.Call("snapshot", new
+        // Screen keys include normalized body lines, so retries change the last line.
+        Task Snapshot(int batch) => brain.Call("snapshot", new
         {
             snapshot = new Snapshot("builtin.fixture", "Shop", 1, "Noise Cancelling Headphones Pro 2", null, null, frame, frame, 0,
-                texts.Select((t, i) => new TextLine(t, rect with { Y = 100 + i * 24 }, "text")).ToArray(),
+                texts.Select((t, i) => new TextLine(batch > 1 && i == texts.Length - 1 ? $"{t} [batch {batch}]" : t,
+                    rect with { Y = 100 + i * 24 }, "text")).ToArray(),
                 "ax", [], false, false, DateTimeOffset.UtcNow),
-            windowID = 7, change = new { appChanged = true, windowChanged = true, hostChanged = true }
+            windowID = 7, change = new { appChanged = batch == 1, windowChanged = batch == 1, hostChanged = batch == 1 }
         });
+        await Snapshot(1);
         var companion = new Companion((method, parameters) => brain.Call(method, parameters));
         using var updater = new Updater();
         var settingsWindow = new SettingsWindow(settings, Configure, () => Task.FromResult(0d), updater, () => Task.CompletedTask, companion);
@@ -172,7 +185,7 @@ internal static class BuiltinModelChecks
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new StreamReader(stream);
             return reader.ReadToEnd();
-        });
+        }, Snapshot, log);
         File.WriteAllText(Path.Combine(directory, "mark.json"), narrationResult.ToString());
         log.WriteLine("PASS real GGUF: UI builtin selection -> configure -> anchored sprite-model mark: " + narrationResult);
         // Reconfiguration must release the loaded model before deleting its file on Windows.

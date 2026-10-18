@@ -972,6 +972,7 @@ public final class SpriteBrain {
             } catch { await report(error) }
         }
         let said = said
+        let debug = debug
         var reason = "ok"
         var imageBytes = 0
         do {
@@ -993,7 +994,11 @@ public final class SpriteBrain {
                         Task { @MainActor in
                             self.log(request.snapshot, .mark, pick: index, source: "model", shown: false, reason: "quote-missing")
                         }
-                    }), catalog: request.catalog, memoryContext: memoryContext, vision: request.vision, isRepeat: { said.isRepeat($0, now: Date()) }) { mark in
+                    }), catalog: request.catalog, memoryContext: memoryContext, vision: request.vision, isRepeat: { said.isRepeat($0, now: Date()) }, onReject: { reason, line in
+                        if debug {
+                            FileHandle.standardError.write(Data("[sprite] model mark rejected reason=\(reason) l=\(line)\n".utf8))
+                        }
+                    }) { mark in
                     progress.accepted()
                     continuation.yield(mark)
                 }
