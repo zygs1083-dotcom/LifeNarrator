@@ -9,6 +9,8 @@ import sys
 import threading
 import time
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 executable, model = map(Path, sys.argv[1:])
 directory = Path('artifacts/builtin-model-test').resolve()
 directory.mkdir(parents=True, exist_ok=True)
