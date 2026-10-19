@@ -4,25 +4,25 @@
     "en": "What is new"
   },
   "intro": {
-    "zh": "本次新增应用内更新公告，并包含最近的稳定性与规则改进。",
-    "en": "This release adds in-app update notes and includes recent stability and rule improvements."
+    "zh": "本次重点修复 Windows 通用设置卡死，并改进内置模型的稳定性与问题诊断。",
+    "en": "This release fixes frozen General settings on Windows and improves built-in model stability and diagnostics."
   },
   "items": [
     {
-      "zh": "新增应用内更新公告：升级后首次展示，也可随时在设置的更新区域重看。",
-      "en": "New in-app update notes appear the first time after an upgrade and can be revisited anytime in Settings under Updates."
+      "zh": "修复 Windows 点击通用设置后，按钮无法点击、页面无法滚动的问题。",
+      "en": "Fixed General settings on Windows becoming unresponsive to clicks and scrolling."
     },
     {
-      "zh": "修复一种已确认的 Windows 切换或关闭窗口时闪退的问题。",
-      "en": "Fixed one confirmed Windows crash that could occur when switching or closing windows."
+      "zh": "黑名单改为编辑结束、离开输入框时保存，避免输入过程中刷新页面和丢失焦点。",
+      "en": "Blacklist edits now save when you leave the text box, avoiding page refreshes and lost focus while typing."
     },
     {
-      "zh": "减少 Windows 静止气泡的重复绘制，让陪伴更轻盈。",
-      "en": "Reduced repeated drawing of stationary bubbles on Windows for a lighter experience."
+      "zh": "调整 Windows 内置模型运行库，避开已确认会在部分处理器上导致进程退出的 CPU 变体。",
+      "en": "Adjusted the Windows built-in model runtime to avoid a CPU variant confirmed to terminate the process on affected processors."
     },
     {
-      "zh": "改善内置规则的分类与英文匹配词，并保留完整的规则说明。",
-      "en": "Improved built-in rule categories and English matching terms while preserving complete rule descriptions."
+      "zh": "补充模型输出被拒绝时的诊断信息，并修正 Windows 测试诊断的中文编码。",
+      "en": "Added diagnostics for rejected model output and corrected Chinese text encoding in Windows test diagnostics."
     }
   ],
   "dismiss": {
