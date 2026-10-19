@@ -153,8 +153,13 @@ internal sealed class SettingsWindow : Window
         { await Task.Run(() => Startup.SetEnabled(enabled)); settings.LaunchAtLogin = enabled; await configure(); }));
         var blacklist = new TextBox { Text = string.Join('\n', settings.Blacklist), AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Height = 90 };
         AutomationProperties.SetName(blacklist, text["blacklist"]); AutomationProperties.SetAutomationId(blacklist, "blacklist");
-        blacklist.TextChanged += (_, _) => Run(async () =>
-        { settings.Blacklist = (blacklist.Text ?? "").Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries); await configure(); });
+        // TextChanged fires on attach and configure re-renders this tab, which looped forever; save on blur instead.
+        blacklist.LostFocus += (_, _) => Run(async () =>
+        {
+            var entries = (blacklist.Text ?? "").Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (entries.SequenceEqual(settings.Blacklist)) return;
+            settings.Blacklist = entries; await configure();
+        });
         updateContent = Views.Stack(); RefreshUpdates();
         Control Recorder(string key, HotKey? value, Action<HotKey?> change) => Views.Row(Views.Label(text[key]),
             new ShortcutRecorder(text[key], value, text, shortcut => Run(async () => { change(shortcut); await configure(); }), recording));

@@ -6,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Interactivity;
 using Avalonia.Input;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using LifeNarrator.Windows;
 
@@ -38,9 +39,19 @@ internal static class UIChecks
         }
         window.SelectTab(SettingsWindow.GeneralTab); window.UpdateLayout();
         var blacklist = window.GetVisualDescendants().OfType<TextBox>().Single(c => AutomationProperties.GetAutomationId(c) == "blacklist");
+        var before = configurations;
         blacklist.Focus(); window.KeyTextInput("notepad");
-        if (!settings.Blacklist.SequenceEqual(new[] { "notepad" })) throw new Exception("Blacklist text input did not configure");
+        if (configurations != before) throw new Exception("Blacklist configured before losing focus");
         var language = window.GetVisualDescendants().OfType<ComboBox>().Single(c => AutomationProperties.GetAutomationId(c) == "language");
+        language.Focus();
+        if (!settings.Blacklist.SequenceEqual(new[] { "notepad" }) || configurations != before + 1) throw new Exception("Blacklist text input did not configure");
+        // The shell re-renders on host.stateChanged after configure; opening General must not configure. Refresh once so a regression fails instead of looping.
+        var refreshing = SettingsSnapshots.Companion(settings);
+        var loops = 0;
+        var looping = new SettingsWindow(settings, async () => { if (loops++ == 0) await refreshing.Refresh(); }, () => Task.FromResult(15d), updater, () => Task.CompletedTask, refreshing);
+        looping.Show(); looping.SelectTab(SettingsWindow.GeneralTab); looping.UpdateLayout();
+        Dispatcher.UIThread.RunJobs(); looping.Close();
+        if (loops != 0) throw new Exception($"Opening General configured {loops} times");
         language.SelectedIndex = 2;
         if (settings.EffectiveLanguage != "en" || !window.Title!.Contains("Settings")) throw new Exception("Language change did not refresh UI");
         window.UpdateLayout();
