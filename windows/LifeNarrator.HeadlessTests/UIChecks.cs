@@ -27,6 +27,10 @@ internal static class UIChecks
         slider.Focus(); window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None); window.KeyReleaseQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
         if (settings.MarkGap != 10) throw new Exception("Pace slider does not support keyboard input");
         if (settings.Persona != "cat" || settings.MarkGap != 10 || configurations != 3) throw new Exception("Sprite edits did not configure immediately");
+        window.UpdateLayout();
+        var thumb = slider.GetVisualDescendants().OfType<Thumb>().Single(); var thumbX = thumb.Bounds.X;
+        slider.Value = 20; window.UpdateLayout();
+        if (thumb.Bounds.X <= thumbX) throw new Exception("Pace slider thumb does not follow its value");
         foreach (var variant in new[] { ThemeVariant.Light, ThemeVariant.Dark })
         {
             Application.Current.RequestedThemeVariant = variant;

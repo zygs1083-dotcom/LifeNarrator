@@ -117,7 +117,8 @@
         <Setter Property="MinHeight" Value="28"/><Setter Property="Template"><ControlTemplate>
           <Panel>
             <Border Height="4" Background="{DynamicResource Soft}" VerticalAlignment="Center" CornerRadius="2"/>
-            <Track Name="PART_Track" Orientation="Horizontal">
+            <Track Name="PART_Track" Orientation="Horizontal"
+                Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}">
               <Track.DecreaseButton><RepeatButton Name="PART_DecreaseButton" Opacity="0" Focusable="False"/></Track.DecreaseButton>
               <Track.IncreaseButton><RepeatButton Name="PART_IncreaseButton" Opacity="0" Focusable="False"/></Track.IncreaseButton>
               <Track.Thumb><Thumb Width="22" Height="26"><Thumb.Template><ControlTemplate><Border Width="16" Height="16" CornerRadius="8" Background="{DynamicResource Accent}"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
