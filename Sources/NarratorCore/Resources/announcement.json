@@ -4,25 +4,13 @@
     "en": "What is new"
   },
   "intro": {
-    "zh": "本次重点修复 Windows 通用设置卡死，并改进内置模型的稳定性与问题诊断。",
-    "en": "This release fixes frozen General settings on Windows and improves built-in model stability and diagnostics."
+    "zh": "本次修复 Windows 设置里滑动条的显示问题。",
+    "en": "This release fixes the sliders in Windows settings."
   },
   "items": [
     {
-      "zh": "修复 Windows 点击通用设置后，按钮无法点击、页面无法滚动的问题。",
-      "en": "Fixed General settings on Windows becoming unresponsive to clicks and scrolling."
-    },
-    {
-      "zh": "黑名单改为编辑结束、离开输入框时保存，避免输入过程中刷新页面和丢失焦点。",
-      "en": "Blacklist edits now save when you leave the text box, avoiding page refreshes and lost focus while typing."
-    },
-    {
-      "zh": "调整 Windows 内置模型运行库，避开已确认会在部分处理器上导致进程退出的 CPU 变体。",
-      "en": "Adjusted the Windows built-in model runtime to avoid a CPU variant confirmed to terminate the process on affected processors."
-    },
-    {
-      "zh": "补充模型输出被拒绝时的诊断信息，并修正 Windows 测试诊断的中文编码。",
-      "en": "Added diagnostics for rejected model output and corrected Chinese text encoding in Windows test diagnostics."
+      "zh": "修复 Windows 设置里拖动或调整数值时，滑块停在最左边不跟着移动的问题。",
+      "en": "Fixed slider thumbs in Windows settings staying at the far left instead of following their values."
     }
   ],
   "dismiss": {
