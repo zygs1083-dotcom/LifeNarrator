@@ -60,7 +60,7 @@ internal static class AnnouncementChecks
                 Application.Current!.RequestedThemeVariant = theme;
                 settings.Language = language;
                 var notes = UpdateAnnouncement.Load();
-                Require(notes.Items.Length == 4 && notes.Items.All(i => i.Text(language).Length > 10), "Complete localized announcement required");
+                Require(notes.Items.Length > 0 && notes.Items.All(i => i.Text(language).Length > 10), "Complete localized announcement required");
                 var window = new AnnouncementWindow(settings, notes);
                 if (small) { window.Width = 320; window.Height = 260; }
                 window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();

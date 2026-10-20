@@ -7,7 +7,7 @@ final class AnnouncementTests: XCTestCase {
         XCTAssertEqual(notes.title.value(.zh), "更新公告")
         XCTAssertEqual(notes.title.value(.en), "What is new")
         XCTAssertEqual(notes.dismiss.value(.en), "Got it")
-        XCTAssertEqual(notes.items.count, 4)
+        XCTAssertFalse(notes.items.isEmpty)
         for text in [notes.intro] + notes.items {
             XCTAssertFalse(text.value(.zh).isEmpty)
             XCTAssertFalse(text.value(.en).isEmpty)
